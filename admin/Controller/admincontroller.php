@@ -260,6 +260,171 @@ class admincontroller{
         $_SESSION['error'] = 'Không thể upload file!';
         return null;
     }
+
+    // ===========================================
+    //  QUẢN LÝ HỌC SINH
+    // ===========================================
+
+    // Danh sách học sinh
+    public function listHocSinh(){
+        $this->checkAdminLogin();
+        $page = $_GET['page'] ?? 1;
+        $limit = 10;
+        $search = $_GET['search'] ?? '';
+        
+        $hocSinh = $this->model->getHocSinh($page, $limit, $search);
+        $total = $this->model->countHocSinh($search);
+        $totalPages = ceil($total / $limit);
+        
+        require_once('./admin/View/hoc_sinh/list.php');
+    }
+
+    // Form thêm học sinh
+    public function addHocSinh(){
+        $this->checkAdminLogin();
+        require_once('./admin/View/hoc_sinh/form.php');
+    }
+
+    // Xử lý thêm học sinh
+    public function saveHocSinh(){
+        $this->checkAdminLogin();
+        $data = [
+            'ho_ten' => $_POST['ho_ten'] ?? '',
+            'email' => $_POST['email'] ?? '',
+            'mat_khau' => $_POST['mat_khau'] ?? '',
+            'sdt' => $_POST['sdt'] ?? '',
+            'dia_chi' => $_POST['dia_chi'] ?? '',
+            'trang_thai' => $_POST['trang_thai'] ?? 1
+        ];
+
+        // Validation
+        if (empty($data['ho_ten']) || empty($data['email']) || empty($data['mat_khau'])) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ?act=admin-add-hoc-sinh');
+            exit;
+        }
+
+        // Kiểm tra email đã tồn tại chưa
+        if ($this->model->checkEmailExists($data['email'])) {
+            $_SESSION['error'] = 'Email đã tồn tại trong hệ thống!';
+            header('Location: ?act=admin-add-hoc-sinh');
+            exit;
+        }
+
+        // Validate email format
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = 'Email không hợp lệ!';
+            header('Location: ?act=admin-add-hoc-sinh');
+            exit;
+        }
+
+        if ($this->model->addHocSinh($data)) {
+            $_SESSION['success'] = 'Thêm học sinh thành công!';
+            header('Location: ?act=admin-list-hoc-sinh');
+        } else {
+            $_SESSION['error'] = 'Thêm học sinh thất bại!';
+            header('Location: ?act=admin-add-hoc-sinh');
+        }
+        exit;
+    }
+
+    // Form sửa học sinh
+    public function editHocSinh(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+        
+        $hocSinh = $this->model->getHocSinhById($id);
+        if (!$hocSinh) {
+            $_SESSION['error'] = 'Không tìm thấy học sinh!';
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+        
+        require_once('./admin/View/hoc_sinh/form.php');
+    }
+
+    // Xử lý cập nhật học sinh
+    public function updateHocSinh(){
+        $this->checkAdminLogin();
+        $id = $_POST['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+
+        $hocSinh = $this->model->getHocSinhById($id);
+        if (!$hocSinh) {
+            $_SESSION['error'] = 'Không tìm thấy học sinh!';
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+
+        $data = [
+            'ho_ten' => $_POST['ho_ten'] ?? '',
+            'email' => $_POST['email'] ?? '',
+            'sdt' => $_POST['sdt'] ?? '',
+            'dia_chi' => $_POST['dia_chi'] ?? '',
+            'trang_thai' => $_POST['trang_thai'] ?? 1
+        ];
+
+        // Nếu có mật khẩu mới
+        if (!empty($_POST['mat_khau'])) {
+            $data['mat_khau'] = $_POST['mat_khau'];
+        }
+
+        // Validation
+        if (empty($data['ho_ten']) || empty($data['email'])) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
+            exit;
+        }
+
+        // Kiểm tra email đã tồn tại chưa (trừ ID hiện tại)
+        if ($this->model->checkEmailExists($data['email'], $id)) {
+            $_SESSION['error'] = 'Email đã tồn tại trong hệ thống!';
+            header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
+            exit;
+        }
+
+        // Validate email format
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = 'Email không hợp lệ!';
+            header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
+            exit;
+        }
+
+        if ($this->model->updateHocSinh($id, $data)) {
+            $_SESSION['success'] = 'Cập nhật học sinh thành công!';
+            header('Location: ?act=admin-list-hoc-sinh');
+        } else {
+            $_SESSION['error'] = 'Cập nhật học sinh thất bại!';
+            header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
+        }
+        exit;
+    }
+
+    // Xóa học sinh
+    public function deleteHocSinh(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+
+        if ($this->model->deleteHocSinh($id)) {
+            $_SESSION['success'] = 'Xóa học sinh thành công!';
+        } else {
+            $_SESSION['error'] = 'Xóa học sinh thất bại!';
+        }
+        header('Location: ?act=admin-list-hoc-sinh');
+        exit;
+    }
 }
 
 ?>

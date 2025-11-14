@@ -248,6 +248,140 @@ class adminmodel
         $stmt->execute();
         return $stmt->fetch();
     }
+
+    // ===========================================
+    //  QUẢN LÝ HỌC SINH
+    // ===========================================
+
+    // Lấy danh sách học sinh
+    public function getHocSinh($page = 1, $limit = 10, $search = '')
+    {
+        $offset = ($page - 1) * $limit;
+        $sql = "SELECT * FROM nguoi_dung WHERE vai_tro = 'hoc_sinh'";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR sdt LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        $sql .= " ORDER BY id DESC LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Đếm tổng số học sinh
+    public function countHocSinh($search = '')
+    {
+        $sql = "SELECT COUNT(*) as total FROM nguoi_dung WHERE vai_tro = 'hoc_sinh'";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR sdt LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return $result['total'];
+    }
+
+    // Lấy thông tin một học sinh theo ID
+    public function getHocSinhById($id)
+    {
+        $sql = "SELECT * FROM nguoi_dung WHERE id = :id AND vai_tro = 'hoc_sinh'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
+
+    // Thêm học sinh mới
+    public function addHocSinh($data)
+    {
+        $sql = "INSERT INTO nguoi_dung (ho_ten, email, mat_khau, sdt, dia_chi, vai_tro, trang_thai) 
+                VALUES (:ho_ten, :email, :mat_khau, :sdt, :dia_chi, 'hoc_sinh', :trang_thai)";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':ho_ten', $data['ho_ten']);
+        $stmt->bindValue(':email', $data['email']);
+        $stmt->bindValue(':mat_khau', $data['mat_khau']);
+        $stmt->bindValue(':sdt', $data['sdt'] ?? null);
+        $stmt->bindValue(':dia_chi', $data['dia_chi'] ?? null);
+        $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 1, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    // Cập nhật học sinh
+    public function updateHocSinh($id, $data)
+    {
+        $sql = "UPDATE nguoi_dung 
+                SET ho_ten = :ho_ten, 
+                    email = :email, 
+                    sdt = :sdt, 
+                    dia_chi = :dia_chi, 
+                    trang_thai = :trang_thai";
+        
+        // Chỉ cập nhật mật khẩu nếu có
+        if (!empty($data['mat_khau'])) {
+            $sql .= ", mat_khau = :mat_khau";
+        }
+        
+        $sql .= " WHERE id = :id AND vai_tro = 'hoc_sinh'";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':ho_ten', $data['ho_ten']);
+        $stmt->bindValue(':email', $data['email']);
+        $stmt->bindValue(':sdt', $data['sdt'] ?? null);
+        $stmt->bindValue(':dia_chi', $data['dia_chi'] ?? null);
+        $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 1, PDO::PARAM_INT);
+        
+        if (!empty($data['mat_khau'])) {
+            $stmt->bindValue(':mat_khau', $data['mat_khau']);
+        }
+        
+        return $stmt->execute();
+    }
+
+    // Xóa học sinh
+    public function deleteHocSinh($id)
+    {
+        $sql = "DELETE FROM nguoi_dung WHERE id = :id AND vai_tro = 'hoc_sinh'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    // Kiểm tra email đã tồn tại chưa (trừ ID hiện tại)
+    public function checkEmailExists($email, $excludeId = null)
+    {
+        $sql = "SELECT COUNT(*) as total FROM nguoi_dung WHERE email = :email";
+        $params = [':email' => $email];
+        
+        if ($excludeId) {
+            $sql .= " AND id != :exclude_id";
+            $params[':exclude_id'] = $excludeId;
+        }
+        
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return $result['total'] > 0;
+    }
 }
 
 

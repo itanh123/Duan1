@@ -415,7 +415,7 @@
                 <div class="menu-card-title">Quản Lý Lớp Học</div>
             </a>
             
-            <a href="#" class="menu-card">
+            <a href="?act=admin-list-hoc-sinh" class="menu-card">
                 <div class="menu-card-icon">👥</div>
                 <div class="menu-card-title">Quản Lý Học Sinh</div>
             </a>

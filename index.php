@@ -70,6 +70,18 @@ match ($act) {
     'admin-delete-khoa-hoc' => $adminController->deleteKhoaHoc(),
     
     // ============================
+    //  ADMIN - QUẢN LÝ HỌC SINH
+    // ============================
+    
+    // Quản lý học sinh
+    'admin-list-hoc-sinh' => $adminController->listHocSinh(),
+    'admin-add-hoc-sinh' => $adminController->addHocSinh(),
+    'admin-save-hoc-sinh' => $adminController->saveHocSinh(),
+    'admin-edit-hoc-sinh' => $adminController->editHocSinh(),
+    'admin-update-hoc-sinh' => $adminController->updateHocSinh(),
+    'admin-delete-hoc-sinh' => $adminController->deleteHocSinh(),
+    
+    // ============================
     //  MẶC ĐỊNH – KHÔNG TÌM THẤY
     // ============================
     default => notFound(),
