@@ -296,6 +296,10 @@
                     <li><a href="#courses">Khóa học</a></li>
                     <li><a href="#">Giảng viên</a></li>
                     <li><a href="#">Liên hệ</a></li>
+                    <?php if (isset($_SESSION['client_id'])): ?>
+                        <li style="color: var(--primary); font-weight: 600;">👤 <?= htmlspecialchars($_SESSION['client_ho_ten'] ?? '') ?></li>
+                        <li><a href="?act=client-logout" style="color: #dc3545;">🚪 Đăng xuất</a></li>
+                    <?php endif; ?>
                 </ul>
             </nav>
         </div>

@@ -210,6 +210,44 @@ class adminmodel
         $stmt->execute();
         return $stmt->fetchAll();
     }
+
+    // Đăng nhập - Kiểm tra email và mật khẩu
+    public function login($email, $password, $vai_tro = 'admin')
+    {
+        $sql = "SELECT * FROM nguoi_dung 
+                WHERE email = :email 
+                AND vai_tro = :vai_tro 
+                AND trang_thai = 1";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':email', $email);
+        $stmt->bindValue(':vai_tro', $vai_tro);
+        $stmt->execute();
+        $user = $stmt->fetch();
+
+        if ($user) {
+            // Kiểm tra mật khẩu (có thể là plain text hoặc đã hash)
+            // Nếu mật khẩu trong DB là plain text
+            if ($user['mat_khau'] === $password) {
+                return $user;
+            }
+            // Nếu mật khẩu đã được hash bằng password_verify
+            if (password_verify($password, $user['mat_khau'])) {
+                return $user;
+            }
+        }
+
+        return false;
+    }
+
+    // Lấy thông tin người dùng theo ID
+    public function getUserById($id)
+    {
+        $sql = "SELECT * FROM nguoi_dung WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
 }
 
 

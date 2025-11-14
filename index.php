@@ -23,6 +23,13 @@ $khoaHocController = new KhoaHocController();
 
 match ($act) {
     // ============================
+    //  CLIENT - ĐĂNG NHẬP/ĐĂNG XUẤT
+    // ============================
+    'client-login' => $khoaHocController->login(),
+    'client-process-login' => $khoaHocController->processLogin(),
+    'client-logout' => $khoaHocController->logout(),
+    
+    // ============================
     //  CLIENT - TRANG CHỦ (MẶC ĐỊNH)
     // ============================
     'cliet' => $khoaHocController->index(),
@@ -35,6 +42,13 @@ match ($act) {
     'client-chi-tiet-khoa-hoc' => $khoaHocController->detail(),
     'client-binh-luan-khoa-hoc' => $khoaHocController->addComment(),
     'client-dang-ky-khoa-hoc' => $khoaHocController->dangKy(),
+    
+    // ============================
+    //  ADMIN - ĐĂNG NHẬP/ĐĂNG XUẤT
+    // ============================
+    'admin-login' => $adminController->login(),
+    'admin-process-login' => $adminController->processLogin(),
+    'admin-logout' => $adminController->logout(),
     
     // ============================
     //  ADMIN - TRANG CHỦ ADMIN

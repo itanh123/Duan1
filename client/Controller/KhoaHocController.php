@@ -1,13 +1,72 @@
 <?php
 // Đúng đường dẫn model (theo ZIP bạn gửi)
 require_once __DIR__ . '/../Model/KhoaHoc.php';
+require_once __DIR__ . '/../../admin/Model/adminmodel.php';
 
 class KhoaHocController {
 
     private $model;
+    private $userModel;
 
     public function __construct() {
         $this->model = new KhoaHoc();
+        $this->userModel = new adminmodel();
+    }
+
+    // Kiểm tra đăng nhập client
+    private function checkClientLogin(){
+        if (!isset($_SESSION['client_id']) || !isset($_SESSION['client_vai_tro']) || $_SESSION['client_vai_tro'] !== 'hoc_sinh') {
+            header('Location: ?act=client-login');
+            exit;
+        }
+    }
+
+    // Trang đăng nhập client
+    public function login(){
+        // Nếu đã đăng nhập thì chuyển về trang danh sách
+        if (isset($_SESSION['client_id']) && $_SESSION['client_vai_tro'] === 'hoc_sinh') {
+            header('Location: ?act=client-khoa-hoc');
+            exit;
+        }
+        require_once(__DIR__ . '/../views/login.php');
+    }
+
+    // Xử lý đăng nhập client
+    public function processLogin(){
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        if (empty($email) || empty($password)) {
+            $_SESSION['error'] = 'Vui lòng nhập đầy đủ email và mật khẩu!';
+            header('Location: ?act=client-login');
+            exit;
+        }
+
+        $user = $this->userModel->login($email, $password, 'hoc_sinh');
+        
+        if ($user) {
+            $_SESSION['client_id'] = $user['id'];
+            $_SESSION['client_email'] = $user['email'];
+            $_SESSION['client_ho_ten'] = $user['ho_ten'];
+            $_SESSION['client_vai_tro'] = $user['vai_tro'];
+            $_SESSION['success'] = 'Đăng nhập thành công!';
+            header('Location: ?act=client-khoa-hoc');
+        } else {
+            $_SESSION['error'] = 'Email hoặc mật khẩu không đúng!';
+            header('Location: ?act=client-login');
+        }
+        exit;
+    }
+
+    // Đăng xuất client
+    public function logout(){
+        unset($_SESSION['client_id']);
+        unset($_SESSION['client_email']);
+        unset($_SESSION['client_ho_ten']);
+        unset($_SESSION['client_vai_tro']);
+        $_SESSION['success'] = 'Đăng xuất thành công!';
+        header('Location: ?act=client-khoa-hoc');
+        exit;
     }
 
     // ===========================================
@@ -15,6 +74,7 @@ class KhoaHocController {
     // ===========================================
     public function index() 
     {
+        $this->checkClientLogin();
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 12;
         $offset = ($page - 1) * $perPage;

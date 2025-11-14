@@ -8,8 +8,65 @@ class admincontroller{
         $this->model = new adminmodel();
     }
 
+    // Kiểm tra đăng nhập admin
+    private function checkAdminLogin(){
+        if (!isset($_SESSION['admin_id']) || !isset($_SESSION['admin_vai_tro']) || $_SESSION['admin_vai_tro'] !== 'admin') {
+            header('Location: ?act=admin-login');
+            exit;
+        }
+    }
+
+    // Trang đăng nhập admin
+    public function login(){
+        // Nếu đã đăng nhập thì chuyển về dashboard
+        if (isset($_SESSION['admin_id']) && $_SESSION['admin_vai_tro'] === 'admin') {
+            header('Location: ?act=admin-dashboard');
+            exit;
+        }
+        require_once('./admin/View/login.php');
+    }
+
+    // Xử lý đăng nhập admin
+    public function processLogin(){
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        if (empty($email) || empty($password)) {
+            $_SESSION['error'] = 'Vui lòng nhập đầy đủ email và mật khẩu!';
+            header('Location: ?act=admin-login');
+            exit;
+        }
+
+        $user = $this->model->login($email, $password, 'admin');
+        
+        if ($user) {
+            $_SESSION['admin_id'] = $user['id'];
+            $_SESSION['admin_email'] = $user['email'];
+            $_SESSION['admin_ho_ten'] = $user['ho_ten'];
+            $_SESSION['admin_vai_tro'] = $user['vai_tro'];
+            $_SESSION['success'] = 'Đăng nhập thành công!';
+            header('Location: ?act=admin-dashboard');
+        } else {
+            $_SESSION['error'] = 'Email hoặc mật khẩu không đúng!';
+            header('Location: ?act=admin-login');
+        }
+        exit;
+    }
+
+    // Đăng xuất admin
+    public function logout(){
+        unset($_SESSION['admin_id']);
+        unset($_SESSION['admin_email']);
+        unset($_SESSION['admin_ho_ten']);
+        unset($_SESSION['admin_vai_tro']);
+        $_SESSION['success'] = 'Đăng xuất thành công!';
+        header('Location: ?act=admin-login');
+        exit;
+    }
+
     // Trang chủ admin (Dashboard)
     public function dashboard(){
+        $this->checkAdminLogin();
         $thongKe = $this->model->getThongKe();
         $dangKyMoiNhat = $this->model->getDangKyMoiNhat(5);
         $thanhToanMoiNhat = $this->model->getThanhToanMoiNhat(5);
@@ -19,6 +76,7 @@ class admincontroller{
 
     // Danh sách khóa học
     public function listKhoaHoc(){
+        $this->checkAdminLogin();
         $page = $_GET['page'] ?? 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
@@ -34,12 +92,14 @@ class admincontroller{
 
     // Form thêm khóa học
     public function addKhoaHoc(){
+        $this->checkAdminLogin();
         $danhMuc = $this->model->getDanhMuc();
         require_once('./admin/View/khoa_hoc/form.php');
     }
 
     // Xử lý thêm khóa học
     public function saveKhoaHoc(){
+        $this->checkAdminLogin();
         $data = [
             'id_danh_muc' => $_POST['id_danh_muc'] ?? '',
             'ten_khoa_hoc' => $_POST['ten_khoa_hoc'] ?? '',
@@ -67,6 +127,7 @@ class admincontroller{
 
     // Form sửa khóa học
     public function editKhoaHoc(){
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-khoa-hoc');
@@ -86,6 +147,7 @@ class admincontroller{
 
     // Xử lý cập nhật khóa học
     public function updateKhoaHoc(){
+        $this->checkAdminLogin();
         $id = $_POST['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-khoa-hoc');
@@ -136,6 +198,7 @@ class admincontroller{
 
     // Xóa khóa học
     public function deleteKhoaHoc(){
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             $_SESSION['error'] = 'ID không hợp lệ!';

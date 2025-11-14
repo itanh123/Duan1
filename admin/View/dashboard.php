@@ -236,8 +236,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Trang Quản Trị Hệ Thống</h1>
-            <p>Chào mừng bạn đến với hệ thống quản lý khóa học</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>📊 Trang Quản Trị Hệ Thống</h1>
+                    <p>Chào mừng, <?= htmlspecialchars($_SESSION['admin_ho_ten'] ?? 'Admin') ?> (<?= htmlspecialchars($_SESSION['admin_email'] ?? '') ?>)</p>
+                </div>
+                <a href="?act=admin-logout" style="background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; transition: all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">🚪 Đăng xuất</a>
+            </div>
         </div>
 
         <!-- Thống kê tổng quan -->
