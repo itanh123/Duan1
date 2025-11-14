@@ -384,22 +384,11 @@ class adminmodel
         $limit = (int)$limit;
         $offset = (int)$offset;
         
-        // Kiểm tra xem có cột id_giang_vien không
-        $hasGiangVienColumn = $this->checkColumnExists('lop_hoc', 'id_giang_vien');
-        
-        // Query với JOIN giảng viên nếu cột tồn tại
-        if ($hasGiangVienColumn) {
-            $sql = "SELECT lh.*, kh.ten_khoa_hoc, nd.ho_ten as ten_giang_vien 
-                    FROM lop_hoc lh 
-                    LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id 
-                    LEFT JOIN nguoi_dung nd ON lh.id_giang_vien = nd.id 
-                    WHERE 1=1";
-        } else {
-            $sql = "SELECT lh.*, kh.ten_khoa_hoc, NULL as ten_giang_vien 
-                    FROM lop_hoc lh 
-                    LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id 
-                    WHERE 1=1";
-        }
+        // Query không JOIN giảng viên (giảng viên được quản lý trong ca học)
+        $sql = "SELECT lh.*, kh.ten_khoa_hoc 
+                FROM lop_hoc lh 
+                LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id 
+                WHERE 1=1";
         
         $params = [];
 
@@ -465,23 +454,11 @@ class adminmodel
     // Lấy thông tin một lớp học theo ID
     public function getLopHocById($id)
     {
-        // Kiểm tra xem có cột id_giang_vien không
-        $hasGiangVienColumn = $this->checkColumnExists('lop_hoc', 'id_giang_vien');
-        
-        // Query với JOIN giảng viên nếu cột tồn tại
-        if ($hasGiangVienColumn) {
-            $sql = "SELECT lh.*, kh.ten_khoa_hoc, nd.ho_ten as ten_giang_vien 
-                    FROM lop_hoc lh 
-                    LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id 
-                    LEFT JOIN nguoi_dung nd ON lh.id_giang_vien = nd.id 
-                    WHERE lh.id = :id";
-        } else {
-            $sql = "SELECT lh.*, kh.ten_khoa_hoc, NULL as ten_giang_vien 
-                    FROM lop_hoc lh 
-                    LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id 
-                    WHERE lh.id = :id";
-        }
-        
+        // Query không JOIN giảng viên (giảng viên được quản lý trong ca học)
+        $sql = "SELECT lh.*, kh.ten_khoa_hoc 
+                FROM lop_hoc lh 
+                LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id 
+                WHERE lh.id = :id";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
@@ -500,46 +477,22 @@ class adminmodel
     // Thêm lớp học mới
     public function addLopHoc($data)
     {
-        // Kiểm tra xem có cột id_giang_vien không
-        $hasGiangVienColumn = $this->checkColumnExists('lop_hoc', 'id_giang_vien');
-        
-        if ($hasGiangVienColumn) {
-            // Thêm lớp học với id_giang_vien
-            $sql = "INSERT INTO lop_hoc (id_khoa_hoc, id_giang_vien, ten_lop, mo_ta, so_luong_toi_da, trang_thai) 
-                    VALUES (:id_khoa_hoc, :id_giang_vien, :ten_lop, :mo_ta, :so_luong_toi_da, :trang_thai)";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindValue(':id_khoa_hoc', $data['id_khoa_hoc'], PDO::PARAM_INT);
-            $stmt->bindValue(':id_giang_vien', !empty($data['id_giang_vien']) ? $data['id_giang_vien'] : null, PDO::PARAM_INT);
-            $stmt->bindValue(':ten_lop', $data['ten_lop']);
-            $stmt->bindValue(':mo_ta', $data['mo_ta'] ?? null);
-            $stmt->bindValue(':so_luong_toi_da', $data['so_luong_toi_da'] ?? null, PDO::PARAM_INT);
-            // Đảm bảo trang_thai chỉ là 0 hoặc 1
-            $trang_thai = isset($data['trang_thai']) ? (($data['trang_thai'] == 1 || $data['trang_thai'] == '1') ? 1 : 0) : 1;
-            $stmt->bindValue(':trang_thai', $trang_thai, PDO::PARAM_STR);
-        } else {
-            // Thêm lớp học không có id_giang_vien
-            $sql = "INSERT INTO lop_hoc (id_khoa_hoc, ten_lop, mo_ta, so_luong_toi_da, trang_thai) 
-                    VALUES (:id_khoa_hoc, :ten_lop, :mo_ta, :so_luong_toi_da, :trang_thai)";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindValue(':id_khoa_hoc', $data['id_khoa_hoc'], PDO::PARAM_INT);
-            $stmt->bindValue(':ten_lop', $data['ten_lop']);
-            $stmt->bindValue(':mo_ta', $data['mo_ta'] ?? null);
-            $stmt->bindValue(':so_luong_toi_da', $data['so_luong_toi_da'] ?? null, PDO::PARAM_INT);
-            // Đảm bảo trang_thai là một trong các giá trị ENUM hợp lệ
-            $trang_thai = $data['trang_thai'] ?? 'Chưa khai giảng';
-            $validTrangThai = ['Chưa khai giảng', 'Đang học', 'Kết thúc'];
-            if (!in_array($trang_thai, $validTrangThai)) {
-                $trang_thai = 'Chưa khai giảng'; // Mặc định
-            }
-            $stmt->bindValue(':trang_thai', $trang_thai, PDO::PARAM_STR);
+        // Thêm lớp học không có id_giang_vien (giảng viên sẽ được phân công trong ca học)
+        $sql = "INSERT INTO lop_hoc (id_khoa_hoc, ten_lop, mo_ta, so_luong_toi_da, trang_thai) 
+                VALUES (:id_khoa_hoc, :ten_lop, :mo_ta, :so_luong_toi_da, :trang_thai)";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id_khoa_hoc', $data['id_khoa_hoc'], PDO::PARAM_INT);
+        $stmt->bindValue(':ten_lop', $data['ten_lop']);
+        $stmt->bindValue(':mo_ta', $data['mo_ta'] ?? null);
+        $stmt->bindValue(':so_luong_toi_da', $data['so_luong_toi_da'] ?? null, PDO::PARAM_INT);
+        // Đảm bảo trang_thai là một trong các giá trị ENUM hợp lệ
+        $trang_thai = $data['trang_thai'] ?? 'Chưa khai giảng';
+        $validTrangThai = ['Chưa khai giảng', 'Đang học', 'Kết thúc'];
+        if (!in_array($trang_thai, $validTrangThai)) {
+            $trang_thai = 'Chưa khai giảng'; // Mặc định
         }
-        try {
-            return $stmt->execute();
-        } catch (PDOException $e) {
-            // Log lỗi để debug
-            error_log("Lỗi addLopHoc: " . $e->getMessage() . " - trang_thai: " . var_export($trang_thai, true));
-            throw $e;
-        }
+        $stmt->bindValue(':trang_thai', $trang_thai, PDO::PARAM_STR);
+        return $stmt->execute();
     }
 
     // Cập nhật lớp học
@@ -552,51 +505,169 @@ class adminmodel
             $trang_thai = 'Chưa khai giảng'; // Mặc định
         }
         
-        // Kiểm tra xem có cột id_giang_vien không
-        $hasGiangVienColumn = $this->checkColumnExists('lop_hoc', 'id_giang_vien');
+        // Cập nhật lớp học không có id_giang_vien (giảng viên sẽ được phân công trong ca học)
+        $sql = "UPDATE lop_hoc 
+                SET id_khoa_hoc = :id_khoa_hoc, 
+                    ten_lop = :ten_lop, 
+                    mo_ta = :mo_ta, 
+                    so_luong_toi_da = :so_luong_toi_da, 
+                    trang_thai = :trang_thai 
+                WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':id_khoa_hoc', $data['id_khoa_hoc'], PDO::PARAM_INT);
+        $stmt->bindValue(':ten_lop', $data['ten_lop']);
+        $stmt->bindValue(':mo_ta', $data['mo_ta'] ?? null);
+        $stmt->bindValue(':so_luong_toi_da', $data['so_luong_toi_da'] ?? null, PDO::PARAM_INT);
+        $stmt->bindValue(':trang_thai', $trang_thai, PDO::PARAM_STR);
+        return $stmt->execute();
+    }
+
+    // ===========================================
+    //  QUẢN LÝ CA HỌC
+    // ===========================================
+
+    // Lấy danh sách ca học
+    public function getCaHoc($page = 1, $limit = 10, $search = '', $id_lop = '')
+    {
+        $offset = ($page - 1) * $limit;
+        $limit = (int)$limit;
+        $offset = (int)$offset;
         
-        if ($hasGiangVienColumn) {
-            // Cập nhật lớp học với id_giang_vien
-            $sql = "UPDATE lop_hoc 
-                    SET id_khoa_hoc = :id_khoa_hoc, 
-                        id_giang_vien = :id_giang_vien, 
-                        ten_lop = :ten_lop, 
-                        mo_ta = :mo_ta, 
-                        so_luong_toi_da = :so_luong_toi_da, 
-                        trang_thai = :trang_thai 
-                    WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            $stmt->bindValue(':id_khoa_hoc', $data['id_khoa_hoc'], PDO::PARAM_INT);
-            $stmt->bindValue(':id_giang_vien', !empty($data['id_giang_vien']) ? $data['id_giang_vien'] : null, PDO::PARAM_INT);
-            $stmt->bindValue(':ten_lop', $data['ten_lop']);
-            $stmt->bindValue(':mo_ta', $data['mo_ta'] ?? null);
-            $stmt->bindValue(':so_luong_toi_da', $data['so_luong_toi_da'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':trang_thai', $trang_thai, PDO::PARAM_STR);
-        } else {
-            // Cập nhật lớp học không có id_giang_vien
-            $sql = "UPDATE lop_hoc 
-                    SET id_khoa_hoc = :id_khoa_hoc, 
-                        ten_lop = :ten_lop, 
-                        mo_ta = :mo_ta, 
-                        so_luong_toi_da = :so_luong_toi_da, 
-                        trang_thai = :trang_thai 
-                    WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            $stmt->bindValue(':id_khoa_hoc', $data['id_khoa_hoc'], PDO::PARAM_INT);
-            $stmt->bindValue(':ten_lop', $data['ten_lop']);
-            $stmt->bindValue(':mo_ta', $data['mo_ta'] ?? null);
-            $stmt->bindValue(':so_luong_toi_da', $data['so_luong_toi_da'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':trang_thai', $trang_thai, PDO::PARAM_STR);
+        $sql = "SELECT ch.*, lh.ten_lop, kh.ten_khoa_hoc, nd.ho_ten as ten_giang_vien, 
+                       cmd.ten_ca, cmd.gio_bat_dau, cmd.gio_ket_thuc
+                FROM ca_hoc ch 
+                LEFT JOIN lop_hoc lh ON ch.id_lop = lh.id 
+                LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id 
+                LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id 
+                LEFT JOIN ca_mac_dinh cmd ON ch.id_ca = cmd.id
+                WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (ch.phong_hoc LIKE :search OR ch.ghi_chu LIKE :search)";
+            $params[':search'] = "%$search%";
         }
-        try {
-            return $stmt->execute();
-        } catch (PDOException $e) {
-            // Log lỗi để debug
-            error_log("Lỗi updateLopHoc: " . $e->getMessage() . " - trang_thai: " . var_export($trang_thai, true) . " - data: " . var_export($data, true));
-            throw $e;
+
+        if (!empty($id_lop)) {
+            $sql .= " AND ch.id_lop = :id_lop";
+            $params[':id_lop'] = $id_lop;
         }
+
+        $sql .= " ORDER BY ch.id_lop, ch.thu_trong_tuan, cmd.gio_bat_dau LIMIT $limit OFFSET $offset";
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Đếm tổng số ca học
+    public function countCaHoc($search = '', $id_lop = '')
+    {
+        $sql = "SELECT COUNT(*) as total FROM ca_hoc WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (phong_hoc LIKE :search OR ghi_chu LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        if (!empty($id_lop)) {
+            $sql .= " AND id_lop = :id_lop";
+            $params[':id_lop'] = $id_lop;
+        }
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return $result['total'];
+    }
+
+    // Lấy thông tin một ca học theo ID
+    public function getCaHocById($id)
+    {
+        $sql = "SELECT ch.*, lh.ten_lop, kh.ten_khoa_hoc, nd.ho_ten as ten_giang_vien,
+                       cmd.ten_ca, cmd.gio_bat_dau, cmd.gio_ket_thuc
+                FROM ca_hoc ch 
+                LEFT JOIN lop_hoc lh ON ch.id_lop = lh.id 
+                LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id 
+                LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id 
+                LEFT JOIN ca_mac_dinh cmd ON ch.id_ca = cmd.id
+                WHERE ch.id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
+
+    // Lấy danh sách lớp học (để chọn trong form)
+    public function getLopHocList()
+    {
+        $sql = "SELECT id, ten_lop FROM lop_hoc ORDER BY ten_lop";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Lấy danh sách ca mặc định (để chọn trong form)
+    public function getCaMacDinhList()
+    {
+        $sql = "SELECT id, ten_ca, gio_bat_dau, gio_ket_thuc FROM ca_mac_dinh ORDER BY gio_bat_dau";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Thêm ca học mới
+    public function addCaHoc($data)
+    {
+        $sql = "INSERT INTO ca_hoc (id_lop, id_giang_vien, id_ca, thu_trong_tuan, phong_hoc, ghi_chu) 
+                VALUES (:id_lop, :id_giang_vien, :id_ca, :thu_trong_tuan, :phong_hoc, :ghi_chu)";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id_lop', $data['id_lop'], PDO::PARAM_INT);
+        $stmt->bindValue(':id_giang_vien', !empty($data['id_giang_vien']) ? $data['id_giang_vien'] : null, PDO::PARAM_INT);
+        $stmt->bindValue(':id_ca', $data['id_ca'], PDO::PARAM_INT);
+        $stmt->bindValue(':thu_trong_tuan', $data['thu_trong_tuan'], PDO::PARAM_STR);
+        $stmt->bindValue(':phong_hoc', $data['phong_hoc'] ?? null);
+        $stmt->bindValue(':ghi_chu', $data['ghi_chu'] ?? null);
+        return $stmt->execute();
+    }
+
+    // Cập nhật ca học
+    public function updateCaHoc($id, $data)
+    {
+        $sql = "UPDATE ca_hoc 
+                SET id_lop = :id_lop, 
+                    id_giang_vien = :id_giang_vien, 
+                    id_ca = :id_ca,
+                    thu_trong_tuan = :thu_trong_tuan, 
+                    phong_hoc = :phong_hoc, 
+                    ghi_chu = :ghi_chu 
+                WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':id_lop', $data['id_lop'], PDO::PARAM_INT);
+        $stmt->bindValue(':id_giang_vien', !empty($data['id_giang_vien']) ? $data['id_giang_vien'] : null, PDO::PARAM_INT);
+        $stmt->bindValue(':id_ca', $data['id_ca'], PDO::PARAM_INT);
+        $stmt->bindValue(':thu_trong_tuan', $data['thu_trong_tuan'], PDO::PARAM_STR);
+        $stmt->bindValue(':phong_hoc', $data['phong_hoc'] ?? null);
+        $stmt->bindValue(':ghi_chu', $data['ghi_chu'] ?? null);
+        return $stmt->execute();
+    }
+
+    // Xóa ca học
+    public function deleteCaHoc($id)
+    {
+        $sql = "DELETE FROM ca_hoc WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
     }
 
     // Xóa lớp học

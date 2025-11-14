@@ -174,32 +174,15 @@
                        placeholder="Nhập tên lớp học">
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="id_giang_vien">Giảng viên</label>
-                    <select name="id_giang_vien" id="id_giang_vien" class="form-control">
-                        <option value="">-- Chọn giảng viên (tùy chọn) --</option>
-                        <?php if (isset($giangVienList) && !empty($giangVienList)): ?>
-                            <?php foreach ($giangVienList as $gv): ?>
-                                <option value="<?= $gv['id'] ?>" 
-                                        <?= (isset($lopHoc) && !empty($lopHoc['id_giang_vien']) && (int)$lopHoc['id_giang_vien'] == (int)$gv['id']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($gv['ho_ten']) ?> (<?= htmlspecialchars($gv['email']) ?>)
-                                </option>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="so_luong_toi_da">Số lượng tối đa</label>
-                    <input type="number" 
-                           name="so_luong_toi_da" 
-                           id="so_luong_toi_da" 
-                           class="form-control" 
-                           value="<?= $lopHoc['so_luong_toi_da'] ?? '' ?>" 
-                           min="1"
-                           placeholder="Để trống nếu không giới hạn">
-                </div>
+            <div class="form-group">
+                <label for="so_luong_toi_da">Số lượng tối đa</label>
+                <input type="number" 
+                       name="so_luong_toi_da" 
+                       id="so_luong_toi_da" 
+                       class="form-control" 
+                       value="<?= $lopHoc['so_luong_toi_da'] ?? '' ?>" 
+                       min="1"
+                       placeholder="Để trống nếu không giới hạn">
             </div>
 
             <div class="form-group">

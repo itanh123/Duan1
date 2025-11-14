@@ -757,14 +757,12 @@ class admincontroller{
     public function addLopHoc(){
         $this->checkAdminLogin();
         $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
-        $giangVienList = $this->model->getGiangVienList(); // Lấy danh sách giảng viên
         require_once('./admin/View/lop_hoc/form.php');
     }
 
     // Xử lý thêm lớp học
     public function saveLopHoc(){
         $this->checkAdminLogin();
-        $id_giang_vien = $_POST['id_giang_vien'] ?? '';
         $trang_thai = $_POST['trang_thai'] ?? 'Chưa khai giảng';
         // Đảm bảo trang_thai là một trong các giá trị ENUM hợp lệ
         $validTrangThai = ['Chưa khai giảng', 'Đang học', 'Kết thúc'];
@@ -773,7 +771,6 @@ class admincontroller{
         }
         $data = [
             'id_khoa_hoc' => $_POST['id_khoa_hoc'] ?? '',
-            'id_giang_vien' => !empty($id_giang_vien) ? (int)$id_giang_vien : null,
             'ten_lop' => $_POST['ten_lop'] ?? '',
             'mo_ta' => $_POST['mo_ta'] ?? '',
             'so_luong_toi_da' => !empty($_POST['so_luong_toi_da']) ? (int)$_POST['so_luong_toi_da'] : null,
@@ -814,7 +811,6 @@ class admincontroller{
         }
         
         $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
-        $giangVienList = $this->model->getGiangVienList(); // Lấy danh sách giảng viên
         require_once('./admin/View/lop_hoc/form.php');
     }
 
@@ -834,7 +830,6 @@ class admincontroller{
             exit;
         }
 
-        $id_giang_vien = $_POST['id_giang_vien'] ?? '';
         $trang_thai = $_POST['trang_thai'] ?? 'Chưa khai giảng';
         // Đảm bảo trang_thai là một trong các giá trị ENUM hợp lệ
         $validTrangThai = ['Chưa khai giảng', 'Đang học', 'Kết thúc'];
@@ -843,7 +838,6 @@ class admincontroller{
         }
         $data = [
             'id_khoa_hoc' => $_POST['id_khoa_hoc'] ?? '',
-            'id_giang_vien' => !empty($id_giang_vien) ? (int)$id_giang_vien : null,
             'ten_lop' => $_POST['ten_lop'] ?? '',
             'mo_ta' => $_POST['mo_ta'] ?? '',
             'so_luong_toi_da' => !empty($_POST['so_luong_toi_da']) ? (int)$_POST['so_luong_toi_da'] : null,
@@ -864,6 +858,167 @@ class admincontroller{
             $_SESSION['error'] = 'Cập nhật lớp học thất bại!';
             header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
         }
+        exit;
+    }
+
+    // ===========================================
+    //  QUẢN LÝ CA HỌC
+    // ===========================================
+
+    // Danh sách ca học
+    public function listCaHoc(){
+        $this->checkAdminLogin();
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = 10;
+        $search = $_GET['search'] ?? '';
+        $id_lop = $_GET['id_lop'] ?? '';
+        
+        $total = $this->model->countCaHoc($search, $id_lop);
+        $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages));
+        
+        $caHoc = $this->model->getCaHoc($page, $limit, $search, $id_lop);
+        $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học để filter
+        
+        require_once('./admin/View/ca_hoc/list.php');
+    }
+
+    // Form thêm ca học
+    public function addCaHoc(){
+        $this->checkAdminLogin();
+        $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học
+        $giangVienList = $this->model->getGiangVienList(); // Lấy danh sách giảng viên
+        $caMacDinhList = $this->model->getCaMacDinhList(); // Lấy danh sách ca mặc định
+        require_once('./admin/View/ca_hoc/form.php');
+    }
+
+    // Xử lý thêm ca học
+    public function saveCaHoc(){
+        $this->checkAdminLogin();
+        $id_giang_vien = $_POST['id_giang_vien'] ?? '';
+        $data = [
+            'id_lop' => $_POST['id_lop'] ?? '',
+            'id_giang_vien' => !empty($id_giang_vien) ? (int)$id_giang_vien : null,
+            'id_ca' => $_POST['id_ca'] ?? '',
+            'thu_trong_tuan' => $_POST['thu_trong_tuan'] ?? '',
+            'phong_hoc' => $_POST['phong_hoc'] ?? '',
+            'ghi_chu' => $_POST['ghi_chu'] ?? ''
+        ];
+
+        // Validation
+        if (empty($data['id_lop']) || empty($data['id_ca']) || empty($data['thu_trong_tuan'])) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ?act=admin-add-ca-hoc');
+            exit;
+        }
+
+        // Kiểm tra giá trị ENUM hợp lệ
+        $validThu = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+        if (!in_array($data['thu_trong_tuan'], $validThu)) {
+            $_SESSION['error'] = 'Thứ trong tuần không hợp lệ!';
+            header('Location: ?act=admin-add-ca-hoc');
+            exit;
+        }
+
+        if ($this->model->addCaHoc($data)) {
+            $_SESSION['success'] = 'Thêm ca học thành công!';
+            header('Location: ?act=admin-list-ca-hoc');
+        } else {
+            $_SESSION['error'] = 'Thêm ca học thất bại!';
+            header('Location: ?act=admin-add-ca-hoc');
+        }
+        exit;
+    }
+
+    // Form sửa ca học
+    public function editCaHoc(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-ca-hoc');
+            exit;
+        }
+        
+        $caHoc = $this->model->getCaHocById($id);
+        if (!$caHoc) {
+            $_SESSION['error'] = 'Không tìm thấy ca học!';
+            header('Location: ?act=admin-list-ca-hoc');
+            exit;
+        }
+        
+        $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học
+        $giangVienList = $this->model->getGiangVienList(); // Lấy danh sách giảng viên
+        $caMacDinhList = $this->model->getCaMacDinhList(); // Lấy danh sách ca mặc định
+        require_once('./admin/View/ca_hoc/form.php');
+    }
+
+    // Xử lý cập nhật ca học
+    public function updateCaHoc(){
+        $this->checkAdminLogin();
+        $id = $_POST['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-ca-hoc');
+            exit;
+        }
+
+        $caHoc = $this->model->getCaHocById($id);
+        if (!$caHoc) {
+            $_SESSION['error'] = 'Không tìm thấy ca học!';
+            header('Location: ?act=admin-list-ca-hoc');
+            exit;
+        }
+
+        $id_giang_vien = $_POST['id_giang_vien'] ?? '';
+        $data = [
+            'id_lop' => $_POST['id_lop'] ?? '',
+            'id_giang_vien' => !empty($id_giang_vien) ? (int)$id_giang_vien : null,
+            'id_ca' => $_POST['id_ca'] ?? '',
+            'thu_trong_tuan' => $_POST['thu_trong_tuan'] ?? '',
+            'phong_hoc' => $_POST['phong_hoc'] ?? '',
+            'ghi_chu' => $_POST['ghi_chu'] ?? ''
+        ];
+
+        // Validation
+        if (empty($data['id_lop']) || empty($data['id_ca']) || empty($data['thu_trong_tuan'])) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ?act=admin-edit-ca-hoc&id=' . $id);
+            exit;
+        }
+
+        // Kiểm tra giá trị ENUM hợp lệ
+        $validThu = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+        if (!in_array($data['thu_trong_tuan'], $validThu)) {
+            $_SESSION['error'] = 'Thứ trong tuần không hợp lệ!';
+            header('Location: ?act=admin-edit-ca-hoc&id=' . $id);
+            exit;
+        }
+
+        if ($this->model->updateCaHoc($id, $data)) {
+            $_SESSION['success'] = 'Cập nhật ca học thành công!';
+            header('Location: ?act=admin-list-ca-hoc');
+        } else {
+            $_SESSION['error'] = 'Cập nhật ca học thất bại!';
+            header('Location: ?act=admin-edit-ca-hoc&id=' . $id);
+        }
+        exit;
+    }
+
+    // Xóa ca học
+    public function deleteCaHoc(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-ca-hoc');
+            exit;
+        }
+
+        if ($this->model->deleteCaHoc($id)) {
+            $_SESSION['success'] = 'Xóa ca học thành công!';
+        } else {
+            $_SESSION['error'] = 'Xóa ca học thất bại!';
+        }
+        header('Location: ?act=admin-list-ca-hoc');
         exit;
     }
 

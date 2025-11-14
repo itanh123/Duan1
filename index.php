@@ -118,6 +118,18 @@ match ($act) {
     'admin-delete-lop-hoc' => $adminController->deleteLopHoc(),
     
     // ============================
+    //  ADMIN - QUẢN LÝ CA HỌC
+    // ============================
+    
+    // Quản lý ca học
+    'admin-list-ca-hoc' => $adminController->listCaHoc(),
+    'admin-add-ca-hoc' => $adminController->addCaHoc(),
+    'admin-save-ca-hoc' => $adminController->saveCaHoc(),
+    'admin-edit-ca-hoc' => $adminController->editCaHoc(),
+    'admin-update-ca-hoc' => $adminController->updateCaHoc(),
+    'admin-delete-ca-hoc' => $adminController->deleteCaHoc(),
+    
+    // ============================
     //  MẶC ĐỊNH – KHÔNG TÌM THẤY
     // ============================
     default => notFound(),
