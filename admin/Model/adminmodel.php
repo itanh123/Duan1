@@ -690,6 +690,126 @@ class adminmodel
         return $stmt->execute();
     }
 
+    // ===========================================
+    //  QUẢN LÝ ĐĂNG KÝ
+    // ===========================================
+
+    // Lấy danh sách đăng ký
+    public function getDangKy($page = 1, $limit = 10, $search = '', $id_lop = '', $trang_thai = '')
+    {
+        $offset = ($page - 1) * $limit;
+        $limit = (int)$limit;
+        $offset = (int)$offset;
+        
+        $sql = "SELECT dk.*, 
+                       nd.ho_ten as ten_hoc_sinh, nd.email as email_hoc_sinh, nd.so_dien_thoai,
+                       lh.ten_lop, 
+                       kh.ten_khoa_hoc
+                FROM dang_ky dk 
+                LEFT JOIN nguoi_dung nd ON dk.id_hoc_sinh = nd.id 
+                LEFT JOIN lop_hoc lh ON dk.id_lop = lh.id 
+                LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id 
+                WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (nd.ho_ten LIKE :search OR nd.email LIKE :search OR lh.ten_lop LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        if (!empty($id_lop)) {
+            $sql .= " AND dk.id_lop = :id_lop";
+            $params[':id_lop'] = $id_lop;
+        }
+
+        if (!empty($trang_thai)) {
+            $sql .= " AND dk.trang_thai = :trang_thai";
+            $params[':trang_thai'] = $trang_thai;
+        }
+
+        $sql .= " ORDER BY dk.ngay_dang_ky DESC LIMIT $limit OFFSET $offset";
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Đếm tổng số đăng ký
+    public function countDangKy($search = '', $id_lop = '', $trang_thai = '')
+    {
+        $sql = "SELECT COUNT(*) as total 
+                FROM dang_ky dk 
+                LEFT JOIN nguoi_dung nd ON dk.id_hoc_sinh = nd.id 
+                LEFT JOIN lop_hoc lh ON dk.id_lop = lh.id 
+                WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (nd.ho_ten LIKE :search OR nd.email LIKE :search OR lh.ten_lop LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        if (!empty($id_lop)) {
+            $sql .= " AND dk.id_lop = :id_lop";
+            $params[':id_lop'] = $id_lop;
+        }
+
+        if (!empty($trang_thai)) {
+            $sql .= " AND dk.trang_thai = :trang_thai";
+            $params[':trang_thai'] = $trang_thai;
+        }
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return $result['total'];
+    }
+
+    // Lấy thông tin một đăng ký theo ID
+    public function getDangKyById($id)
+    {
+        $sql = "SELECT dk.*, 
+                       nd.ho_ten as ten_hoc_sinh, nd.email as email_hoc_sinh, nd.so_dien_thoai, nd.dia_chi,
+                       lh.ten_lop, lh.so_luong_toi_da,
+                       kh.ten_khoa_hoc, kh.gia
+                FROM dang_ky dk 
+                LEFT JOIN nguoi_dung nd ON dk.id_hoc_sinh = nd.id 
+                LEFT JOIN lop_hoc lh ON dk.id_lop = lh.id 
+                LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id 
+                WHERE dk.id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
+
+    // Cập nhật đăng ký
+    public function updateDangKy($id, $data)
+    {
+        $sql = "UPDATE dang_ky 
+                SET trang_thai = :trang_thai 
+                WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':trang_thai', $data['trang_thai'], PDO::PARAM_STR);
+        return $stmt->execute();
+    }
+
+    // Xóa đăng ký
+    public function deleteDangKy($id)
+    {
+        $sql = "DELETE FROM dang_ky WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
     // Thống kê tổng quan
     public function getThongKe()
     {

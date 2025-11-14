@@ -1041,6 +1041,104 @@ class admincontroller{
         header('Location: ?act=admin-list-lop-hoc');
         exit;
     }
+
+    // ===========================================
+    //  QUẢN LÝ ĐĂNG KÝ
+    // ===========================================
+
+    // Danh sách đăng ký
+    public function listDangKy(){
+        $this->checkAdminLogin();
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = 10;
+        $search = $_GET['search'] ?? '';
+        $id_lop = $_GET['id_lop'] ?? '';
+        $trang_thai = $_GET['trang_thai'] ?? '';
+
+        $dangKy = $this->model->getDangKy($page, $limit, $search, $id_lop, $trang_thai);
+        $total = $this->model->countDangKy($search, $id_lop, $trang_thai);
+        $totalPages = ceil($total / $limit);
+
+        $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học để filter
+        
+        require_once('./admin/View/dang_ky/list.php');
+    }
+
+    // Form sửa đăng ký
+    public function editDangKy(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+        
+        $dangKy = $this->model->getDangKyById($id);
+        if (!$dangKy) {
+            $_SESSION['error'] = 'Không tìm thấy đăng ký!';
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+        
+        require_once('./admin/View/dang_ky/form.php');
+    }
+
+    // Xử lý cập nhật đăng ký
+    public function updateDangKy(){
+        $this->checkAdminLogin();
+        $id = $_POST['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+
+        $dangKy = $this->model->getDangKyById($id);
+        if (!$dangKy) {
+            $_SESSION['error'] = 'Không tìm thấy đăng ký!';
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+
+        $data = [
+            'trang_thai' => $_POST['trang_thai'] ?? ''
+        ];
+
+        // Validation
+        $validTrangThai = ['Chờ xác nhận', 'Đã xác nhận', 'Đã hủy'];
+        if (empty($data['trang_thai']) || !in_array($data['trang_thai'], $validTrangThai)) {
+            $_SESSION['error'] = 'Trạng thái không hợp lệ!';
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id);
+            exit;
+        }
+
+        if ($this->model->updateDangKy($id, $data)) {
+            $_SESSION['success'] = 'Cập nhật đăng ký thành công!';
+            header('Location: ?act=admin-list-dang-ky');
+        } else {
+            $_SESSION['error'] = 'Cập nhật đăng ký thất bại!';
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id);
+        }
+        exit;
+    }
+
+    // Xóa đăng ký
+    public function deleteDangKy(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+
+        if ($this->model->deleteDangKy($id)) {
+            $_SESSION['success'] = 'Xóa đăng ký thành công!';
+        } else {
+            $_SESSION['error'] = 'Xóa đăng ký thất bại!';
+        }
+        header('Location: ?act=admin-list-dang-ky');
+        exit;
+    }
 }
 
 ?>

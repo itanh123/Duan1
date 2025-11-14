@@ -130,6 +130,16 @@ match ($act) {
     'admin-delete-ca-hoc' => $adminController->deleteCaHoc(),
     
     // ============================
+    //  ADMIN - QUẢN LÝ ĐĂNG KÝ
+    // ============================
+    
+    // Quản lý đăng ký
+    'admin-list-dang-ky' => $adminController->listDangKy(),
+    'admin-edit-dang-ky' => $adminController->editDangKy(),
+    'admin-update-dang-ky' => $adminController->updateDangKy(),
+    'admin-delete-dang-ky' => $adminController->deleteDangKy(),
+    
+    // ============================
     //  MẶC ĐỊNH – KHÔNG TÌM THẤY
     // ============================
     default => notFound(),
