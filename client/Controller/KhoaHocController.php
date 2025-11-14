@@ -39,13 +39,13 @@ class KhoaHocController {
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
         if ($id <= 0) {
-            header("Location: index.php?act=khoa_hoc");
+            header("Location: index.php?act=client-khoa-hoc");
             exit;
         }
 
         $course = $this->model->getById($id);
         if (!$course) {
-            header("Location: index.php?act=khoa_hoc");
+            header("Location: index.php?act=client-khoa-hoc");
             exit;
         }
 
@@ -75,7 +75,7 @@ class KhoaHocController {
             $this->model->addBinhLuan($id_khoa_hoc, $id_hoc_sinh, $noi_dung, $danh_gia);
         }
 
-        header("Location: index.php?act=khoa_hoc_detail&id=" . $id_khoa_hoc);
+        header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
         exit;
     }
 
@@ -103,7 +103,7 @@ class KhoaHocController {
             $_SESSION['dang_ky_error'] = 'Vui lòng điền đầy đủ thông tin!';
         }
 
-        header("Location: index.php?act=khoa_hoc_detail&id=" . $id_khoa_hoc);
+        header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
         exit;
     }
 }

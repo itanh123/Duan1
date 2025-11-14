@@ -403,7 +403,7 @@ unset($_SESSION['dang_ky_error']);
             <nav>
                 <ul>
                     <li><a href="index.php">Trang chủ</a></li>
-                    <li><a href="index.php?act=khoa_hoc">Khóa học</a></li>
+                    <li><a href="index.php?act=client-khoa-hoc">Khóa học</a></li>
                     <li><a href="#">Giảng viên</a></li>
                     <li><a href="#">Liên hệ</a></li>
                 </ul>
@@ -413,7 +413,7 @@ unset($_SESSION['dang_ky_error']);
 
     <div class="container">
         <!-- Back Link -->
-        <a href="index.php?act=khoa_hoc" class="back-link">&larr; Quay về danh sách khóa học</a>
+        <a href="index.php?act=client-khoa-hoc" class="back-link">&larr; Quay về danh sách khóa học</a>
 
         <!-- Course Detail -->
         <div class="course-detail">
@@ -450,7 +450,7 @@ unset($_SESSION['dang_ky_error']);
                 </div>
             <?php endif; ?>
 
-            <form method="post" action="index.php?act=khoa_hoc_dang_ky">
+            <form method="post" action="index.php?act=client-dang-ky-khoa-hoc">
                 <input type="hidden" name="id_khoa_hoc" value="<?= (int)$course['id'] ?>">
                 
                 <div class="form-row">
@@ -545,7 +545,7 @@ unset($_SESSION['dang_ky_error']);
 
             <div class="comment-form">
                 <h3>Gửi bình luận</h3>
-                <form method="post" action="index.php?act=khoa_hoc_add_comment">
+                <form method="post" action="index.php?act=client-binh-luan-khoa-hoc">
                     <input type="hidden" name="id_khoa_hoc" value="<?= (int)$course['id'] ?>">
                     <div class="form-group">
                         <label for="id_hoc_sinh">ID học sinh (demo):</label>

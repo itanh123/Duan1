@@ -326,7 +326,7 @@
                     <?php 
                     $img = $c['hinh_anh'] ? '/uploads/' . $c['hinh_anh'] : 'https://via.placeholder.com/600x400?text=Khóa+Học'; 
                     ?>
-                    <a href="index.php?act=khoa_hoc_detail&id=<?= $c['id'] ?>">
+                    <a href="index.php?act=client-chi-tiet-khoa-hoc&id=<?= $c['id'] ?>">
                         <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($c['ten_khoa_hoc']) ?>">
                     </a>
                     <div class="card-content">
@@ -345,7 +345,7 @@
                         </div>
                         <div class="price">
                             <div class="amount"><?= number_format($c['gia'], 0, ',', '.') ?>₫</div>
-                            <a href="index.php?act=khoa_hoc_detail&id=<?= $c['id'] ?>" class="btn-buy">Xem chi tiết</a>
+                            <a href="index.php?act=client-chi-tiet-khoa-hoc&id=<?= $c['id'] ?>" class="btn-buy">Xem chi tiết</a>
                         </div>
                     </div>
                 </div>
@@ -355,7 +355,7 @@
         <?php if ($totalPages > 1): ?>
             <div class="paging">
                 <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                    <a class="<?= ($p == $page) ? 'active' : '' ?>" href="index.php?act=khoa_hoc&page=<?= $p ?>"><?= $p ?></a>
+                    <a class="<?= ($p == $page) ? 'active' : '' ?>" href="index.php?act=client-khoa-hoc&page=<?= $p ?>"><?= $p ?></a>
                 <?php endfor; ?>
             </div>
         <?php endif; ?>
