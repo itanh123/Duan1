@@ -12,18 +12,39 @@ require_once('./Commons/env.php');
 require_once('./Commons/function.php');
 require_once('./admin/Model/adminmodel.php');
 require_once('./admin/Controller/admincontroller.php');
+require_once('./client/Controller/KhoaHocController.php');
 
-//route
-
+// route
 $act = $_GET['act'] ?? '/';
 
-// Khởi tạo controller
+// Khởi tạo controllers
 $adminController = new admincontroller();
+$khoaHocController = new KhoaHocController();
 
 match ($act) {
-    // Trang chủ admin
+    // ============================
+    //  CLIENT - TRANG CHỦ (MẶC ĐỊNH)
+    // ============================
+    'cliet' => $khoaHocController->index(),
+    '' => $khoaHocController->index(),
+    
+    // ============================
+    //  CLIENT - KHÓA HỌC
+    // ============================
+    'client-khoa-hoc' => $khoaHocController->index(),
+    'client-chi-tiet-khoa-hoc' => $khoaHocController->detail(),
+    'client-binh-luan-khoa-hoc' => $khoaHocController->addComment(),
+    'client-dang-ky-khoa-hoc' => $khoaHocController->dangKy(),
+    
+    // ============================
+    //  ADMIN - TRANG CHỦ ADMIN
+    // ============================
     'admin' => $adminController->dashboard(),
     'admin-dashboard' => $adminController->dashboard(),
+    
+    // ============================
+    //  ADMIN - QUẢN LÝ KHÓA HỌC
+    // ==========================
     
     // Quản lý khóa học
     'admin-list-khoa-hoc' => $adminController->listKhoaHoc(),
@@ -32,9 +53,11 @@ match ($act) {
     'admin-edit-khoa-hoc' => $adminController->editKhoaHoc(),
     'admin-update-khoa-hoc' => $adminController->updateKhoaHoc(),
     'admin-delete-khoa-hoc' => $adminController->deleteKhoaHoc(),
-   
+    
+    // ============================
+    //  MẶC ĐỊNH – KHÔNG TÌM THẤY
+    // ============================
     default => notFound(),
-}
+};
 
-
-    ?>
+?>
