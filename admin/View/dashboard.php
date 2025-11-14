@@ -410,7 +410,7 @@
                 <div class="menu-card-title">Quản Lý Khóa Học</div>
             </a>
             
-            <a href="#" class="menu-card">
+            <a href="?act=admin-list-lop-hoc" class="menu-card">
                 <div class="menu-card-icon">🏫</div>
                 <div class="menu-card-title">Quản Lý Lớp Học</div>
             </a>
@@ -420,7 +420,7 @@
                 <div class="menu-card-title">Quản Lý Học Sinh</div>
             </a>
             
-            <a href="#" class="menu-card">
+            <a href="?act=admin-list-giang-vien" class="menu-card">
                 <div class="menu-card-icon">👨‍🏫</div>
                 <div class="menu-card-title">Quản Lý Giảng Viên</div>
             </a>
@@ -435,7 +435,7 @@
                 <div class="menu-card-title">Quản Lý Thanh Toán</div>
             </a>
             
-            <a href="#" class="menu-card">
+            <a href="?act=admin-list-danh-muc" class="menu-card">
                 <div class="menu-card-icon">📁</div>
                 <div class="menu-card-title">Quản Lý Danh Mục</div>
             </a>

@@ -82,6 +82,42 @@ match ($act) {
     'admin-delete-hoc-sinh' => $adminController->deleteHocSinh(),
     
     // ============================
+    //  ADMIN - QUẢN LÝ DANH MỤC
+    // ============================
+    
+    // Quản lý danh mục
+    'admin-list-danh-muc' => $adminController->listDanhMuc(),
+    'admin-add-danh-muc' => $adminController->addDanhMuc(),
+    'admin-save-danh-muc' => $adminController->saveDanhMuc(),
+    'admin-edit-danh-muc' => $adminController->editDanhMuc(),
+    'admin-update-danh-muc' => $adminController->updateDanhMuc(),
+    'admin-delete-danh-muc' => $adminController->deleteDanhMuc(),
+    
+    // ============================
+    //  ADMIN - QUẢN LÝ GIẢNG VIÊN
+    // ============================
+    
+    // Quản lý giảng viên
+    'admin-list-giang-vien' => $adminController->listGiangVien(),
+    'admin-add-giang-vien' => $adminController->addGiangVien(),
+    'admin-save-giang-vien' => $adminController->saveGiangVien(),
+    'admin-edit-giang-vien' => $adminController->editGiangVien(),
+    'admin-update-giang-vien' => $adminController->updateGiangVien(),
+    'admin-delete-giang-vien' => $adminController->deleteGiangVien(),
+    
+    // ============================
+    //  ADMIN - QUẢN LÝ LỚP HỌC
+    // ============================
+    
+    // Quản lý lớp học
+    'admin-list-lop-hoc' => $adminController->listLopHoc(),
+    'admin-add-lop-hoc' => $adminController->addLopHoc(),
+    'admin-save-lop-hoc' => $adminController->saveLopHoc(),
+    'admin-edit-lop-hoc' => $adminController->editLopHoc(),
+    'admin-update-lop-hoc' => $adminController->updateLopHoc(),
+    'admin-delete-lop-hoc' => $adminController->deleteLopHoc(),
+    
+    // ============================
     //  MẶC ĐỊNH – KHÔNG TÌM THẤY
     // ============================
     default => notFound(),
