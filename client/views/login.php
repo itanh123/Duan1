@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập Client</title>
+    <title>Đăng nhập</title>
     <style>
         * {
             margin: 0;
@@ -145,14 +145,24 @@
         .login-footer a:hover {
             text-decoration: underline;
         }
+        
+        .user-type-info {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #6c757d;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-header">
-            <div class="login-icon">👤</div>
-            <h1>Đăng nhập Học Sinh</h1>
-            <p>Vui lòng đăng nhập để xem khóa học</p>
+            <div class="login-icon">🔐</div>
+            <h1>Đăng nhập</h1>
+            <p>Đăng nhập với tài khoản Admin hoặc Học sinh</p>
         </div>
 
         <?php if (isset($_SESSION['success'])): ?>
@@ -167,7 +177,11 @@
             </div>
         <?php endif; ?>
 
-        <form method="POST" action="?act=client-process-login">
+        <div class="user-type-info">
+            💡 Hệ thống sẽ tự động nhận diện loại tài khoản của bạn
+        </div>
+
+        <form method="POST" action="?act=unified-process-login">
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" 
@@ -193,7 +207,7 @@
         </form>
 
         <div class="login-footer">
-            <a href="?act=admin-login">Đăng nhập Admin</a>
+            <a href="index.php">← Về trang chủ</a>
         </div>
     </div>
 </body>

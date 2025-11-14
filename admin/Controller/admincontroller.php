@@ -11,19 +11,21 @@ class admincontroller{
     // Kiểm tra đăng nhập admin
     private function checkAdminLogin(){
         if (!isset($_SESSION['admin_id']) || !isset($_SESSION['admin_vai_tro']) || $_SESSION['admin_vai_tro'] !== 'admin') {
-            header('Location: ?act=admin-login');
+            header('Location: ?act=client-login');
             exit;
         }
     }
 
-    // Trang đăng nhập admin
+    // Trang đăng nhập admin - redirect về form đăng nhập chung
     public function login(){
         // Nếu đã đăng nhập thì chuyển về dashboard
         if (isset($_SESSION['admin_id']) && $_SESSION['admin_vai_tro'] === 'admin') {
             header('Location: ?act=admin-dashboard');
             exit;
         }
-        require_once('./admin/View/login.php');
+        // Redirect về form đăng nhập chung ở client
+        header('Location: ?act=client-login');
+        exit;
     }
 
     // Xử lý đăng nhập admin
@@ -33,7 +35,7 @@ class admincontroller{
 
         if (empty($email) || empty($password)) {
             $_SESSION['error'] = 'Vui lòng nhập đầy đủ email và mật khẩu!';
-            header('Location: ?act=admin-login');
+            header('Location: ?act=client-login');
             exit;
         }
 
@@ -48,7 +50,7 @@ class admincontroller{
             header('Location: ?act=admin-dashboard');
         } else {
             $_SESSION['error'] = 'Email hoặc mật khẩu không đúng!';
-            header('Location: ?act=admin-login');
+            header('Location: ?act=client-login');
         }
         exit;
     }
@@ -60,7 +62,7 @@ class admincontroller{
         unset($_SESSION['admin_ho_ten']);
         unset($_SESSION['admin_vai_tro']);
         $_SESSION['success'] = 'Đăng xuất thành công!';
-        header('Location: ?act=admin-login');
+        header('Location: ?act=client-login');
         exit;
     }
 

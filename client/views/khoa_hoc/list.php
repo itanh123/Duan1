@@ -299,6 +299,8 @@
                     <?php if (isset($_SESSION['client_id'])): ?>
                         <li style="color: var(--primary); font-weight: 600;">👤 <?= htmlspecialchars($_SESSION['client_ho_ten'] ?? '') ?></li>
                         <li><a href="?act=client-logout" style="color: #dc3545;">🚪 Đăng xuất</a></li>
+                    <?php else: ?>
+                        <li><a href="?act=client-login" style="color: var(--primary);">🔐 Đăng nhập</a></li>
                     <?php endif; ?>
                 </ul>
             </nav>

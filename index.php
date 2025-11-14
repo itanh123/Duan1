@@ -27,6 +27,7 @@ match ($act) {
     // ============================
     'client-login' => $khoaHocController->login(),
     'client-process-login' => $khoaHocController->processLogin(),
+    'unified-process-login' => $khoaHocController->unifiedProcessLogin(),
     'client-logout' => $khoaHocController->logout(),
     
     // ============================
