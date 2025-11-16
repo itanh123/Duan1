@@ -33,7 +33,7 @@ match ($act) {
     // ============================
     //  CLIENT - TRANG CHỦ (MẶC ĐỊNH)
     // ============================
-    'cliet' => $khoaHocController->index(),
+    'client' => $khoaHocController->index(),
     '' => $khoaHocController->index(),
     
     // ============================
