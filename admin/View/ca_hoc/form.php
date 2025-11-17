@@ -210,14 +210,15 @@
             </div>
 
             <div class="form-group">
-                <label for="phong_hoc">Phòng học</label>
-                <input type="text" 
-                       name="phong_hoc" 
-                       id="phong_hoc" 
-                       class="form-control" 
-                       value="<?= htmlspecialchars($caHoc['phong_hoc'] ?? '') ?>" 
-                       maxlength="100"
-                       placeholder="Nhập phòng học (tùy chọn)">
+                <label for="id_phong">Phòng học</label>
+                <select name="id_phong" id="id_phong" class="form-control">
+                    <option value="">Chọn phòng học (tùy chọn)</option>
+                    <?php foreach ($phongHocList ?? [] as $ph): ?>
+                        <option value="<?= $ph['id'] ?>" <?= (isset($caHoc['id_phong']) && $caHoc['id_phong'] == $ph['id']) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($ph['ten_phong']) ?> (Sức chứa: <?= $ph['suc_chua'] ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <div class="form-group">

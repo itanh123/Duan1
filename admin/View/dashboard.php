@@ -420,6 +420,11 @@
                 <div class="menu-card-title">Quản Lý Ca Học</div>
             </a>
             
+            <a href="?act=admin-list-phong-hoc" class="menu-card">
+                <div class="menu-card-icon">🏢</div>
+                <div class="menu-card-title">Quản Lý Phòng Học</div>
+            </a>
+            
             <a href="?act=admin-list-dang-ky" class="menu-card">
                 <div class="menu-card-icon">📝</div>
                 <div class="menu-card-title">Quản Lý Đăng Ký</div>
@@ -446,7 +451,7 @@
                 <div class="menu-card-title">Quản Lý Danh Mục</div>
             </a>
             
-            <a href="#" class="menu-card">
+            <a href="?act=admin-list-binh-luan" class="menu-card">
                 <div class="menu-card-icon">💬</div>
                 <div class="menu-card-title">Quản Lý Bình Luận</div>
             </a>

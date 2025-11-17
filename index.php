@@ -140,6 +140,28 @@ match ($act) {
     'admin-delete-dang-ky' => $adminController->deleteDangKy(),
     
     // ============================
+    //  ADMIN - QUẢN LÝ BÌNH LUẬN
+    // ============================
+    
+    // Quản lý bình luận
+    'admin-list-binh-luan' => $adminController->listBinhLuan(),
+    'admin-edit-binh-luan' => $adminController->editBinhLuan(),
+    'admin-update-binh-luan' => $adminController->updateBinhLuan(),
+    'admin-delete-binh-luan' => $adminController->deleteBinhLuan(),
+    
+    // ============================
+    //  ADMIN - QUẢN LÝ PHÒNG HỌC
+    // ============================
+    
+    // Quản lý phòng học
+    'admin-list-phong-hoc' => $adminController->listPhongHoc(),
+    'admin-add-phong-hoc' => $adminController->addPhongHoc(),
+    'admin-save-phong-hoc' => $adminController->savePhongHoc(),
+    'admin-edit-phong-hoc' => $adminController->editPhongHoc(),
+    'admin-update-phong-hoc' => $adminController->updatePhongHoc(),
+    'admin-delete-phong-hoc' => $adminController->deletePhongHoc(),
+    
+    // ============================
     //  MẶC ĐỊNH – KHÔNG TÌM THẤY
     // ============================
     default => notFound(),

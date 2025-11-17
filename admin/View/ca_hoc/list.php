@@ -283,7 +283,7 @@
                             <td><?= htmlspecialchars($ch['ten_ca'] ?? 'N/A') ?></td>
                             <td><?= htmlspecialchars($ch['thu_trong_tuan']) ?></td>
                             <td><?= isset($ch['gio_bat_dau']) && isset($ch['gio_ket_thuc']) ? date('H:i', strtotime($ch['gio_bat_dau'])) . ' - ' . date('H:i', strtotime($ch['gio_ket_thuc'])) : 'N/A' ?></td>
-                            <td><?= htmlspecialchars($ch['phong_hoc'] ?? 'Chưa có') ?></td>
+                            <td><?= htmlspecialchars($ch['ten_phong'] ?? 'Chưa có') ?></td>
                             <td><?= htmlspecialchars($ch['ten_giang_vien'] ?? 'Chưa phân công') ?></td>
                             <td><?= htmlspecialchars($ch['ghi_chu'] ?? '') ?></td>
                             <td>

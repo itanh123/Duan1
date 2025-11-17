@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý giảng viên - Admin</title>
+    <title>Quản lý phòng học - Admin</title>
     <style>
         * {
             margin: 0;
@@ -81,6 +81,11 @@
             background: #c82333;
         }
         
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
         .alert {
             padding: 15px;
             margin-bottom: 20px;
@@ -156,12 +161,17 @@
             background: #f8f9fa;
         }
         
-        .status-active {
+        .status-su-dung {
             color: #28a745;
             font-weight: 600;
         }
         
-        .status-inactive {
+        .status-bao-tri {
+            color: #ffc107;
+            font-weight: 600;
+        }
+        
+        .status-khoa {
             color: #dc3545;
             font-weight: 600;
         }
@@ -169,11 +179,6 @@
         .action-buttons {
             display: flex;
             gap: 5px;
-        }
-        
-        .btn-sm {
-            padding: 5px 10px;
-            font-size: 12px;
         }
         
         .pagination {
@@ -214,10 +219,10 @@
 <body>
     <div class="container">
         <h1>
-            <span>Quản lý giảng viên</span>
+            <span>Quản lý phòng học</span>
             <div style="display: flex; gap: 10px;">
                 <a href="?act=admin-dashboard" class="btn btn-secondary">🏠 Trang chủ</a>
-                <a href="?act=admin-add-giang-vien" class="btn btn-primary">+ Thêm giảng viên</a>
+                <a href="?act=admin-add-phong-hoc" class="btn btn-primary">+ Thêm phòng học</a>
             </div>
         </h1>
 
@@ -235,65 +240,75 @@
 
         <div class="filter-section">
             <form method="GET" action="">
-                <input type="hidden" name="act" value="admin-list-giang-vien">
+                <input type="hidden" name="act" value="admin-list-phong-hoc">
                 <div class="filter-group">
                     <div class="form-group">
                         <label>Tìm kiếm</label>
                         <input type="text" name="search" class="form-control" 
                                value="<?= htmlspecialchars($search ?? '') ?>" 
-                               placeholder="Tìm theo tên, email, số điện thoại...">
+                               placeholder="Tìm theo tên phòng, mô tả...">
+                    </div>
+                    <div class="form-group">
+                        <label>Trạng thái</label>
+                        <select name="trang_thai" class="form-control">
+                            <option value="">Tất cả</option>
+                            <option value="Sử dụng" <?= (isset($trang_thai) && $trang_thai == 'Sử dụng') ? 'selected' : '' ?>>Sử dụng</option>
+                            <option value="Bảo trì" <?= (isset($trang_thai) && $trang_thai == 'Bảo trì') ? 'selected' : '' ?>>Bảo trì</option>
+                            <option value="Khóa" <?= (isset($trang_thai) && $trang_thai == 'Khóa') ? 'selected' : '' ?>>Khóa</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary" style="width: 100%;">Tìm kiếm</button>
                     </div>
-                    <?php if (!empty($search)): ?>
+                    <?php if (!empty($search) || !empty($trang_thai)): ?>
                     <div class="form-group">
-                        <a href="?act=admin-list-giang-vien" class="btn btn-warning" style="width: 100%;">Xóa bộ lọc</a>
+                        <a href="?act=admin-list-phong-hoc" class="btn btn-warning" style="width: 100%;">Xóa bộ lọc</a>
                     </div>
                     <?php endif; ?>
                 </div>
             </form>
         </div>
 
-        <?php if (empty($giangVien)): ?>
+        <?php if (empty($phongHoc)): ?>
             <div class="empty-state">
-                <p>Không tìm thấy giảng viên nào.</p>
+                <p>Không tìm thấy phòng học nào.</p>
             </div>
         <?php else: ?>
             <table>
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Họ tên</th>
-                        <th>Email</th>
-                        <th>Số điện thoại</th>
-                        <th>Địa chỉ</th>
+                        <th>Tên phòng</th>
+                        <th>Sức chứa</th>
+                        <th>Mô tả</th>
                         <th>Trạng thái</th>
-                        <th>Ngày tạo</th>
                         <th>Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($giangVien as $gv): ?>
+                    <?php foreach ($phongHoc as $ph): ?>
                         <tr>
-                            <td><?= $gv['id'] ?></td>
-                            <td><?= htmlspecialchars($gv['ho_ten']) ?></td>
-                            <td><?= htmlspecialchars($gv['email']) ?></td>
-                            <td><?= htmlspecialchars($gv['so_dien_thoai'] ?? 'N/A') ?></td>
-                            <td><?= htmlspecialchars($gv['dia_chi'] ?? 'N/A') ?></td>
+                            <td><?= $ph['id'] ?></td>
+                            <td><strong><?= htmlspecialchars($ph['ten_phong']) ?></strong></td>
+                            <td><?= $ph['suc_chua'] ?> người</td>
+                            <td><?= htmlspecialchars($ph['mo_ta'] ?? 'N/A') ?></td>
                             <td>
-                                <span class="<?= $gv['trang_thai'] == 1 ? 'status-active' : 'status-inactive' ?>">
-                                    <?= $gv['trang_thai'] == 1 ? 'Hoạt động' : 'Khóa' ?>
+                                <?php
+                                $statusClass = 'status-su-dung';
+                                if ($ph['trang_thai'] == 'Bảo trì') $statusClass = 'status-bao-tri';
+                                if ($ph['trang_thai'] == 'Khóa') $statusClass = 'status-khoa';
+                                ?>
+                                <span class="<?= $statusClass ?>">
+                                    <?= htmlspecialchars($ph['trang_thai']) ?>
                                 </span>
                             </td>
-                            <td><?= isset($gv['ngay_tao']) ? date('d/m/Y', strtotime($gv['ngay_tao'])) : 'N/A' ?></td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="?act=admin-edit-giang-vien&id=<?= $gv['id'] ?>" 
+                                    <a href="?act=admin-edit-phong-hoc&id=<?= $ph['id'] ?>" 
                                        class="btn btn-warning btn-sm">Sửa</a>
-                                    <a href="?act=admin-delete-giang-vien&id=<?= $gv['id'] ?>" 
+                                    <a href="?act=admin-delete-phong-hoc&id=<?= $ph['id'] ?>" 
                                        class="btn btn-danger btn-sm" 
-                                       onclick="return confirm('Bạn có chắc chắn muốn xóa giảng viên này?')">Xóa</a>
+                                       onclick="return confirm('Bạn có chắc chắn muốn xóa phòng học này?')">Xóa</a>
                                 </div>
                             </td>
                         </tr>
@@ -304,12 +319,12 @@
             <?php if ($totalPages > 1): ?>
                 <div class="pagination">
                     <?php if ($page > 1): ?>
-                        <a href="?act=admin-list-giang-vien&page=<?= $page - 1 ?>&search=<?= urlencode($search ?? '') ?>">« Trước</a>
+                        <a href="?act=admin-list-phong-hoc&page=<?= $page - 1 ?>&search=<?= urlencode($search ?? '') ?>&trang_thai=<?= urlencode($trang_thai ?? '') ?>">« Trước</a>
                     <?php endif; ?>
                     
                     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                         <?php if ($i == 1 || $i == $totalPages || ($i >= $page - 2 && $i <= $page + 2)): ?>
-                            <a href="?act=admin-list-giang-vien&page=<?= $i ?>&search=<?= urlencode($search ?? '') ?>" 
+                            <a href="?act=admin-list-phong-hoc&page=<?= $i ?>&search=<?= urlencode($search ?? '') ?>&trang_thai=<?= urlencode($trang_thai ?? '') ?>" 
                                class="<?= $i == $page ? 'active' : '' ?>">
                                 <?= $i ?>
                             </a>
@@ -319,7 +334,7 @@
                     <?php endfor; ?>
                     
                     <?php if ($page < $totalPages): ?>
-                        <a href="?act=admin-list-giang-vien&page=<?= $page + 1 ?>&search=<?= urlencode($search ?? '') ?>">Sau »</a>
+                        <a href="?act=admin-list-phong-hoc&page=<?= $page + 1 ?>&search=<?= urlencode($search ?? '') ?>&trang_thai=<?= urlencode($trang_thai ?? '') ?>">Sau »</a>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>

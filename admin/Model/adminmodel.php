@@ -271,7 +271,7 @@ class adminmodel
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR sdt LIKE :search)";
+            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR so_dien_thoai LIKE :search)";
             $params[':search'] = "%$search%";
         }
 
@@ -294,7 +294,7 @@ class adminmodel
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR sdt LIKE :search)";
+            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR so_dien_thoai LIKE :search)";
             $params[':search'] = "%$search%";
         }
 
@@ -320,13 +320,13 @@ class adminmodel
     // Thêm giảng viên mới
     public function addGiangVien($data)
     {
-        $sql = "INSERT INTO nguoi_dung (ho_ten, email, mat_khau, sdt, dia_chi, vai_tro, trang_thai) 
-                VALUES (:ho_ten, :email, :mat_khau, :sdt, :dia_chi, 'giang_vien', :trang_thai)";
+        $sql = "INSERT INTO nguoi_dung (ho_ten, email, mat_khau, so_dien_thoai, dia_chi, vai_tro, trang_thai) 
+                VALUES (:ho_ten, :email, :mat_khau, :so_dien_thoai, :dia_chi, 'giang_vien', :trang_thai)";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':ho_ten', $data['ho_ten']);
         $stmt->bindValue(':email', $data['email']);
         $stmt->bindValue(':mat_khau', $data['mat_khau']);
-        $stmt->bindValue(':sdt', $data['sdt'] ?? null);
+        $stmt->bindValue(':so_dien_thoai', $data['so_dien_thoai'] ?? null);
         $stmt->bindValue(':dia_chi', $data['dia_chi'] ?? null);
         $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 1, PDO::PARAM_INT);
         return $stmt->execute();
@@ -338,7 +338,7 @@ class adminmodel
         $sql = "UPDATE nguoi_dung 
                 SET ho_ten = :ho_ten, 
                     email = :email, 
-                    sdt = :sdt, 
+                    so_dien_thoai = :so_dien_thoai, 
                     dia_chi = :dia_chi, 
                     trang_thai = :trang_thai";
         
@@ -353,7 +353,7 @@ class adminmodel
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':ho_ten', $data['ho_ten']);
         $stmt->bindValue(':email', $data['email']);
-        $stmt->bindValue(':sdt', $data['sdt'] ?? null);
+        $stmt->bindValue(':so_dien_thoai', $data['so_dien_thoai'] ?? null);
         $stmt->bindValue(':dia_chi', $data['dia_chi'] ?? null);
         $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 1, PDO::PARAM_INT);
         
@@ -535,17 +535,19 @@ class adminmodel
         $offset = (int)$offset;
         
         $sql = "SELECT ch.*, lh.ten_lop, kh.ten_khoa_hoc, nd.ho_ten as ten_giang_vien, 
-                       cmd.ten_ca, cmd.gio_bat_dau, cmd.gio_ket_thuc
+                       cmd.ten_ca, cmd.gio_bat_dau, cmd.gio_ket_thuc,
+                       ph.ten_phong
                 FROM ca_hoc ch 
                 LEFT JOIN lop_hoc lh ON ch.id_lop = lh.id 
                 LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id 
                 LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id 
                 LEFT JOIN ca_mac_dinh cmd ON ch.id_ca = cmd.id
+                LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
                 WHERE 1=1";
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (ch.phong_hoc LIKE :search OR ch.ghi_chu LIKE :search)";
+            $sql .= " AND (ph.ten_phong LIKE :search OR ch.ghi_chu LIKE :search)";
             $params[':search'] = "%$search%";
         }
 
@@ -567,11 +569,14 @@ class adminmodel
     // Đếm tổng số ca học
     public function countCaHoc($search = '', $id_lop = '')
     {
-        $sql = "SELECT COUNT(*) as total FROM ca_hoc WHERE 1=1";
+        $sql = "SELECT COUNT(*) as total 
+                FROM ca_hoc ch
+                LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
+                WHERE 1=1";
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (phong_hoc LIKE :search OR ghi_chu LIKE :search)";
+            $sql .= " AND (ph.ten_phong LIKE :search OR ch.ghi_chu LIKE :search)";
             $params[':search'] = "%$search%";
         }
 
@@ -593,12 +598,14 @@ class adminmodel
     public function getCaHocById($id)
     {
         $sql = "SELECT ch.*, lh.ten_lop, kh.ten_khoa_hoc, nd.ho_ten as ten_giang_vien,
-                       cmd.ten_ca, cmd.gio_bat_dau, cmd.gio_ket_thuc
+                       cmd.ten_ca, cmd.gio_bat_dau, cmd.gio_ket_thuc,
+                       ph.ten_phong
                 FROM ca_hoc ch 
                 LEFT JOIN lop_hoc lh ON ch.id_lop = lh.id 
                 LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id 
                 LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id 
                 LEFT JOIN ca_mac_dinh cmd ON ch.id_ca = cmd.id
+                LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
                 WHERE ch.id = :id";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -624,17 +631,26 @@ class adminmodel
         return $stmt->fetchAll();
     }
 
+    // Lấy danh sách phòng học (để chọn trong form)
+    public function getPhongHocList()
+    {
+        $sql = "SELECT id, ten_phong, suc_chua FROM phong_hoc WHERE trang_thai = 'Sử dụng' ORDER BY ten_phong";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
     // Thêm ca học mới
     public function addCaHoc($data)
     {
-        $sql = "INSERT INTO ca_hoc (id_lop, id_giang_vien, id_ca, thu_trong_tuan, phong_hoc, ghi_chu) 
-                VALUES (:id_lop, :id_giang_vien, :id_ca, :thu_trong_tuan, :phong_hoc, :ghi_chu)";
+        $sql = "INSERT INTO ca_hoc (id_lop, id_giang_vien, id_ca, thu_trong_tuan, id_phong, ghi_chu) 
+                VALUES (:id_lop, :id_giang_vien, :id_ca, :thu_trong_tuan, :id_phong, :ghi_chu)";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id_lop', $data['id_lop'], PDO::PARAM_INT);
         $stmt->bindValue(':id_giang_vien', !empty($data['id_giang_vien']) ? $data['id_giang_vien'] : null, PDO::PARAM_INT);
         $stmt->bindValue(':id_ca', $data['id_ca'], PDO::PARAM_INT);
         $stmt->bindValue(':thu_trong_tuan', $data['thu_trong_tuan'], PDO::PARAM_STR);
-        $stmt->bindValue(':phong_hoc', $data['phong_hoc'] ?? null);
+        $stmt->bindValue(':id_phong', $data['id_phong'] ?? null, PDO::PARAM_INT);
         $stmt->bindValue(':ghi_chu', $data['ghi_chu'] ?? null);
         return $stmt->execute();
     }
@@ -647,7 +663,7 @@ class adminmodel
                     id_giang_vien = :id_giang_vien, 
                     id_ca = :id_ca,
                     thu_trong_tuan = :thu_trong_tuan, 
-                    phong_hoc = :phong_hoc, 
+                    id_phong = :id_phong, 
                     ghi_chu = :ghi_chu 
                 WHERE id = :id";
         $stmt = $this->conn->prepare($sql);
@@ -656,7 +672,7 @@ class adminmodel
         $stmt->bindValue(':id_giang_vien', !empty($data['id_giang_vien']) ? $data['id_giang_vien'] : null, PDO::PARAM_INT);
         $stmt->bindValue(':id_ca', $data['id_ca'], PDO::PARAM_INT);
         $stmt->bindValue(':thu_trong_tuan', $data['thu_trong_tuan'], PDO::PARAM_STR);
-        $stmt->bindValue(':phong_hoc', $data['phong_hoc'] ?? null);
+        $stmt->bindValue(':id_phong', $data['id_phong'] ?? null, PDO::PARAM_INT);
         $stmt->bindValue(':ghi_chu', $data['ghi_chu'] ?? null);
         return $stmt->execute();
     }
@@ -938,7 +954,7 @@ class adminmodel
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR sdt LIKE :search)";
+            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR so_dien_thoai LIKE :search)";
             $params[':search'] = "%$search%";
         }
 
@@ -961,7 +977,7 @@ class adminmodel
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR sdt LIKE :search)";
+            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR so_dien_thoai LIKE :search)";
             $params[':search'] = "%$search%";
         }
 
@@ -987,13 +1003,13 @@ class adminmodel
     // Thêm học sinh mới
     public function addHocSinh($data)
     {
-        $sql = "INSERT INTO nguoi_dung (ho_ten, email, mat_khau, sdt, dia_chi, vai_tro, trang_thai) 
-                VALUES (:ho_ten, :email, :mat_khau, :sdt, :dia_chi, 'hoc_sinh', :trang_thai)";
+        $sql = "INSERT INTO nguoi_dung (ho_ten, email, mat_khau, so_dien_thoai, dia_chi, vai_tro, trang_thai) 
+                VALUES (:ho_ten, :email, :mat_khau, :so_dien_thoai, :dia_chi, 'hoc_sinh', :trang_thai)";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':ho_ten', $data['ho_ten']);
         $stmt->bindValue(':email', $data['email']);
         $stmt->bindValue(':mat_khau', $data['mat_khau']);
-        $stmt->bindValue(':sdt', $data['sdt'] ?? null);
+        $stmt->bindValue(':so_dien_thoai', $data['so_dien_thoai'] ?? null);
         $stmt->bindValue(':dia_chi', $data['dia_chi'] ?? null);
         $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 1, PDO::PARAM_INT);
         return $stmt->execute();
@@ -1005,7 +1021,7 @@ class adminmodel
         $sql = "UPDATE nguoi_dung 
                 SET ho_ten = :ho_ten, 
                     email = :email, 
-                    sdt = :sdt, 
+                    so_dien_thoai = :so_dien_thoai, 
                     dia_chi = :dia_chi, 
                     trang_thai = :trang_thai";
         
@@ -1020,7 +1036,7 @@ class adminmodel
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':ho_ten', $data['ho_ten']);
         $stmt->bindValue(':email', $data['email']);
-        $stmt->bindValue(':sdt', $data['sdt'] ?? null);
+        $stmt->bindValue(':so_dien_thoai', $data['so_dien_thoai'] ?? null);
         $stmt->bindValue(':dia_chi', $data['dia_chi'] ?? null);
         $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 1, PDO::PARAM_INT);
         
@@ -1045,6 +1061,266 @@ class adminmodel
     {
         $sql = "SELECT COUNT(*) as total FROM nguoi_dung WHERE email = :email";
         $params = [':email' => $email];
+        
+        if ($excludeId) {
+            $sql .= " AND id != :exclude_id";
+            $params[':exclude_id'] = $excludeId;
+        }
+        
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return $result['total'] > 0;
+    }
+
+    // ===========================================
+    //  QUẢN LÝ BÌNH LUẬN
+    // ===========================================
+
+    // Lấy danh sách bình luận
+    public function getBinhLuan($page = 1, $limit = 10, $search = '', $id_khoa_hoc = '', $trang_thai = '')
+    {
+        $offset = ($page - 1) * $limit;
+        $limit = (int)$limit;
+        $offset = (int)$offset;
+        
+        $sql = "SELECT bl.*, 
+                       kh.ten_khoa_hoc,
+                       nd.ho_ten as ten_hoc_sinh, nd.email as email_hoc_sinh
+                FROM binh_luan bl 
+                LEFT JOIN khoa_hoc kh ON bl.id_khoa_hoc = kh.id 
+                LEFT JOIN nguoi_dung nd ON bl.id_hoc_sinh = nd.id 
+                WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (bl.noi_dung LIKE :search OR nd.ho_ten LIKE :search OR kh.ten_khoa_hoc LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        if (!empty($id_khoa_hoc)) {
+            $sql .= " AND bl.id_khoa_hoc = :id_khoa_hoc";
+            $params[':id_khoa_hoc'] = $id_khoa_hoc;
+        }
+
+        if (!empty($trang_thai)) {
+            $sql .= " AND bl.trang_thai = :trang_thai";
+            $params[':trang_thai'] = $trang_thai;
+        }
+
+        $sql .= " ORDER BY bl.ngay_tao DESC LIMIT $limit OFFSET $offset";
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Đếm tổng số bình luận
+    public function countBinhLuan($search = '', $id_khoa_hoc = '', $trang_thai = '')
+    {
+        $sql = "SELECT COUNT(*) as total 
+                FROM binh_luan bl 
+                LEFT JOIN khoa_hoc kh ON bl.id_khoa_hoc = kh.id 
+                LEFT JOIN nguoi_dung nd ON bl.id_hoc_sinh = nd.id 
+                WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (bl.noi_dung LIKE :search OR nd.ho_ten LIKE :search OR kh.ten_khoa_hoc LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        if (!empty($id_khoa_hoc)) {
+            $sql .= " AND bl.id_khoa_hoc = :id_khoa_hoc";
+            $params[':id_khoa_hoc'] = $id_khoa_hoc;
+        }
+
+        if (!empty($trang_thai)) {
+            $sql .= " AND bl.trang_thai = :trang_thai";
+            $params[':trang_thai'] = $trang_thai;
+        }
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return $result['total'];
+    }
+
+    // Lấy thông tin một bình luận theo ID
+    public function getBinhLuanById($id)
+    {
+        $sql = "SELECT bl.*, 
+                       kh.ten_khoa_hoc,
+                       nd.ho_ten as ten_hoc_sinh, nd.email as email_hoc_sinh
+                FROM binh_luan bl 
+                LEFT JOIN khoa_hoc kh ON bl.id_khoa_hoc = kh.id 
+                LEFT JOIN nguoi_dung nd ON bl.id_hoc_sinh = nd.id 
+                WHERE bl.id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
+
+    // Cập nhật bình luận
+    public function updateBinhLuan($id, $data)
+    {
+        $sql = "UPDATE binh_luan 
+                SET noi_dung = :noi_dung, 
+                    danh_gia = :danh_gia,
+                    trang_thai = :trang_thai 
+                WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':noi_dung', $data['noi_dung']);
+        $stmt->bindValue(':danh_gia', $data['danh_gia'] ?? null, PDO::PARAM_INT);
+        $stmt->bindValue(':trang_thai', $data['trang_thai'], PDO::PARAM_STR);
+        return $stmt->execute();
+    }
+
+    // Xóa bình luận
+    public function deleteBinhLuan($id)
+    {
+        $sql = "DELETE FROM binh_luan WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    // ===========================================
+    //  QUẢN LÝ PHÒNG HỌC
+    // ===========================================
+
+    // Lấy danh sách phòng học
+    public function getPhongHoc($page = 1, $limit = 10, $search = '', $trang_thai = '')
+    {
+        $offset = ($page - 1) * $limit;
+        $limit = (int)$limit;
+        $offset = (int)$offset;
+        
+        $sql = "SELECT * FROM phong_hoc WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (ten_phong LIKE :search OR mo_ta LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        if (!empty($trang_thai)) {
+            $sql .= " AND trang_thai = :trang_thai";
+            $params[':trang_thai'] = $trang_thai;
+        }
+
+        $sql .= " ORDER BY id DESC LIMIT $limit OFFSET $offset";
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Đếm tổng số phòng học
+    public function countPhongHoc($search = '', $trang_thai = '')
+    {
+        $sql = "SELECT COUNT(*) as total FROM phong_hoc WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (ten_phong LIKE :search OR mo_ta LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        if (!empty($trang_thai)) {
+            $sql .= " AND trang_thai = :trang_thai";
+            $params[':trang_thai'] = $trang_thai;
+        }
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return $result['total'];
+    }
+
+    // Lấy thông tin một phòng học theo ID
+    public function getPhongHocById($id)
+    {
+        $sql = "SELECT * FROM phong_hoc WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
+
+    // Thêm phòng học mới
+    public function addPhongHoc($data)
+    {
+        $sql = "INSERT INTO phong_hoc (ten_phong, suc_chua, mo_ta, trang_thai) 
+                VALUES (:ten_phong, :suc_chua, :mo_ta, :trang_thai)";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':ten_phong', $data['ten_phong']);
+        $stmt->bindValue(':suc_chua', $data['suc_chua'] ?? 30, PDO::PARAM_INT);
+        $stmt->bindValue(':mo_ta', $data['mo_ta'] ?? null);
+        $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 'Sử dụng', PDO::PARAM_STR);
+        return $stmt->execute();
+    }
+
+    // Cập nhật phòng học
+    public function updatePhongHoc($id, $data)
+    {
+        $sql = "UPDATE phong_hoc 
+                SET ten_phong = :ten_phong, 
+                    suc_chua = :suc_chua, 
+                    mo_ta = :mo_ta,
+                    trang_thai = :trang_thai 
+                WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':ten_phong', $data['ten_phong']);
+        $stmt->bindValue(':suc_chua', $data['suc_chua'] ?? 30, PDO::PARAM_INT);
+        $stmt->bindValue(':mo_ta', $data['mo_ta'] ?? null);
+        $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 'Sử dụng', PDO::PARAM_STR);
+        return $stmt->execute();
+    }
+
+    // Xóa phòng học
+    public function deletePhongHoc($id)
+    {
+        // Kiểm tra xem phòng học có đang được sử dụng trong ca học không
+        $sqlCheck = "SELECT COUNT(*) as total FROM ca_hoc WHERE id_phong = :id";
+        $stmtCheck = $this->conn->prepare($sqlCheck);
+        $stmtCheck->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmtCheck->execute();
+        $result = $stmtCheck->fetch();
+        
+        if ($result['total'] > 0) {
+            return false; // Không thể xóa vì đang được sử dụng
+        }
+
+        $sql = "DELETE FROM phong_hoc WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    // Kiểm tra tên phòng học đã tồn tại chưa (trừ ID hiện tại)
+    public function checkPhongHocExists($ten_phong, $excludeId = null)
+    {
+        $sql = "SELECT COUNT(*) as total FROM phong_hoc WHERE ten_phong = :ten_phong";
+        $params = [':ten_phong' => $ten_phong];
         
         if ($excludeId) {
             $sql .= " AND id != :exclude_id";

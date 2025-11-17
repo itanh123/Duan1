@@ -288,7 +288,7 @@
                             <td><?= $hs['id'] ?></td>
                             <td><?= htmlspecialchars($hs['ho_ten']) ?></td>
                             <td><?= htmlspecialchars($hs['email']) ?></td>
-                            <td><?= htmlspecialchars($hs['sdt'] ?? 'N/A') ?></td>
+                            <td><?= htmlspecialchars($hs['so_dien_thoai'] ?? 'N/A') ?></td>
                             <td><?= htmlspecialchars($hs['dia_chi'] ?? 'N/A') ?></td>
                             <td>
                                 <span class="<?= $hs['trang_thai'] == 1 ? 'status-active' : 'status-inactive' ?>">

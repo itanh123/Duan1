@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($hocSinh) ? 'Sửa học sinh' : 'Thêm học sinh' ?> - Admin</title>
+    <title><?= isset($phongHoc) ? 'Sửa phòng học' : 'Thêm phòng học' ?> - Admin</title>
     <style>
         * {
             margin: 0;
@@ -29,6 +29,9 @@
         h1 {
             color: #333;
             margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .alert {
@@ -120,27 +123,27 @@
             background: #5a6268;
         }
         
-        .btn-group {
+        .form-actions {
             display: flex;
             gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .form-help {
-            font-size: 12px;
-            color: #6c757d;
-            margin-top: 5px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span><?= isset($hocSinh) ? 'Sửa học sinh' : 'Thêm học sinh mới' ?></span>
-                <a href="?act=admin-dashboard" class="btn" style="background: #6c757d; color: white; text-decoration: none; padding: 8px 16px; border-radius: 5px;">🏠 Trang chủ</a>
-            </div>
+            <span><?= isset($phongHoc) ? 'Sửa phòng học' : 'Thêm phòng học mới' ?></span>
+            <a href="?act=admin-list-phong-hoc" class="btn btn-secondary">← Quay lại</a>
         </h1>
+
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="alert alert-success">
+                <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+            </div>
+        <?php endif; ?>
 
         <?php if (isset($_SESSION['error'])): ?>
             <div class="alert alert-error">
@@ -149,88 +152,69 @@
         <?php endif; ?>
 
         <form method="POST" 
-              action="?act=<?= isset($hocSinh) ? 'admin-update-hoc-sinh' : 'admin-save-hoc-sinh' ?>">
+              action="?act=<?= isset($phongHoc) ? 'admin-update-phong-hoc' : 'admin-save-phong-hoc' ?>">
             
-            <?php if (isset($hocSinh)): ?>
-                <input type="hidden" name="id" value="<?= $hocSinh['id'] ?>">
+            <?php if (isset($phongHoc)): ?>
+                <input type="hidden" name="id" value="<?= $phongHoc['id'] ?>">
             <?php endif; ?>
-
-            <div class="form-group">
-                <label for="ho_ten" class="required">Họ tên</label>
-                <input type="text" 
-                       name="ho_ten" 
-                       id="ho_ten" 
-                       class="form-control" 
-                       value="<?= htmlspecialchars($hocSinh['ho_ten'] ?? '') ?>" 
-                       required 
-                       maxlength="200"
-                       placeholder="Nhập họ tên học sinh">
-            </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="email" class="required">Email</label>
-                    <input type="email" 
-                           name="email" 
-                           id="email" 
+                    <label for="ten_phong" class="required">Tên phòng học</label>
+                    <input type="text" 
+                           name="ten_phong" 
+                           id="ten_phong" 
                            class="form-control" 
-                           value="<?= htmlspecialchars($hocSinh['email'] ?? '') ?>" 
+                           value="<?= htmlspecialchars($phongHoc['ten_phong'] ?? '') ?>" 
                            required 
-                           maxlength="200"
-                           placeholder="example@email.com">
+                           maxlength="50"
+                           placeholder="Ví dụ: P101, P203...">
                 </div>
 
                 <div class="form-group">
-                    <label for="so_dien_thoai">Số điện thoại</label>
-                    <input type="text" 
-                           name="so_dien_thoai" 
-                           id="so_dien_thoai" 
+                    <label for="suc_chua" class="required">Sức chứa</label>
+                    <input type="number" 
+                           name="suc_chua" 
+                           id="suc_chua" 
                            class="form-control" 
-                           value="<?= htmlspecialchars($hocSinh['so_dien_thoai'] ?? '') ?>" 
-                           maxlength="20"
-                           placeholder="0123456789">
+                           value="<?= $phongHoc['suc_chua'] ?? 30 ?>" 
+                           required 
+                           min="1"
+                           max="1000"
+                           placeholder="Số lượng người">
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="mat_khau" class="<?= !isset($hocSinh) ? 'required' : '' ?>">Mật khẩu</label>
-                <input type="password" 
-                       name="mat_khau" 
-                       id="mat_khau" 
-                       class="form-control" 
-                       <?= !isset($hocSinh) ? 'required' : '' ?>
-                       placeholder="<?= isset($hocSinh) ? 'Để trống nếu không đổi mật khẩu' : 'Nhập mật khẩu' ?>">
-                <?php if (isset($hocSinh)): ?>
-                    <div class="form-help">Để trống nếu không muốn thay đổi mật khẩu</div>
-                <?php endif; ?>
-            </div>
-
-            <div class="form-group">
-                <label for="dia_chi">Địa chỉ</label>
-                <textarea name="dia_chi" 
-                          id="dia_chi" 
+                <label for="mo_ta">Mô tả</label>
+                <textarea name="mo_ta" 
+                          id="mo_ta" 
                           class="form-control" 
-                          rows="3"
-                          placeholder="Nhập địa chỉ"><?= htmlspecialchars($hocSinh['dia_chi'] ?? '') ?></textarea>
+                          rows="4"
+                          maxlength="255"
+                          placeholder="Nhập mô tả phòng học (tùy chọn)"><?= htmlspecialchars($phongHoc['mo_ta'] ?? '') ?></textarea>
             </div>
 
             <div class="form-group">
-                <label for="trang_thai">Trạng thái</label>
-                <select name="trang_thai" id="trang_thai" class="form-control">
-                    <option value="1" <?= (!isset($hocSinh) || $hocSinh['trang_thai'] == 1) ? 'selected' : '' ?>>
-                        Hoạt động
+                <label for="trang_thai" class="required">Trạng thái</label>
+                <select name="trang_thai" id="trang_thai" class="form-control" required>
+                    <option value="Sử dụng" <?= (!isset($phongHoc) || $phongHoc['trang_thai'] == 'Sử dụng') ? 'selected' : '' ?>>
+                        Sử dụng
                     </option>
-                    <option value="0" <?= (isset($hocSinh) && $hocSinh['trang_thai'] == 0) ? 'selected' : '' ?>>
+                    <option value="Bảo trì" <?= (isset($phongHoc) && $phongHoc['trang_thai'] == 'Bảo trì') ? 'selected' : '' ?>>
+                        Bảo trì
+                    </option>
+                    <option value="Khóa" <?= (isset($phongHoc) && $phongHoc['trang_thai'] == 'Khóa') ? 'selected' : '' ?>>
                         Khóa
                     </option>
                 </select>
             </div>
 
-            <div class="btn-group">
+            <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
-                    <?= isset($hocSinh) ? 'Cập nhật' : 'Thêm mới' ?>
+                    <?= isset($phongHoc) ? 'Cập nhật' : 'Thêm mới' ?>
                 </button>
-                <a href="?act=admin-list-hoc-sinh" class="btn btn-secondary">Hủy</a>
+                <a href="?act=admin-list-phong-hoc" class="btn btn-secondary">Hủy</a>
             </div>
         </form>
     </div>
