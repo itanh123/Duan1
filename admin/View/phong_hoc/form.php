@@ -166,7 +166,6 @@
                            id="ten_phong" 
                            class="form-control" 
                            value="<?= htmlspecialchars($phongHoc['ten_phong'] ?? '') ?>" 
-                           required 
                            maxlength="50"
                            placeholder="Ví dụ: P101, P203...">
                 </div>
@@ -178,7 +177,6 @@
                            id="suc_chua" 
                            class="form-control" 
                            value="<?= $phongHoc['suc_chua'] ?? 30 ?>" 
-                           required 
                            min="1"
                            max="1000"
                            placeholder="Số lượng người">
@@ -197,7 +195,7 @@
 
             <div class="form-group">
                 <label for="trang_thai" class="required">Trạng thái</label>
-                <select name="trang_thai" id="trang_thai" class="form-control" required>
+                <select name="trang_thai" id="trang_thai" class="form-control">
                     <option value="Sử dụng" <?= (!isset($phongHoc) || $phongHoc['trang_thai'] == 'Sử dụng') ? 'selected' : '' ?>>
                         Sử dụng
                     </option>
@@ -218,6 +216,51 @@
             </div>
         </form>
     </div>
+    
+    <script src="admin/View/js/validation.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const validationRules = {
+                ten_phong: {
+                    required: true,
+                    label: 'Tên phòng học',
+                    requiredMessage: 'Vui lòng nhập tên phòng học',
+                    minLength: 2,
+                    minLengthMessage: 'Tên phòng học phải có ít nhất 2 ký tự',
+                    maxLength: 50
+                },
+                suc_chua: {
+                    required: true,
+                    label: 'Sức chứa',
+                    requiredMessage: 'Vui lòng nhập sức chứa',
+                    min: 1,
+                    max: 1000,
+                    rangeMessage: 'Sức chứa phải từ 1 đến 1000 người',
+                    custom: function(value) {
+                        const num = parseInt(value);
+                        if (isNaN(num) || num < 1 || num > 1000) {
+                            return 'Sức chứa phải là số từ 1 đến 1000';
+                        }
+                        return true;
+                    }
+                },
+                trang_thai: {
+                    required: true,
+                    label: 'Trạng thái',
+                    requiredMessage: 'Vui lòng chọn trạng thái',
+                    custom: function(value) {
+                        const validStatuses = ['Sử dụng', 'Bảo trì', 'Khóa'];
+                        if (!validStatuses.includes(value)) {
+                            return 'Trạng thái không hợp lệ';
+                        }
+                        return true;
+                    }
+                }
+            };
+            
+            FormValidator.init('form', validationRules);
+        });
+    </script>
 </body>
 </html>
 

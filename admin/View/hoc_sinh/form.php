@@ -162,7 +162,6 @@
                        id="ho_ten" 
                        class="form-control" 
                        value="<?= htmlspecialchars($hocSinh['ho_ten'] ?? '') ?>" 
-                       required 
                        maxlength="200"
                        placeholder="Nhập họ tên học sinh">
             </div>
@@ -175,7 +174,6 @@
                            id="email" 
                            class="form-control" 
                            value="<?= htmlspecialchars($hocSinh['email'] ?? '') ?>" 
-                           required 
                            maxlength="200"
                            placeholder="example@email.com">
                 </div>
@@ -198,7 +196,6 @@
                        name="mat_khau" 
                        id="mat_khau" 
                        class="form-control" 
-                       <?= !isset($hocSinh) ? 'required' : '' ?>
                        placeholder="<?= isset($hocSinh) ? 'Để trống nếu không đổi mật khẩu' : 'Nhập mật khẩu' ?>">
                 <?php if (isset($hocSinh)): ?>
                     <div class="form-help">Để trống nếu không muốn thay đổi mật khẩu</div>
@@ -234,6 +231,56 @@
             </div>
         </form>
     </div>
+    
+    <script src="admin/View/js/validation.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const isEditMode = <?= isset($hocSinh) ? 'true' : 'false' ?>;
+            
+            const validationRules = {
+                ho_ten: {
+                    required: true,
+                    label: 'Họ tên',
+                    requiredMessage: 'Vui lòng nhập họ tên học sinh',
+                    minLength: 2,
+                    minLengthMessage: 'Họ tên phải có ít nhất 2 ký tự',
+                    maxLength: 200
+                },
+                email: {
+                    required: true,
+                    label: 'Email',
+                    requiredMessage: 'Vui lòng nhập email',
+                    email: true,
+                    emailMessage: 'Email không hợp lệ',
+                    maxLength: 200
+                },
+                so_dien_thoai: {
+                    required: false,
+                    label: 'Số điện thoại',
+                    phone: true,
+                    phoneMessage: 'Số điện thoại không hợp lệ (định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx)'
+                },
+                mat_khau: {
+                    required: !isEditMode,
+                    label: 'Mật khẩu',
+                    requiredMessage: 'Vui lòng nhập mật khẩu',
+                    minLength: isEditMode ? 0 : 6,
+                    minLengthMessage: 'Mật khẩu phải có ít nhất 6 ký tự',
+                    custom: function(value) {
+                        if (isEditMode && !value) {
+                            return true; // Optional when editing
+                        }
+                        if (!isEditMode && value.length < 6) {
+                            return 'Mật khẩu phải có ít nhất 6 ký tự';
+                        }
+                        return true;
+                    }
+                }
+            };
+            
+            FormValidator.init('form', validationRules);
+        });
+    </script>
 </body>
 </html>
 
