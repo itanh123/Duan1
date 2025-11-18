@@ -1,7 +1,10 @@
 <?php
 // views/khoa_hoc/detail.php
 // Biến có sẵn: $course, $lops, $lopCa, $binh_luan
-session_start();
+// Session đã được khởi động ở index.php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 $dang_ky_success = isset($_SESSION['dang_ky_success']) ? $_SESSION['dang_ky_success'] : false;
 $dang_ky_error = isset($_SESSION['dang_ky_error']) ? $_SESSION['dang_ky_error'] : '';
 unset($_SESSION['dang_ky_success']);
@@ -404,6 +407,8 @@ unset($_SESSION['dang_ky_error']);
                 <ul>
                     <li><a href="index.php">Trang chủ</a></li>
                     <li><a href="index.php?act=client-khoa-hoc">Khóa học</a></li>
+                    <li><a href="index.php?act=client-lop-hoc">Lớp học</a></li>
+                    <li><a href="index.php?act=client-danh-muc">Danh mục</a></li>
                     <li><a href="#">Giảng viên</a></li>
                     <li><a href="#">Liên hệ</a></li>
                 </ul>
@@ -490,37 +495,6 @@ unset($_SESSION['dang_ky_error']);
                 <button type="submit" class="btn-submit">Đăng ký ngay</button>
             </form>
         </div>
-
-        <!-- Classes Section -->
-        <?php if (!empty($lops)): ?>
-            <div class="classes-section">
-                <h2>Danh sách lớp học (<?= count($lops) ?>)</h2>
-                <?php foreach ($lops as $lop): ?>
-                    <div class="class-item">
-                        <div class="class-name"><?= htmlspecialchars($lop['ten_lop']) ?></div>
-                        <div class="class-meta">Số lượng tối đa: <?= htmlspecialchars($lop['so_luong_toi_da']) ?> học viên</div>
-                        <?php if (!empty($lopCa[$lop['id']])): ?>
-                            <div class="schedule-list">
-                                <?php foreach ($lopCa[$lop['id']] as $ca): ?>
-                                    <div class="schedule-item">
-                                        <strong><?= htmlspecialchars($ca['thu_trong_tuan']) ?></strong>
-                                        | <?= htmlspecialchars(substr($ca['gio_bat_dau'], 0, 5)) ?> - <?= htmlspecialchars(substr($ca['gio_ket_thuc'], 0, 5)) ?>
-                                        <?php if (!empty($ca['giang_vien_ten'])): ?>
-                                            | Giảng viên: <?= htmlspecialchars($ca['giang_vien_ten']) ?>
-                                        <?php endif; ?>
-                                        <?php if (!empty($ca['phong_hoc'])): ?>
-                                            | Phòng: <?= htmlspecialchars($ca['phong_hoc']) ?>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php else: ?>
-                            <div class="schedule-list">Chưa có lịch học cho lớp này.</div>
-                        <?php endif; ?>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
 
         <!-- Comments Section -->
         <div class="comments-section">
