@@ -8,12 +8,12 @@ class KhoaHocController {
 
     private $model;
     private $caHocModel;
-
+    private $userModel;
     public function __construct() {
         $this->model = new KhoaHoc();
         $this->caHocModel = new CaHoc(); // Để lấy thông tin ca học khi hiển thị chi tiết khóa học
         $this->userModel = new adminmodel();
-    private $userModel;
+   
       
     }
 
