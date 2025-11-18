@@ -37,6 +37,24 @@ function connectDB()
     }
 }
 
+// Render view với layout admin
+function renderAdminView($viewPath, $data = [], $pageTitle = 'Admin Panel')
+{
+    // Extract data to variables
+    extract($data);
+    
+    // Set page title
+    $pageTitle = $pageTitle;
+    
+    // Start output buffering for content
+    ob_start();
+    include $viewPath;
+    $content = ob_get_clean();
+    
+    // Include layout
+    include './admin/View/layout.php';
+}
+
 
 
 ?>

@@ -19,6 +19,19 @@ class KhoaHocController {
             header('Location: ?act=client-login');
             exit;
         }
+        
+        // Kiểm tra tài khoản có bị khóa không
+        $user = $this->userModel->getNguoiDungById($_SESSION['client_id']);
+        if (!$user || $user['trang_thai'] != 1) {
+            // Tài khoản bị khóa hoặc không tồn tại, đăng xuất
+            unset($_SESSION['client_id']);
+            unset($_SESSION['client_email']);
+            unset($_SESSION['client_ho_ten']);
+            unset($_SESSION['client_vai_tro']);
+            $_SESSION['error'] = 'Tài khoản của bạn đã bị khóa!';
+            header('Location: ?act=client-login');
+            exit;
+        }
     }
 
     // Trang đăng nhập client (chung cho cả admin và client)
@@ -63,6 +76,97 @@ class KhoaHocController {
         exit;
     }
 
+    // Trang đăng ký
+    public function register(){
+        // Nếu đã đăng nhập thì chuyển về trang chủ
+        if (isset($_SESSION['client_id']) && $_SESSION['client_vai_tro'] === 'hoc_sinh') {
+            header('Location: ?act=client-khoa-hoc');
+            exit;
+        }
+        if (isset($_SESSION['admin_id']) && $_SESSION['admin_vai_tro'] === 'admin') {
+            header('Location: ?act=admin-dashboard');
+            exit;
+        }
+        require_once(__DIR__ . '/../views/register.php');
+    }
+
+    // Xử lý đăng ký
+    public function processRegister(){
+        $ho_ten = trim($_POST['ho_ten'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $so_dien_thoai = trim($_POST['so_dien_thoai'] ?? '');
+        $dia_chi = trim($_POST['dia_chi'] ?? '');
+        $mat_khau = $_POST['mat_khau'] ?? '';
+        $confirm_password = $_POST['confirm_password'] ?? '';
+
+        // Validate dữ liệu
+        if (empty($ho_ten)) {
+            $_SESSION['error'] = 'Vui lòng nhập họ và tên!';
+            header('Location: ?act=client-register');
+            exit;
+        }
+
+        if (empty($email)) {
+            $_SESSION['error'] = 'Vui lòng nhập email!';
+            header('Location: ?act=client-register');
+            exit;
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = 'Email không hợp lệ!';
+            header('Location: ?act=client-register');
+            exit;
+        }
+
+        // Kiểm tra email đã tồn tại chưa
+        if ($this->userModel->checkEmailExistsByRole($email, 'hoc_sinh')) {
+            $_SESSION['error'] = 'Email này đã được sử dụng! Vui lòng chọn email khác.';
+            header('Location: ?act=client-register');
+            exit;
+        }
+
+        if (empty($mat_khau)) {
+            $_SESSION['error'] = 'Vui lòng nhập mật khẩu!';
+            header('Location: ?act=client-register');
+            exit;
+        }
+
+        if (strlen($mat_khau) < 6) {
+            $_SESSION['error'] = 'Mật khẩu phải có ít nhất 6 ký tự!';
+            header('Location: ?act=client-register');
+            exit;
+        }
+
+        if ($mat_khau !== $confirm_password) {
+            $_SESSION['error'] = 'Mật khẩu xác nhận không khớp!';
+            header('Location: ?act=client-register');
+            exit;
+        }
+
+        // Hash mật khẩu
+        $hashedPassword = password_hash($mat_khau, PASSWORD_DEFAULT);
+
+        // Chuẩn bị dữ liệu
+        $data = [
+            'ho_ten' => $ho_ten,
+            'email' => $email,
+            'mat_khau' => $hashedPassword,
+            'so_dien_thoai' => !empty($so_dien_thoai) ? $so_dien_thoai : null,
+            'dia_chi' => !empty($dia_chi) ? $dia_chi : null,
+            'trang_thai' => 1 // Mặc định là hoạt động
+        ];
+
+        // Thêm học sinh vào database
+        if ($this->userModel->addHocSinh($data)) {
+            $_SESSION['success'] = 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.';
+            header('Location: ?act=client-login');
+        } else {
+            $_SESSION['error'] = 'Đăng ký thất bại! Vui lòng thử lại.';
+            header('Location: ?act=client-register');
+        }
+        exit;
+    }
+
     // Xử lý đăng nhập chung cho cả admin và client
     public function unifiedProcessLogin(){
         $email = $_POST['email'] ?? '';
@@ -74,38 +178,100 @@ class KhoaHocController {
             exit;
         }
 
-        // Thử đăng nhập với vai trò admin trước
-        $user = $this->userModel->login($email, $password, 'admin');
+        // Kiểm tra đăng nhập (không cần chỉ định vai trò cụ thể)
+        $user = $this->userModel->loginByEmail($email, $password);
         
         if ($user) {
-            // Đăng nhập thành công với vai trò admin
-            $_SESSION['admin_id'] = $user['id'];
-            $_SESSION['admin_email'] = $user['email'];
-            $_SESSION['admin_ho_ten'] = $user['ho_ten'];
-            $_SESSION['admin_vai_tro'] = $user['vai_tro'];
-            $_SESSION['success'] = 'Đăng nhập Admin thành công!';
-            header('Location: ?act=admin-dashboard');
+            // Lấy tất cả vai trò của người dùng
+            require_once('./admin/Model/adminmodel.php');
+            $adminModel = new adminmodel();
+            $vaiTroList = $adminModel->getVaiTroByNguoiDung($user['id']);
+            
+            if (empty($vaiTroList)) {
+                $_SESSION['error'] = 'Tài khoản chưa được phân vai trò!';
+                header('Location: ?act=client-login');
+                exit;
+            }
+            
+            // Nếu chỉ có 1 vai trò, tự động đăng nhập với vai trò đó
+            if (count($vaiTroList) == 1) {
+                $vaiTro = $vaiTroList[0];
+                $this->setSessionByVaiTro($user, $vaiTro);
+                exit;
+            }
+            
+            // Nếu có nhiều vai trò, hiển thị form chọn vai trò
+            $_SESSION['temp_user_id'] = $user['id'];
+            $_SESSION['temp_user_email'] = $user['email'];
+            $_SESSION['temp_user_ho_ten'] = $user['ho_ten'];
+            $_SESSION['temp_vai_tro_list'] = $vaiTroList;
+            header('Location: ?act=client-choose-role');
             exit;
         }
 
-        // Nếu không phải admin, thử đăng nhập với vai trò học sinh
-        $user = $this->userModel->login($email, $password, 'hoc_sinh');
-        
-        if ($user) {
-            // Đăng nhập thành công với vai trò học sinh
-            $_SESSION['client_id'] = $user['id'];
-            $_SESSION['client_email'] = $user['email'];
-            $_SESSION['client_ho_ten'] = $user['ho_ten'];
-            $_SESSION['client_vai_tro'] = $user['vai_tro'];
-            $_SESSION['success'] = 'Đăng nhập thành công!';
-            header('Location: ?act=client-khoa-hoc');
-            exit;
-        }
-
-        // Nếu không đăng nhập được với cả hai vai trò
+        // Nếu không đăng nhập được
         $_SESSION['error'] = 'Email hoặc mật khẩu không đúng!';
         header('Location: ?act=client-login');
         exit;
+    }
+
+    // Thiết lập session theo vai trò
+    private function setSessionByVaiTro($user, $vaiTro) {
+        if ($vaiTro == 'admin') {
+            $_SESSION['admin_id'] = $user['id'];
+            $_SESSION['admin_email'] = $user['email'];
+            $_SESSION['admin_ho_ten'] = $user['ho_ten'];
+            $_SESSION['admin_vai_tro'] = $vaiTro;
+            $_SESSION['success'] = 'Đăng nhập Admin thành công!';
+            header('Location: ?act=admin-dashboard');
+        } else {
+            $_SESSION['client_id'] = $user['id'];
+            $_SESSION['client_email'] = $user['email'];
+            $_SESSION['client_ho_ten'] = $user['ho_ten'];
+            $_SESSION['client_vai_tro'] = $vaiTro;
+            $_SESSION['success'] = 'Đăng nhập thành công!';
+            header('Location: ?act=client-khoa-hoc');
+        }
+    }
+
+    // Form chọn vai trò khi có nhiều vai trò
+    public function chooseRole(){
+        if (!isset($_SESSION['temp_user_id']) || !isset($_SESSION['temp_vai_tro_list'])) {
+            header('Location: ?act=client-login');
+            exit;
+        }
+        require_once(__DIR__ . '/../views/choose_role.php');
+    }
+
+    // Xử lý chọn vai trò
+    public function processChooseRole(){
+        $vaiTro = $_POST['vai_tro'] ?? '';
+        
+        if (!isset($_SESSION['temp_user_id']) || !isset($_SESSION['temp_vai_tro_list'])) {
+            header('Location: ?act=client-login');
+            exit;
+        }
+        
+        if (empty($vaiTro) || !in_array($vaiTro, $_SESSION['temp_vai_tro_list'])) {
+            $_SESSION['error'] = 'Vai trò không hợp lệ!';
+            header('Location: ?act=client-choose-role');
+            exit;
+        }
+        
+        $user = [
+            'id' => $_SESSION['temp_user_id'],
+            'email' => $_SESSION['temp_user_email'],
+            'ho_ten' => $_SESSION['temp_user_ho_ten']
+        ];
+        
+        // Xóa session tạm
+        unset($_SESSION['temp_user_id']);
+        unset($_SESSION['temp_user_email']);
+        unset($_SESSION['temp_user_ho_ten']);
+        unset($_SESSION['temp_vai_tro_list']);
+        
+        // Thiết lập session theo vai trò đã chọn
+        $this->setSessionByVaiTro($user, $vaiTro);
     }
 
     // Đăng xuất client
