@@ -8,8 +8,67 @@ class admincontroller{
         $this->model = new adminmodel();
     }
 
+    // Kiểm tra đăng nhập admin
+    private function checkAdminLogin(){
+        if (!isset($_SESSION['admin_id']) || !isset($_SESSION['admin_vai_tro']) || $_SESSION['admin_vai_tro'] !== 'admin') {
+            header('Location: ?act=client-login');
+            exit;
+        }
+    }
+
+    // Trang đăng nhập admin - redirect về form đăng nhập chung
+    public function login(){
+        // Nếu đã đăng nhập thì chuyển về dashboard
+        if (isset($_SESSION['admin_id']) && $_SESSION['admin_vai_tro'] === 'admin') {
+            header('Location: ?act=admin-dashboard');
+            exit;
+        }
+        // Redirect về form đăng nhập chung ở client
+        header('Location: ?act=client-login');
+        exit;
+    }
+
+    // Xử lý đăng nhập admin
+    public function processLogin(){
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        if (empty($email) || empty($password)) {
+            $_SESSION['error'] = 'Vui lòng nhập đầy đủ email và mật khẩu!';
+            header('Location: ?act=client-login');
+            exit;
+        }
+
+        $user = $this->model->login($email, $password, 'admin');
+        
+        if ($user) {
+            $_SESSION['admin_id'] = $user['id'];
+            $_SESSION['admin_email'] = $user['email'];
+            $_SESSION['admin_ho_ten'] = $user['ho_ten'];
+            $_SESSION['admin_vai_tro'] = $user['vai_tro'];
+            $_SESSION['success'] = 'Đăng nhập thành công!';
+            header('Location: ?act=admin-dashboard');
+        } else {
+            $_SESSION['error'] = 'Email hoặc mật khẩu không đúng!';
+            header('Location: ?act=client-login');
+        }
+        exit;
+    }
+
+    // Đăng xuất admin
+    public function logout(){
+        unset($_SESSION['admin_id']);
+        unset($_SESSION['admin_email']);
+        unset($_SESSION['admin_ho_ten']);
+        unset($_SESSION['admin_vai_tro']);
+        $_SESSION['success'] = 'Đăng xuất thành công!';
+        header('Location: ?act=client-login');
+        exit;
+    }
+
     // Trang chủ admin (Dashboard)
     public function dashboard(){
+        $this->checkAdminLogin();
         $thongKe = $this->model->getThongKe();
         $dangKyMoiNhat = $this->model->getDangKyMoiNhat(5);
         $thanhToanMoiNhat = $this->model->getThanhToanMoiNhat(5);
@@ -19,6 +78,7 @@ class admincontroller{
 
     // Danh sách khóa học
     public function listKhoaHoc(){
+        $this->checkAdminLogin();
         $page = $_GET['page'] ?? 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
@@ -34,12 +94,14 @@ class admincontroller{
 
     // Form thêm khóa học
     public function addKhoaHoc(){
+        $this->checkAdminLogin();
         $danhMuc = $this->model->getDanhMuc();
         require_once('./admin/View/khoa_hoc/form.php');
     }
 
     // Xử lý thêm khóa học
     public function saveKhoaHoc(){
+        $this->checkAdminLogin();
         $data = [
             'id_danh_muc' => $_POST['id_danh_muc'] ?? '',
             'ten_khoa_hoc' => $_POST['ten_khoa_hoc'] ?? '',
@@ -67,6 +129,7 @@ class admincontroller{
 
     // Form sửa khóa học
     public function editKhoaHoc(){
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-khoa-hoc');
@@ -86,6 +149,7 @@ class admincontroller{
 
     // Xử lý cập nhật khóa học
     public function updateKhoaHoc(){
+        $this->checkAdminLogin();
         $id = $_POST['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-khoa-hoc');
@@ -136,6 +200,7 @@ class admincontroller{
 
     // Xóa khóa học
     public function deleteKhoaHoc(){
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             $_SESSION['error'] = 'ID không hợp lệ!';
@@ -194,6 +259,885 @@ class admincontroller{
 
         $_SESSION['error'] = 'Không thể upload file!';
         return null;
+    }
+
+    // ===========================================
+    //  QUẢN LÝ HỌC SINH
+    // ===========================================
+
+    // Danh sách học sinh
+    public function listHocSinh(){
+        $this->checkAdminLogin();
+        $page = $_GET['page'] ?? 1;
+        $limit = 10;
+        $search = $_GET['search'] ?? '';
+        
+        $hocSinh = $this->model->getHocSinh($page, $limit, $search);
+        $total = $this->model->countHocSinh($search);
+        $totalPages = ceil($total / $limit);
+        
+        require_once('./admin/View/hoc_sinh/list.php');
+    }
+
+    // Form thêm học sinh
+    public function addHocSinh(){
+        $this->checkAdminLogin();
+        require_once('./admin/View/hoc_sinh/form.php');
+    }
+
+    // Xử lý thêm học sinh
+    public function saveHocSinh(){
+        $this->checkAdminLogin();
+        $data = [
+            'ho_ten' => $_POST['ho_ten'] ?? '',
+            'email' => $_POST['email'] ?? '',
+            'mat_khau' => $_POST['mat_khau'] ?? '',
+            'sdt' => $_POST['sdt'] ?? '',
+            'dia_chi' => $_POST['dia_chi'] ?? '',
+            'trang_thai' => $_POST['trang_thai'] ?? 1
+        ];
+
+        // Validation
+        if (empty($data['ho_ten']) || empty($data['email']) || empty($data['mat_khau'])) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ?act=admin-add-hoc-sinh');
+            exit;
+        }
+
+        // Kiểm tra email đã tồn tại chưa
+        if ($this->model->checkEmailExists($data['email'])) {
+            $_SESSION['error'] = 'Email đã tồn tại trong hệ thống!';
+            header('Location: ?act=admin-add-hoc-sinh');
+            exit;
+        }
+
+        // Validate email format
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = 'Email không hợp lệ!';
+            header('Location: ?act=admin-add-hoc-sinh');
+            exit;
+        }
+
+        if ($this->model->addHocSinh($data)) {
+            $_SESSION['success'] = 'Thêm học sinh thành công!';
+            header('Location: ?act=admin-list-hoc-sinh');
+        } else {
+            $_SESSION['error'] = 'Thêm học sinh thất bại!';
+            header('Location: ?act=admin-add-hoc-sinh');
+        }
+        exit;
+    }
+
+    // Form sửa học sinh
+    public function editHocSinh(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+        
+        $hocSinh = $this->model->getHocSinhById($id);
+        if (!$hocSinh) {
+            $_SESSION['error'] = 'Không tìm thấy học sinh!';
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+        
+        require_once('./admin/View/hoc_sinh/form.php');
+    }
+
+    // Xử lý cập nhật học sinh
+    public function updateHocSinh(){
+        $this->checkAdminLogin();
+        $id = $_POST['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+
+        $hocSinh = $this->model->getHocSinhById($id);
+        if (!$hocSinh) {
+            $_SESSION['error'] = 'Không tìm thấy học sinh!';
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+
+        $data = [
+            'ho_ten' => $_POST['ho_ten'] ?? '',
+            'email' => $_POST['email'] ?? '',
+            'sdt' => $_POST['sdt'] ?? '',
+            'dia_chi' => $_POST['dia_chi'] ?? '',
+            'trang_thai' => $_POST['trang_thai'] ?? 1
+        ];
+
+        // Nếu có mật khẩu mới
+        if (!empty($_POST['mat_khau'])) {
+            $data['mat_khau'] = $_POST['mat_khau'];
+        }
+
+        // Validation
+        if (empty($data['ho_ten']) || empty($data['email'])) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
+            exit;
+        }
+
+        // Kiểm tra email đã tồn tại chưa (trừ ID hiện tại)
+        if ($this->model->checkEmailExists($data['email'], $id)) {
+            $_SESSION['error'] = 'Email đã tồn tại trong hệ thống!';
+            header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
+            exit;
+        }
+
+        // Validate email format
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = 'Email không hợp lệ!';
+            header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
+            exit;
+        }
+
+        if ($this->model->updateHocSinh($id, $data)) {
+            $_SESSION['success'] = 'Cập nhật học sinh thành công!';
+            header('Location: ?act=admin-list-hoc-sinh');
+        } else {
+            $_SESSION['error'] = 'Cập nhật học sinh thất bại!';
+            header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
+        }
+        exit;
+    }
+
+    // Xóa học sinh
+    public function deleteHocSinh(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+
+        if ($this->model->deleteHocSinh($id)) {
+            $_SESSION['success'] = 'Xóa học sinh thành công!';
+        } else {
+            $_SESSION['error'] = 'Xóa học sinh thất bại!';
+        }
+        header('Location: ?act=admin-list-hoc-sinh');
+        exit;
+    }
+
+    // ===========================================
+    //  QUẢN LÝ DANH MỤC
+    // ===========================================
+
+    // Danh sách danh mục
+    public function listDanhMuc(){
+        $this->checkAdminLogin();
+        $page = $_GET['page'] ?? 1;
+        $limit = 10;
+        $search = $_GET['search'] ?? '';
+        
+        $danhMuc = $this->model->getDanhMucList($page, $limit, $search);
+        $total = $this->model->countDanhMuc($search);
+        $totalPages = ceil($total / $limit);
+        
+        require_once('./admin/View/danh_muc/list.php');
+    }
+
+    // Form thêm danh mục
+    public function addDanhMuc(){
+        $this->checkAdminLogin();
+        require_once('./admin/View/danh_muc/form.php');
+    }
+
+    // Xử lý thêm danh mục
+    public function saveDanhMuc(){
+        $this->checkAdminLogin();
+        $data = [
+            'ten_danh_muc' => $_POST['ten_danh_muc'] ?? '',
+            'mo_ta' => $_POST['mo_ta'] ?? '',
+            'trang_thai' => $_POST['trang_thai'] ?? 1
+        ];
+
+        // Validation
+        if (empty($data['ten_danh_muc'])) {
+            $_SESSION['error'] = 'Vui lòng nhập tên danh mục!';
+            header('Location: ?act=admin-add-danh-muc');
+            exit;
+        }
+
+        // Kiểm tra tên danh mục đã tồn tại chưa
+        if ($this->model->checkDanhMucExists($data['ten_danh_muc'])) {
+            $_SESSION['error'] = 'Tên danh mục đã tồn tại trong hệ thống!';
+            header('Location: ?act=admin-add-danh-muc');
+            exit;
+        }
+
+        if ($this->model->addDanhMuc($data)) {
+            $_SESSION['success'] = 'Thêm danh mục thành công!';
+            header('Location: ?act=admin-list-danh-muc');
+        } else {
+            $_SESSION['error'] = 'Thêm danh mục thất bại!';
+            header('Location: ?act=admin-add-danh-muc');
+        }
+        exit;
+    }
+
+    // Form sửa danh mục
+    public function editDanhMuc(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-danh-muc');
+            exit;
+        }
+        
+        $danhMuc = $this->model->getDanhMucById($id);
+        if (!$danhMuc) {
+            $_SESSION['error'] = 'Không tìm thấy danh mục!';
+            header('Location: ?act=admin-list-danh-muc');
+            exit;
+        }
+        
+        require_once('./admin/View/danh_muc/form.php');
+    }
+
+    // Xử lý cập nhật danh mục
+    public function updateDanhMuc(){
+        $this->checkAdminLogin();
+        $id = $_POST['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-danh-muc');
+            exit;
+        }
+
+        $danhMuc = $this->model->getDanhMucById($id);
+        if (!$danhMuc) {
+            $_SESSION['error'] = 'Không tìm thấy danh mục!';
+            header('Location: ?act=admin-list-danh-muc');
+            exit;
+        }
+
+        $data = [
+            'ten_danh_muc' => $_POST['ten_danh_muc'] ?? '',
+            'mo_ta' => $_POST['mo_ta'] ?? '',
+            'trang_thai' => $_POST['trang_thai'] ?? 1
+        ];
+
+        // Validation
+        if (empty($data['ten_danh_muc'])) {
+            $_SESSION['error'] = 'Vui lòng nhập tên danh mục!';
+            header('Location: ?act=admin-edit-danh-muc&id=' . $id);
+            exit;
+        }
+
+        // Kiểm tra tên danh mục đã tồn tại chưa (trừ ID hiện tại)
+        if ($this->model->checkDanhMucExists($data['ten_danh_muc'], $id)) {
+            $_SESSION['error'] = 'Tên danh mục đã tồn tại trong hệ thống!';
+            header('Location: ?act=admin-edit-danh-muc&id=' . $id);
+            exit;
+        }
+
+        if ($this->model->updateDanhMuc($id, $data)) {
+            $_SESSION['success'] = 'Cập nhật danh mục thành công!';
+            header('Location: ?act=admin-list-danh-muc');
+        } else {
+            $_SESSION['error'] = 'Cập nhật danh mục thất bại!';
+            header('Location: ?act=admin-edit-danh-muc&id=' . $id);
+        }
+        exit;
+    }
+
+    // Xóa danh mục
+    public function deleteDanhMuc(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-danh-muc');
+            exit;
+        }
+
+        $result = $this->model->deleteDanhMuc($id);
+        if ($result) {
+            $_SESSION['success'] = 'Xóa danh mục thành công!';
+        } else {
+            $_SESSION['error'] = 'Không thể xóa danh mục! Danh mục này đang được sử dụng trong khóa học.';
+        }
+        header('Location: ?act=admin-list-danh-muc');
+        exit;
+    }
+
+    // ===========================================
+    //  QUẢN LÝ GIẢNG VIÊN
+    // ===========================================
+
+    // Danh sách giảng viên
+    public function listGiangVien(){
+        $this->checkAdminLogin();
+        $page = $_GET['page'] ?? 1;
+        $limit = 10;
+        $search = $_GET['search'] ?? '';
+        
+        $giangVien = $this->model->getGiangVien($page, $limit, $search);
+        $total = $this->model->countGiangVien($search);
+        $totalPages = ceil($total / $limit);
+        
+        require_once('./admin/View/giang_vien/list.php');
+    }
+
+    // Form thêm giảng viên
+    public function addGiangVien(){
+        $this->checkAdminLogin();
+        require_once('./admin/View/giang_vien/form.php');
+    }
+
+    // Xử lý thêm giảng viên
+    public function saveGiangVien(){
+        $this->checkAdminLogin();
+        $data = [
+            'ho_ten' => $_POST['ho_ten'] ?? '',
+            'email' => $_POST['email'] ?? '',
+            'mat_khau' => $_POST['mat_khau'] ?? '',
+            'sdt' => $_POST['sdt'] ?? '',
+            'dia_chi' => $_POST['dia_chi'] ?? '',
+            'trang_thai' => $_POST['trang_thai'] ?? 1
+        ];
+
+        // Validation
+        if (empty($data['ho_ten']) || empty($data['email']) || empty($data['mat_khau'])) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ?act=admin-add-giang-vien');
+            exit;
+        }
+
+        // Kiểm tra email đã tồn tại chưa
+        if ($this->model->checkEmailExists($data['email'])) {
+            $_SESSION['error'] = 'Email đã tồn tại trong hệ thống!';
+            header('Location: ?act=admin-add-giang-vien');
+            exit;
+        }
+
+        // Validate email format
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = 'Email không hợp lệ!';
+            header('Location: ?act=admin-add-giang-vien');
+            exit;
+        }
+
+        if ($this->model->addGiangVien($data)) {
+            $_SESSION['success'] = 'Thêm giảng viên thành công!';
+            header('Location: ?act=admin-list-giang-vien');
+        } else {
+            $_SESSION['error'] = 'Thêm giảng viên thất bại!';
+            header('Location: ?act=admin-add-giang-vien');
+        }
+        exit;
+    }
+
+    // Form sửa giảng viên
+    public function editGiangVien(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-giang-vien');
+            exit;
+        }
+        
+        $giangVien = $this->model->getGiangVienById($id);
+        if (!$giangVien) {
+            $_SESSION['error'] = 'Không tìm thấy giảng viên!';
+            header('Location: ?act=admin-list-giang-vien');
+            exit;
+        }
+        
+        require_once('./admin/View/giang_vien/form.php');
+    }
+
+    // Xử lý cập nhật giảng viên
+    public function updateGiangVien(){
+        $this->checkAdminLogin();
+        $id = $_POST['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-giang-vien');
+            exit;
+        }
+
+        $giangVien = $this->model->getGiangVienById($id);
+        if (!$giangVien) {
+            $_SESSION['error'] = 'Không tìm thấy giảng viên!';
+            header('Location: ?act=admin-list-giang-vien');
+            exit;
+        }
+
+        $data = [
+            'ho_ten' => $_POST['ho_ten'] ?? '',
+            'email' => $_POST['email'] ?? '',
+            'sdt' => $_POST['sdt'] ?? '',
+            'dia_chi' => $_POST['dia_chi'] ?? '',
+            'trang_thai' => $_POST['trang_thai'] ?? 1
+        ];
+
+        // Nếu có mật khẩu mới
+        if (!empty($_POST['mat_khau'])) {
+            $data['mat_khau'] = $_POST['mat_khau'];
+        }
+
+        // Validation
+        if (empty($data['ho_ten']) || empty($data['email'])) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ?act=admin-edit-giang-vien&id=' . $id);
+            exit;
+        }
+
+        // Kiểm tra email đã tồn tại chưa (trừ ID hiện tại)
+        if ($this->model->checkEmailExists($data['email'], $id)) {
+            $_SESSION['error'] = 'Email đã tồn tại trong hệ thống!';
+            header('Location: ?act=admin-edit-giang-vien&id=' . $id);
+            exit;
+        }
+
+        // Validate email format
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = 'Email không hợp lệ!';
+            header('Location: ?act=admin-edit-giang-vien&id=' . $id);
+            exit;
+        }
+
+        if ($this->model->updateGiangVien($id, $data)) {
+            $_SESSION['success'] = 'Cập nhật giảng viên thành công!';
+            header('Location: ?act=admin-list-giang-vien');
+        } else {
+            $_SESSION['error'] = 'Cập nhật giảng viên thất bại!';
+            header('Location: ?act=admin-edit-giang-vien&id=' . $id);
+        }
+        exit;
+    }
+
+    // Xóa giảng viên
+    public function deleteGiangVien(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-giang-vien');
+            exit;
+        }
+
+        if ($this->model->deleteGiangVien($id)) {
+            $_SESSION['success'] = 'Xóa giảng viên thành công!';
+        } else {
+            $_SESSION['error'] = 'Xóa giảng viên thất bại!';
+        }
+        header('Location: ?act=admin-list-giang-vien');
+        exit;
+    }
+
+    // ===========================================
+    //  QUẢN LÝ LỚP HỌC
+    // ===========================================
+
+    // Danh sách lớp học
+    public function listLopHoc(){
+        $this->checkAdminLogin();
+        $page = $_GET['page'] ?? 1;
+        $limit = 10;
+        $search = $_GET['search'] ?? '';
+        $id_khoa_hoc = $_GET['id_khoa_hoc'] ?? '';
+        
+        $lopHoc = $this->model->getLopHoc($page, $limit, $search, $id_khoa_hoc);
+        $total = $this->model->countLopHoc($search, $id_khoa_hoc);
+        $totalPages = ceil($total / $limit);
+        $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học để filter
+        
+        require_once('./admin/View/lop_hoc/list.php');
+    }
+
+    // Form thêm lớp học
+    public function addLopHoc(){
+        $this->checkAdminLogin();
+        $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
+        require_once('./admin/View/lop_hoc/form.php');
+    }
+
+    // Xử lý thêm lớp học
+    public function saveLopHoc(){
+        $this->checkAdminLogin();
+        $trang_thai = $_POST['trang_thai'] ?? 'Chưa khai giảng';
+        // Đảm bảo trang_thai là một trong các giá trị ENUM hợp lệ
+        $validTrangThai = ['Chưa khai giảng', 'Đang học', 'Kết thúc'];
+        if (!in_array($trang_thai, $validTrangThai)) {
+            $trang_thai = 'Chưa khai giảng'; // Mặc định
+        }
+        $data = [
+            'id_khoa_hoc' => $_POST['id_khoa_hoc'] ?? '',
+            'ten_lop' => $_POST['ten_lop'] ?? '',
+            'mo_ta' => $_POST['mo_ta'] ?? '',
+            'so_luong_toi_da' => !empty($_POST['so_luong_toi_da']) ? (int)$_POST['so_luong_toi_da'] : null,
+            'trang_thai' => $trang_thai
+        ];
+
+        // Validation
+        if (empty($data['id_khoa_hoc']) || empty($data['ten_lop'])) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ?act=admin-add-lop-hoc');
+            exit;
+        }
+
+        if ($this->model->addLopHoc($data)) {
+            $_SESSION['success'] = 'Thêm lớp học thành công!';
+            header('Location: ?act=admin-list-lop-hoc');
+        } else {
+            $_SESSION['error'] = 'Thêm lớp học thất bại!';
+            header('Location: ?act=admin-add-lop-hoc');
+        }
+        exit;
+    }
+
+    // Form sửa lớp học
+    public function editLopHoc(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-lop-hoc');
+            exit;
+        }
+        
+        $lopHoc = $this->model->getLopHocById($id);
+        if (!$lopHoc) {
+            $_SESSION['error'] = 'Không tìm thấy lớp học!';
+            header('Location: ?act=admin-list-lop-hoc');
+            exit;
+        }
+        
+        $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
+        require_once('./admin/View/lop_hoc/form.php');
+    }
+
+    // Xử lý cập nhật lớp học
+    public function updateLopHoc(){
+        $this->checkAdminLogin();
+        $id = $_POST['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-lop-hoc');
+            exit;
+        }
+
+        $lopHoc = $this->model->getLopHocById($id);
+        if (!$lopHoc) {
+            $_SESSION['error'] = 'Không tìm thấy lớp học!';
+            header('Location: ?act=admin-list-lop-hoc');
+            exit;
+        }
+
+        $trang_thai = $_POST['trang_thai'] ?? 'Chưa khai giảng';
+        // Đảm bảo trang_thai là một trong các giá trị ENUM hợp lệ
+        $validTrangThai = ['Chưa khai giảng', 'Đang học', 'Kết thúc'];
+        if (!in_array($trang_thai, $validTrangThai)) {
+            $trang_thai = 'Chưa khai giảng'; // Mặc định
+        }
+        $data = [
+            'id_khoa_hoc' => $_POST['id_khoa_hoc'] ?? '',
+            'ten_lop' => $_POST['ten_lop'] ?? '',
+            'mo_ta' => $_POST['mo_ta'] ?? '',
+            'so_luong_toi_da' => !empty($_POST['so_luong_toi_da']) ? (int)$_POST['so_luong_toi_da'] : null,
+            'trang_thai' => $trang_thai
+        ];
+
+        // Validation
+        if (empty($data['id_khoa_hoc']) || empty($data['ten_lop'])) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
+            exit;
+        }
+
+        if ($this->model->updateLopHoc($id, $data)) {
+            $_SESSION['success'] = 'Cập nhật lớp học thành công!';
+            header('Location: ?act=admin-list-lop-hoc');
+        } else {
+            $_SESSION['error'] = 'Cập nhật lớp học thất bại!';
+            header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
+        }
+        exit;
+    }
+
+    // ===========================================
+    //  QUẢN LÝ CA HỌC
+    // ===========================================
+
+    // Danh sách ca học
+    public function listCaHoc(){
+        $this->checkAdminLogin();
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = 10;
+        $search = $_GET['search'] ?? '';
+        $id_lop = $_GET['id_lop'] ?? '';
+        
+        $total = $this->model->countCaHoc($search, $id_lop);
+        $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages));
+        
+        $caHoc = $this->model->getCaHoc($page, $limit, $search, $id_lop);
+        $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học để filter
+        
+        require_once('./admin/View/ca_hoc/list.php');
+    }
+
+    // Form thêm ca học
+    public function addCaHoc(){
+        $this->checkAdminLogin();
+        $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học
+        $giangVienList = $this->model->getGiangVienList(); // Lấy danh sách giảng viên
+        $caMacDinhList = $this->model->getCaMacDinhList(); // Lấy danh sách ca mặc định
+        require_once('./admin/View/ca_hoc/form.php');
+    }
+
+    // Xử lý thêm ca học
+    public function saveCaHoc(){
+        $this->checkAdminLogin();
+        $id_giang_vien = $_POST['id_giang_vien'] ?? '';
+        $data = [
+            'id_lop' => $_POST['id_lop'] ?? '',
+            'id_giang_vien' => !empty($id_giang_vien) ? (int)$id_giang_vien : null,
+            'id_ca' => $_POST['id_ca'] ?? '',
+            'thu_trong_tuan' => $_POST['thu_trong_tuan'] ?? '',
+            'phong_hoc' => $_POST['phong_hoc'] ?? '',
+            'ghi_chu' => $_POST['ghi_chu'] ?? ''
+        ];
+
+        // Validation
+        if (empty($data['id_lop']) || empty($data['id_ca']) || empty($data['thu_trong_tuan'])) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ?act=admin-add-ca-hoc');
+            exit;
+        }
+
+        // Kiểm tra giá trị ENUM hợp lệ
+        $validThu = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+        if (!in_array($data['thu_trong_tuan'], $validThu)) {
+            $_SESSION['error'] = 'Thứ trong tuần không hợp lệ!';
+            header('Location: ?act=admin-add-ca-hoc');
+            exit;
+        }
+
+        if ($this->model->addCaHoc($data)) {
+            $_SESSION['success'] = 'Thêm ca học thành công!';
+            header('Location: ?act=admin-list-ca-hoc');
+        } else {
+            $_SESSION['error'] = 'Thêm ca học thất bại!';
+            header('Location: ?act=admin-add-ca-hoc');
+        }
+        exit;
+    }
+
+    // Form sửa ca học
+    public function editCaHoc(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-ca-hoc');
+            exit;
+        }
+        
+        $caHoc = $this->model->getCaHocById($id);
+        if (!$caHoc) {
+            $_SESSION['error'] = 'Không tìm thấy ca học!';
+            header('Location: ?act=admin-list-ca-hoc');
+            exit;
+        }
+        
+        $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học
+        $giangVienList = $this->model->getGiangVienList(); // Lấy danh sách giảng viên
+        $caMacDinhList = $this->model->getCaMacDinhList(); // Lấy danh sách ca mặc định
+        require_once('./admin/View/ca_hoc/form.php');
+    }
+
+    // Xử lý cập nhật ca học
+    public function updateCaHoc(){
+        $this->checkAdminLogin();
+        $id = $_POST['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-ca-hoc');
+            exit;
+        }
+
+        $caHoc = $this->model->getCaHocById($id);
+        if (!$caHoc) {
+            $_SESSION['error'] = 'Không tìm thấy ca học!';
+            header('Location: ?act=admin-list-ca-hoc');
+            exit;
+        }
+
+        $id_giang_vien = $_POST['id_giang_vien'] ?? '';
+        $data = [
+            'id_lop' => $_POST['id_lop'] ?? '',
+            'id_giang_vien' => !empty($id_giang_vien) ? (int)$id_giang_vien : null,
+            'id_ca' => $_POST['id_ca'] ?? '',
+            'thu_trong_tuan' => $_POST['thu_trong_tuan'] ?? '',
+            'phong_hoc' => $_POST['phong_hoc'] ?? '',
+            'ghi_chu' => $_POST['ghi_chu'] ?? ''
+        ];
+
+        // Validation
+        if (empty($data['id_lop']) || empty($data['id_ca']) || empty($data['thu_trong_tuan'])) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ?act=admin-edit-ca-hoc&id=' . $id);
+            exit;
+        }
+
+        // Kiểm tra giá trị ENUM hợp lệ
+        $validThu = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+        if (!in_array($data['thu_trong_tuan'], $validThu)) {
+            $_SESSION['error'] = 'Thứ trong tuần không hợp lệ!';
+            header('Location: ?act=admin-edit-ca-hoc&id=' . $id);
+            exit;
+        }
+
+        if ($this->model->updateCaHoc($id, $data)) {
+            $_SESSION['success'] = 'Cập nhật ca học thành công!';
+            header('Location: ?act=admin-list-ca-hoc');
+        } else {
+            $_SESSION['error'] = 'Cập nhật ca học thất bại!';
+            header('Location: ?act=admin-edit-ca-hoc&id=' . $id);
+        }
+        exit;
+    }
+
+    // Xóa ca học
+    public function deleteCaHoc(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-ca-hoc');
+            exit;
+        }
+
+        if ($this->model->deleteCaHoc($id)) {
+            $_SESSION['success'] = 'Xóa ca học thành công!';
+        } else {
+            $_SESSION['error'] = 'Xóa ca học thất bại!';
+        }
+        header('Location: ?act=admin-list-ca-hoc');
+        exit;
+    }
+
+    // Xóa lớp học
+    public function deleteLopHoc(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-lop-hoc');
+            exit;
+        }
+
+        $result = $this->model->deleteLopHoc($id);
+        if ($result) {
+            $_SESSION['success'] = 'Xóa lớp học thành công!';
+        } else {
+            $_SESSION['error'] = 'Không thể xóa lớp học! Lớp học này đang có học sinh đăng ký.';
+        }
+        header('Location: ?act=admin-list-lop-hoc');
+        exit;
+    }
+
+    // ===========================================
+    //  QUẢN LÝ ĐĂNG KÝ
+    // ===========================================
+
+    // Danh sách đăng ký
+    public function listDangKy(){
+        $this->checkAdminLogin();
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = 10;
+        $search = $_GET['search'] ?? '';
+        $id_lop = $_GET['id_lop'] ?? '';
+        $trang_thai = $_GET['trang_thai'] ?? '';
+
+        $dangKy = $this->model->getDangKy($page, $limit, $search, $id_lop, $trang_thai);
+        $total = $this->model->countDangKy($search, $id_lop, $trang_thai);
+        $totalPages = ceil($total / $limit);
+
+        $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học để filter
+        
+        require_once('./admin/View/dang_ky/list.php');
+    }
+
+    // Form sửa đăng ký
+    public function editDangKy(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+        
+        $dangKy = $this->model->getDangKyById($id);
+        if (!$dangKy) {
+            $_SESSION['error'] = 'Không tìm thấy đăng ký!';
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+        
+        require_once('./admin/View/dang_ky/form.php');
+    }
+
+    // Xử lý cập nhật đăng ký
+    public function updateDangKy(){
+        $this->checkAdminLogin();
+        $id = $_POST['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+
+        $dangKy = $this->model->getDangKyById($id);
+        if (!$dangKy) {
+            $_SESSION['error'] = 'Không tìm thấy đăng ký!';
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+
+        $data = [
+            'trang_thai' => $_POST['trang_thai'] ?? ''
+        ];
+
+        // Validation
+        $validTrangThai = ['Chờ xác nhận', 'Đã xác nhận', 'Đã hủy'];
+        if (empty($data['trang_thai']) || !in_array($data['trang_thai'], $validTrangThai)) {
+            $_SESSION['error'] = 'Trạng thái không hợp lệ!';
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id);
+            exit;
+        }
+
+        if ($this->model->updateDangKy($id, $data)) {
+            $_SESSION['success'] = 'Cập nhật đăng ký thành công!';
+            header('Location: ?act=admin-list-dang-ky');
+        } else {
+            $_SESSION['error'] = 'Cập nhật đăng ký thất bại!';
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id);
+        }
+        exit;
+    }
+
+    // Xóa đăng ký
+    public function deleteDangKy(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+
+        if ($this->model->deleteDangKy($id)) {
+            $_SESSION['success'] = 'Xóa đăng ký thành công!';
+        } else {
+            $_SESSION['error'] = 'Xóa đăng ký thất bại!';
+        }
+        header('Location: ?act=admin-list-dang-ky');
+        exit;
     }
 }
 

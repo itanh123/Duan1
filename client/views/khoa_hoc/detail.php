@@ -5,6 +5,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 $dang_ky_success = isset($_SESSION['dang_ky_success']) ? $_SESSION['dang_ky_success'] : false;
 $dang_ky_error = isset($_SESSION['dang_ky_error']) ? $_SESSION['dang_ky_error'] : '';
 unset($_SESSION['dang_ky_success']);

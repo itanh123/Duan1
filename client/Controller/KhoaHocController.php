@@ -2,6 +2,7 @@
 // Controller riêng cho Khóa học
 require_once __DIR__ . '/../Model/KhoaHoc.php';
 require_once __DIR__ . '/../Model/CaHoc.php';
+require_once __DIR__ . '/../../admin/Model/adminmodel.php';
 
 class KhoaHocController {
 
@@ -11,6 +12,115 @@ class KhoaHocController {
     public function __construct() {
         $this->model = new KhoaHoc();
         $this->caHocModel = new CaHoc(); // Để lấy thông tin ca học khi hiển thị chi tiết khóa học
+        $this->userModel = new adminmodel();
+    private $userModel;
+      
+    }
+
+    // Kiểm tra đăng nhập client
+    private function checkClientLogin(){
+        if (!isset($_SESSION['client_id']) || !isset($_SESSION['client_vai_tro']) || $_SESSION['client_vai_tro'] !== 'hoc_sinh') {
+            header('Location: ?act=client-login');
+            exit;
+        }
+    }
+
+    // Trang đăng nhập client (chung cho cả admin và client)
+    public function login(){
+        // Nếu đã đăng nhập client thì chuyển về trang danh sách
+        if (isset($_SESSION['client_id']) && $_SESSION['client_vai_tro'] === 'hoc_sinh') {
+            header('Location: ?act=client-khoa-hoc');
+            exit;
+        }
+        // Nếu đã đăng nhập admin thì chuyển về dashboard
+        if (isset($_SESSION['admin_id']) && $_SESSION['admin_vai_tro'] === 'admin') {
+            header('Location: ?act=admin-dashboard');
+            exit;
+        }
+        require_once(__DIR__ . '/../views/login.php');
+    }
+
+    // Xử lý đăng nhập client
+    public function processLogin(){
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        if (empty($email) || empty($password)) {
+            $_SESSION['error'] = 'Vui lòng nhập đầy đủ email và mật khẩu!';
+            header('Location: ?act=client-login');
+            exit;
+        }
+
+        $user = $this->userModel->login($email, $password, 'hoc_sinh');
+        
+        if ($user) {
+            $_SESSION['client_id'] = $user['id'];
+            $_SESSION['client_email'] = $user['email'];
+            $_SESSION['client_ho_ten'] = $user['ho_ten'];
+            $_SESSION['client_vai_tro'] = $user['vai_tro'];
+            $_SESSION['success'] = 'Đăng nhập thành công!';
+            header('Location: ?act=client-khoa-hoc');
+        } else {
+            $_SESSION['error'] = 'Email hoặc mật khẩu không đúng!';
+            header('Location: ?act=client-login');
+        }
+        exit;
+    }
+
+    // Xử lý đăng nhập chung cho cả admin và client
+    public function unifiedProcessLogin(){
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        if (empty($email) || empty($password)) {
+            $_SESSION['error'] = 'Vui lòng nhập đầy đủ email và mật khẩu!';
+            header('Location: ?act=client-login');
+            exit;
+        }
+
+        // Thử đăng nhập với vai trò admin trước
+        $user = $this->userModel->login($email, $password, 'admin');
+        
+        if ($user) {
+            // Đăng nhập thành công với vai trò admin
+            $_SESSION['admin_id'] = $user['id'];
+            $_SESSION['admin_email'] = $user['email'];
+            $_SESSION['admin_ho_ten'] = $user['ho_ten'];
+            $_SESSION['admin_vai_tro'] = $user['vai_tro'];
+            $_SESSION['success'] = 'Đăng nhập Admin thành công!';
+            header('Location: ?act=admin-dashboard');
+            exit;
+        }
+
+        // Nếu không phải admin, thử đăng nhập với vai trò học sinh
+        $user = $this->userModel->login($email, $password, 'hoc_sinh');
+        
+        if ($user) {
+            // Đăng nhập thành công với vai trò học sinh
+            $_SESSION['client_id'] = $user['id'];
+            $_SESSION['client_email'] = $user['email'];
+            $_SESSION['client_ho_ten'] = $user['ho_ten'];
+            $_SESSION['client_vai_tro'] = $user['vai_tro'];
+            $_SESSION['success'] = 'Đăng nhập thành công!';
+            header('Location: ?act=client-khoa-hoc');
+            exit;
+        }
+
+        // Nếu không đăng nhập được với cả hai vai trò
+        $_SESSION['error'] = 'Email hoặc mật khẩu không đúng!';
+        header('Location: ?act=client-login');
+        exit;
+    }
+
+    // Đăng xuất client
+    public function logout(){
+        unset($_SESSION['client_id']);
+        unset($_SESSION['client_email']);
+        unset($_SESSION['client_ho_ten']);
+        unset($_SESSION['client_vai_tro']);
+        $_SESSION['success'] = 'Đăng xuất thành công!';
+        header('Location: ?act=client-khoa-hoc');
+        exit;
     }
 
     // ===========================================
@@ -18,6 +128,7 @@ class KhoaHocController {
     // ===========================================
     public function index() 
     {
+        $this->checkClientLogin();
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 12;
         $offset = ($page - 1) * $perPage;

@@ -236,8 +236,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Trang Quản Trị Hệ Thống</h1>
-            <p>Chào mừng bạn đến với hệ thống quản lý khóa học</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>📊 Trang Quản Trị Hệ Thống</h1>
+                    <p>Chào mừng, <?= htmlspecialchars($_SESSION['admin_ho_ten'] ?? 'Admin') ?> (<?= htmlspecialchars($_SESSION['admin_email'] ?? '') ?>)</p>
+                </div>
+                <a href="?act=admin-logout" style="background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; transition: all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">🚪 Đăng xuất</a>
+            </div>
         </div>
 
         <!-- Thống kê tổng quan -->
@@ -405,32 +410,38 @@
                 <div class="menu-card-title">Quản Lý Khóa Học</div>
             </a>
             
-            <a href="#" class="menu-card">
+            <a href="?act=admin-list-lop-hoc" class="menu-card">
                 <div class="menu-card-icon">🏫</div>
                 <div class="menu-card-title">Quản Lý Lớp Học</div>
             </a>
             
-            <a href="#" class="menu-card">
+            <a href="?act=admin-list-ca-hoc" class="menu-card">
+                <div class="menu-card-icon">⏰</div>
+                <div class="menu-card-title">Quản Lý Ca Học</div>
+            </a>
+            
+            <a href="?act=admin-list-dang-ky" class="menu-card">
+                <div class="menu-card-icon">📝</div>
+                <div class="menu-card-title">Quản Lý Đăng Ký</div>
+            </a>
+            
+            <a href="?act=admin-list-hoc-sinh" class="menu-card">
                 <div class="menu-card-icon">👥</div>
                 <div class="menu-card-title">Quản Lý Học Sinh</div>
             </a>
             
-            <a href="#" class="menu-card">
+            <a href="?act=admin-list-giang-vien" class="menu-card">
                 <div class="menu-card-icon">👨‍🏫</div>
                 <div class="menu-card-title">Quản Lý Giảng Viên</div>
             </a>
             
-            <a href="#" class="menu-card">
-                <div class="menu-card-icon">📝</div>
-                <div class="menu-card-title">Quản Lý Đăng Ký</div>
-            </a>
             
             <a href="#" class="menu-card">
                 <div class="menu-card-icon">💳</div>
                 <div class="menu-card-title">Quản Lý Thanh Toán</div>
             </a>
             
-            <a href="#" class="menu-card">
+            <a href="?act=admin-list-danh-muc" class="menu-card">
                 <div class="menu-card-icon">📁</div>
                 <div class="menu-card-title">Quản Lý Danh Mục</div>
             </a>
