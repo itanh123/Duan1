@@ -31,7 +31,7 @@ match ($act) {
     // ============================
     //  CLIENT - TRANG CHỦ (MẶC ĐỊNH)
     // ============================
-    '/' => $khoaHocController->index(),
+    'cliet' => $khoaHocController->index(),
     '' => $khoaHocController->index(),
     
     // ============================
@@ -67,7 +67,9 @@ match ($act) {
     
     // ============================
     //  ADMIN - QUẢN LÝ KHÓA HỌC
-    // ============================
+    // ==========================
+    
+    // Quản lý khóa học
     'admin-list-khoa-hoc' => $adminController->listKhoaHoc(),
     'admin-add-khoa-hoc' => $adminController->addKhoaHoc(),
     'admin-save-khoa-hoc' => $adminController->saveKhoaHoc(),
