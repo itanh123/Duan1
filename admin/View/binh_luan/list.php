@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý học sinh - Admin</title>
+    <title>Quản lý bình luận - Admin</title>
     <style>
         * {
             margin: 0;
@@ -63,15 +63,6 @@
             background: #5a6268;
         }
         
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background: #218838;
-        }
-        
         .btn-warning {
             background: #ffc107;
             color: #333;
@@ -88,6 +79,11 @@
         
         .btn-danger:hover {
             background: #c82333;
+        }
+        
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
         }
         
         .alert {
@@ -165,12 +161,17 @@
             background: #f8f9fa;
         }
         
-        .status-active {
+        .status-hien-thi {
             color: #28a745;
             font-weight: 600;
         }
         
-        .status-inactive {
+        .status-an {
+            color: #ffc107;
+            font-weight: 600;
+        }
+        
+        .status-da-xoa {
             color: #dc3545;
             font-weight: 600;
         }
@@ -178,11 +179,6 @@
         .action-buttons {
             display: flex;
             gap: 5px;
-        }
-        
-        .btn-sm {
-            padding: 5px 10px;
-            font-size: 12px;
         }
         
         .pagination {
@@ -218,16 +214,24 @@
             padding: 40px;
             color: #999;
         }
+        
+        .noi-dung {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .stars {
+            color: #ffc107;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>
-            <span>Quản lý học sinh</span>
-            <div style="display: flex; gap: 10px;">
-                <a href="?act=admin-dashboard" class="btn btn-secondary">🏠 Trang chủ</a>
-                <a href="?act=admin-add-hoc-sinh" class="btn btn-primary">+ Thêm học sinh</a>
-            </div>
+            <span>Quản lý bình luận</span>
+            <a href="?act=admin-dashboard" class="btn btn-secondary">🏠 Trang chủ</a>
         </h1>
 
         <?php if (isset($_SESSION['success'])): ?>
@@ -244,66 +248,101 @@
 
         <div class="filter-section">
             <form method="GET" action="">
-                <input type="hidden" name="act" value="admin-list-hoc-sinh">
+                <input type="hidden" name="act" value="admin-list-binh-luan">
                 <div class="filter-group">
                     <div class="form-group">
                         <label>Tìm kiếm</label>
                         <input type="text" name="search" class="form-control" 
                                value="<?= htmlspecialchars($search ?? '') ?>" 
-                               placeholder="Tìm theo tên, email, số điện thoại...">
+                               placeholder="Tìm theo nội dung, học sinh, khóa học...">
+                    </div>
+                    <div class="form-group">
+                        <label>Khóa học</label>
+                        <select name="id_khoa_hoc" class="form-control">
+                            <option value="">Tất cả khóa học</option>
+                            <?php foreach ($khoaHocList ?? [] as $kh): ?>
+                                <option value="<?= $kh['id'] ?>" <?= (isset($id_khoa_hoc) && $id_khoa_hoc == $kh['id']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($kh['ten_khoa_hoc']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Trạng thái</label>
+                        <select name="trang_thai" class="form-control">
+                            <option value="">Tất cả</option>
+                            <option value="Hiển thị" <?= (isset($trang_thai) && $trang_thai == 'Hiển thị') ? 'selected' : '' ?>>Hiển thị</option>
+                            <option value="Ẩn" <?= (isset($trang_thai) && $trang_thai == 'Ẩn') ? 'selected' : '' ?>>Ẩn</option>
+                            <option value="Đã xóa" <?= (isset($trang_thai) && $trang_thai == 'Đã xóa') ? 'selected' : '' ?>>Đã xóa</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary" style="width: 100%;">Tìm kiếm</button>
                     </div>
-                    <?php if (!empty($search)): ?>
+                    <?php if (!empty($search) || !empty($id_khoa_hoc) || !empty($trang_thai)): ?>
                     <div class="form-group">
-                        <a href="?act=admin-list-hoc-sinh" class="btn btn-warning" style="width: 100%;">Xóa bộ lọc</a>
+                        <a href="?act=admin-list-binh-luan" class="btn btn-warning" style="width: 100%;">Xóa bộ lọc</a>
                     </div>
                     <?php endif; ?>
                 </div>
             </form>
         </div>
 
-        <?php if (empty($hocSinh)): ?>
+        <?php if (empty($binhLuan)): ?>
             <div class="empty-state">
-                <p>Không tìm thấy học sinh nào.</p>
+                <p>Không tìm thấy bình luận nào.</p>
             </div>
         <?php else: ?>
             <table>
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Họ tên</th>
-                        <th>Email</th>
-                        <th>Số điện thoại</th>
-                        <th>Địa chỉ</th>
-                        <th>Quyền</th>
-                        <th>Trạng thái</th>
+                        <th>Khóa học</th>
+                        <th>Học sinh</th>
+                        <th>Nội dung</th>
+                        <th>Đánh giá</th>
                         <th>Ngày tạo</th>
+                        <th>Trạng thái</th>
                         <th>Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($hocSinh as $hs): ?>
+                    <?php foreach ($binhLuan as $bl): ?>
                         <tr>
-                            <td><?= $hs['id'] ?></td>
-                            <td><?= htmlspecialchars($hs['ho_ten']) ?></td>
-                            <td><?= htmlspecialchars($hs['email']) ?></td>
-                            <td><?= htmlspecialchars($hs['so_dien_thoai'] ?? 'N/A') ?></td>
-                            <td><?= htmlspecialchars($hs['dia_chi'] ?? 'N/A') ?></td>
+                            <td><?= $bl['id'] ?></td>
+                            <td><?= htmlspecialchars($bl['ten_khoa_hoc'] ?? 'N/A') ?></td>
+                            <td><?= htmlspecialchars($bl['ten_hoc_sinh'] ?? 'N/A') ?></td>
+                            <td class="noi-dung" title="<?= htmlspecialchars($bl['noi_dung']) ?>">
+                                <?= htmlspecialchars($bl['noi_dung']) ?>
+                            </td>
                             <td>
-                                <span class="<?= $hs['trang_thai'] == 1 ? 'status-active' : 'status-inactive' ?>">
-                                    <?= $hs['trang_thai'] == 1 ? 'Hoạt động' : 'Khóa' ?>
+                                <?php if ($bl['danh_gia']): ?>
+                                    <span class="stars">
+                                        <?= str_repeat('★', $bl['danh_gia']) ?><?= str_repeat('☆', 5 - $bl['danh_gia']) ?>
+                                    </span>
+                                    (<?= $bl['danh_gia'] ?>/5)
+                                <?php else: ?>
+                                    <span style="color: #999;">Chưa đánh giá</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= isset($bl['ngay_tao']) ? date('d/m/Y H:i', strtotime($bl['ngay_tao'])) : 'N/A' ?></td>
+                            <td>
+                                <?php
+                                $statusClass = 'status-hien-thi';
+                                if ($bl['trang_thai'] == 'Ẩn') $statusClass = 'status-an';
+                                if ($bl['trang_thai'] == 'Đã xóa') $statusClass = 'status-da-xoa';
+                                ?>
+                                <span class="<?= $statusClass ?>">
+                                    <?= htmlspecialchars($bl['trang_thai']) ?>
                                 </span>
                             </td>
-                            <td><?= isset($hs['ngay_tao']) ? date('d/m/Y', strtotime($hs['ngay_tao'])) : 'N/A' ?></td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="?act=admin-edit-hoc-sinh&id=<?= $hs['id'] ?>" 
+                                    <a href="?act=admin-edit-binh-luan&id=<?= $bl['id'] ?>" 
                                        class="btn btn-warning btn-sm">Sửa</a>
-                                    <a href="?act=admin-delete-hoc-sinh&id=<?= $hs['id'] ?>" 
+                                    <a href="?act=admin-delete-binh-luan&id=<?= $bl['id'] ?>" 
                                        class="btn btn-danger btn-sm" 
-                                       onclick="return confirm('Bạn có chắc chắn muốn xóa học sinh này?')">Xóa</a>
+                                       onclick="return confirm('Bạn có chắc chắn muốn xóa bình luận này?')">Xóa</a>
                                 </div>
                             </td>
                         </tr>
@@ -314,12 +353,12 @@
             <?php if ($totalPages > 1): ?>
                 <div class="pagination">
                     <?php if ($page > 1): ?>
-                        <a href="?act=admin-list-hoc-sinh&page=<?= $page - 1 ?>&search=<?= urlencode($search ?? '') ?>">« Trước</a>
+                        <a href="?act=admin-list-binh-luan&page=<?= $page - 1 ?>&search=<?= urlencode($search ?? '') ?>&id_khoa_hoc=<?= urlencode($id_khoa_hoc ?? '') ?>&trang_thai=<?= urlencode($trang_thai ?? '') ?>">« Trước</a>
                     <?php endif; ?>
                     
                     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                         <?php if ($i == 1 || $i == $totalPages || ($i >= $page - 2 && $i <= $page + 2)): ?>
-                            <a href="?act=admin-list-hoc-sinh&page=<?= $i ?>&search=<?= urlencode($search ?? '') ?>" 
+                            <a href="?act=admin-list-binh-luan&page=<?= $i ?>&search=<?= urlencode($search ?? '') ?>&id_khoa_hoc=<?= urlencode($id_khoa_hoc ?? '') ?>&trang_thai=<?= urlencode($trang_thai ?? '') ?>" 
                                class="<?= $i == $page ? 'active' : '' ?>">
                                 <?= $i ?>
                             </a>
@@ -329,7 +368,7 @@
                     <?php endfor; ?>
                     
                     <?php if ($page < $totalPages): ?>
-                        <a href="?act=admin-list-hoc-sinh&page=<?= $page + 1 ?>&search=<?= urlencode($search ?? '') ?>">Sau »</a>
+                        <a href="?act=admin-list-binh-luan&page=<?= $page + 1 ?>&search=<?= urlencode($search ?? '') ?>&id_khoa_hoc=<?= urlencode($id_khoa_hoc ?? '') ?>&trang_thai=<?= urlencode($trang_thai ?? '') ?>">Sau »</a>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>

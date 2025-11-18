@@ -181,12 +181,12 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="sdt">Số điện thoại</label>
+                    <label for="so_dien_thoai">Số điện thoại</label>
                     <input type="text" 
-                           name="sdt" 
-                           id="sdt" 
+                           name="so_dien_thoai" 
+                           id="so_dien_thoai" 
                            class="form-control" 
-                           value="<?= htmlspecialchars($giangVien['sdt'] ?? '') ?>" 
+                           value="<?= htmlspecialchars($giangVien['so_dien_thoai'] ?? '') ?>" 
                            maxlength="20"
                            placeholder="0123456789">
                 </div>

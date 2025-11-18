@@ -181,7 +181,7 @@
             💡 Hệ thống sẽ tự động nhận diện loại tài khoản của bạn
         </div>
 
-        <form method="POST" action="?act=unified-process-login">
+                <form method="POST" action="?act=unified-process-login" id="loginForm">
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" 
@@ -207,7 +207,8 @@
         </form>
 
         <div class="login-footer">
-            <a href="index.php">← Về trang chủ</a>
+            <p>Chưa có tài khoản? <a href="?act=client-register">Đăng ký ngay</a></p>
+            <p style="margin-top: 10px;"><a href="index.php">← Về trang chủ</a></p>
         </div>
     </div>
 </body>
