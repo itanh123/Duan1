@@ -51,18 +51,6 @@ class KhoaHoc {
         return $stmt->fetchAll();
     }
 
-    public function getCaHocByLop($id_lop) {
-        $sql = "SELECT ch.*, u.ho_ten AS giang_vien_ten
-                FROM ca_hoc ch
-                LEFT JOIN nguoi_dung u ON ch.id_giang_vien = u.id
-                WHERE ch.id_lop = :id_lop";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':id_lop' => $id_lop]);
-
-        return $stmt->fetchAll();
-    }
-
     public function getBinhLuan($id_khoa_hoc) {
         try {
             $sql = "SELECT b.*, u.ho_ten

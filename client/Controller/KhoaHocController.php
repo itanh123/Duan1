@@ -1,16 +1,20 @@
 <?php
-// Đúng đường dẫn model (theo ZIP bạn gửi)
+// Controller riêng cho Khóa học
 require_once __DIR__ . '/../Model/KhoaHoc.php';
+require_once __DIR__ . '/../Model/CaHoc.php';
 require_once __DIR__ . '/../../admin/Model/adminmodel.php';
 
 class KhoaHocController {
 
     private $model;
-    private $userModel;
+    private $caHocModel;
 
     public function __construct() {
         $this->model = new KhoaHoc();
+        $this->caHocModel = new CaHoc(); // Để lấy thông tin ca học khi hiển thị chi tiết khóa học
         $this->userModel = new adminmodel();
+    private $userModel;
+      
     }
 
     // Kiểm tra đăng nhập client
@@ -161,9 +165,10 @@ class KhoaHocController {
 
         $lops = $this->model->getLopHocByKhoaHoc($id);
 
+        // Sử dụng CaHoc model để lấy thông tin ca học
         $lopCa = [];
         foreach ($lops as $lop) {
-            $lopCa[$lop['id']] = $this->model->getCaHocByLop($lop['id']);
+            $lopCa[$lop['id']] = $this->caHocModel->getCaHocByLop($lop['id']);
         }
 
         $binh_luan = $this->model->getBinhLuan($id);

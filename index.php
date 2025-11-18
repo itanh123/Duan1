@@ -13,6 +13,9 @@ require_once('./Commons/function.php');
 require_once('./admin/Model/adminmodel.php');
 require_once('./admin/Controller/admincontroller.php');
 require_once('./client/Controller/KhoaHocController.php');
+require_once('./client/Controller/CaHocController.php');
+require_once('./client/Controller/LopHocController.php');
+require_once('./client/Controller/DanhMucController.php');
 
 // route
 $act = $_GET['act'] ?? '/';
@@ -20,6 +23,9 @@ $act = $_GET['act'] ?? '/';
 // Khởi tạo controllers
 $adminController = new admincontroller();
 $khoaHocController = new KhoaHocController();
+$caHocController = new CaHocController();
+$lopHocController = new LopHocController();
+$danhMucController = new DanhMucController();
 
 match ($act) {
     // ============================
@@ -45,6 +51,21 @@ match ($act) {
     'client-dang-ky-khoa-hoc' => $khoaHocController->dangKy(),
     
     // ============================
+    //  CLIENT - CA HỌC
+    // ============================
+    'client-chi-tiet-ca-hoc' => $caHocController->chiTietCaHoc(),
+    
+    // ============================
+    //  CLIENT - LỚP HỌC
+    // ============================
+    'client-lop-hoc' => $lopHocController->index(),
+    'client-chi-tiet-lop-hoc' => $lopHocController->chiTietLopHoc(),
+    
+    // ============================
+    //  CLIENT - DANH MỤC
+    // ============================
+    'client-danh-muc' => $danhMucController->index(),
+    'client-chi-tiet-danh-muc' => $danhMucController->detail(),
     //  ADMIN - ĐĂNG NHẬP/ĐĂNG XUẤT
     // ============================
     'admin-login' => $adminController->login(),

@@ -1,16 +1,16 @@
 <?php
-// views/khoa_hoc/list.php
-// Biến có sẵn: $courses, $page, $totalPages
+// views/danh_muc/detail.php
+// Biến có sẵn: $danhMuc, $courses, $page, $totalPages
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trang bán khóa học lập trình</title>
+    <title><?= htmlspecialchars($danhMuc['ten_danh_muc']) ?> - Trang bán khóa học lập trình</title>
     <style>
         /* ===========================
-           1) BIẾN MÀU TỪ THEME ASTRA
+           1) BIẾN MÀU
         ============================ */
         :root {
             --primary: #10B981;
@@ -19,9 +19,7 @@
             --muted: #6b7280;
             --bg: #ffffff;
             --container: 1200px;
-            --ast-global-color-0: #d4a6b6;
             --ast-global-color-4: #f6edf0;
-            --moderncart-primary-color: #10B981;
         }
 
         /* ===========================
@@ -89,60 +87,46 @@
         }
 
         /* ===========================
-           5) HERO SECTION
+           5) BACK BUTTON
         ============================ */
-        .hero {
-            display: flex;
-            align-items: center;
-            gap: 40px;
-            padding: 50px 0;
-        }
-
-        .hero .left {
-            flex: 1.2;
-        }
-
-        .hero h1 {
-            font-size: 42px;
-            margin-bottom: 14px;
-        }
-
-        .hero p {
-            color: var(--muted);
-            margin-bottom: 20px;
-        }
-
-        .btn-primary {
+        .back-link {
             display: inline-block;
-            padding: 14px 24px;
-            background: var(--primary);
-            color: #fff;
-            border-radius: 8px;
-            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--primary);
             text-decoration: none;
+            font-weight: 600;
+            transition: .2s;
         }
 
-        .hero .right {
-            flex: 1;
-        }
-
-        .hero img {
-            width: 100%;
-            border-radius: 16px;
+        .back-link:hover {
+            opacity: 0.8;
         }
 
         /* ===========================
-           6) GRID KHÓA HỌC
+           6) PAGE HEADER
         ============================ */
-        #courses h2 {
-            margin: 30px 0 20px;
-            font-size: 26px;
+        .page-header {
+            padding: 20px 0;
+            margin-bottom: 30px;
         }
 
+        .page-header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .page-header p {
+            color: var(--muted);
+        }
+
+        /* ===========================
+           7) GRID KHÓA HỌC
+        ============================ */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 20px;
+            margin: 30px 0;
         }
 
         .card {
@@ -222,7 +206,7 @@
         }
 
         /* ===========================
-           7) PAGING
+           8) PAGING
         ============================ */
         .paging {
             margin: 30px 0;
@@ -252,7 +236,7 @@
         }
 
         /* ===========================
-           8) FOOTER
+           9) FOOTER
         ============================ */
         footer {
             text-align: center;
@@ -263,16 +247,12 @@
         }
 
         /* ===========================
-           9) RESPONSIVE
+           10) RESPONSIVE
         ============================ */
         @media (max-width: 768px) {
-            .hero {
-                flex-direction: column;
-                text-align: center;
-            }
-
             nav ul {
                 gap: 14px;
+                flex-wrap: wrap;
             }
 
             .grid {
@@ -298,73 +278,67 @@
                     <li><a href="index.php?act=client-danh-muc">Danh mục</a></li>
                     <li><a href="#">Giảng viên</a></li>
                     <li><a href="#">Liên hệ</a></li>
-                    <?php if (isset($_SESSION['client_id'])): ?>
-                        <li style="color: var(--primary); font-weight: 600;">👤 <?= htmlspecialchars($_SESSION['client_ho_ten'] ?? '') ?></li>
-                        <li><a href="?act=client-logout" style="color: #dc3545;">🚪 Đăng xuất</a></li>
-                    <?php else: ?>
-                        <li><a href="?act=client-login" style="color: var(--primary);">🔐 Đăng nhập</a></li>
-                    <?php endif; ?>
                 </ul>
             </nav>
         </div>
     </header>
 
-    <!-- ===========================
-         HERO SECTION
-    ============================ -->
-    <div class="container hero">
-        <div class="left">
-            <h1>Học Lập Trình Từ Zero Đến Làm Dự Án</h1>
-            <p>Khóa học thực chiến, mentor hỗ trợ, bài tập theo dự án giúp bạn trở thành lập trình viên thực thụ.</p>
-            <a class="btn-primary" href="#courses">Xem khóa học</a>
-        </div>
-        <div class="right">
-            <img src="https://images.unsplash.com/photo-1555949963-aa79dcee981c" alt="Học lập trình">
-        </div>
-    </div>
+    <div class="container">
+        <!-- Back Link -->
+        <a href="index.php?act=client-danh-muc" class="back-link">&larr; Quay về danh mục</a>
 
-    <!-- ===========================
-         GRID KHÓA HỌC
-    ============================ -->
-    <div class="container" id="courses">
-        <h2>Khóa học nổi bật</h2>
-        <div class="grid">
-            <?php foreach ($courses as $c): ?>
-                <div class="card">
-                    <?php 
-                    $img = $c['hinh_anh'] ? '/uploads/' . $c['hinh_anh'] : 'https://via.placeholder.com/600x400?text=Khóa+Học'; 
-                    ?>
-                    <a href="index.php?act=client-chi-tiet-khoa-hoc&id=<?= $c['id'] ?>">
-                        <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($c['ten_khoa_hoc']) ?>">
-                    </a>
-                    <div class="card-content">
-                        <h3><?= htmlspecialchars($c['ten_khoa_hoc']) ?></h3>
-                        <div class="meta">
-                            <?php 
-                            if (isset($c['so_buoi'])) {
-                                echo $c['so_buoi'] . ' buổi';
-                            }
-                            echo ' • Online';
-                            ?>
-                        </div>
-                        <div class="desc">
-                            <?= htmlspecialchars(mb_substr(strip_tags($c['mo_ta'] ?? ''), 0, 100, 'UTF-8')) ?>
-                            <?= mb_strlen($c['mo_ta'] ?? '') > 100 ? '...' : '' ?>
-                        </div>
-                        <div class="price">
-                            <div class="amount"><?= number_format($c['gia'], 0, ',', '.') ?>₫</div>
-                            <a href="index.php?act=client-chi-tiet-khoa-hoc&id=<?= $c['id'] ?>" class="btn-buy">Xem chi tiết</a>
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1><?= htmlspecialchars($danhMuc['ten_danh_muc']) ?></h1>
+            <?php if (!empty($danhMuc['mo_ta'])): ?>
+                <p><?= htmlspecialchars($danhMuc['mo_ta']) ?></p>
+            <?php endif; ?>
+        </div>
+
+        <!-- Grid Khóa học -->
+        <?php if (!empty($courses)): ?>
+            <div class="grid">
+                <?php foreach ($courses as $c): ?>
+                    <div class="card">
+                        <?php 
+                        $img = $c['hinh_anh'] ? '/uploads/' . $c['hinh_anh'] : 'https://via.placeholder.com/600x400?text=Khóa+Học'; 
+                        ?>
+                        <a href="index.php?act=client-chi-tiet-khoa-hoc&id=<?= $c['id'] ?>">
+                            <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($c['ten_khoa_hoc']) ?>">
+                        </a>
+                        <div class="card-content">
+                            <h3><?= htmlspecialchars($c['ten_khoa_hoc']) ?></h3>
+                            <div class="meta">
+                                <?php 
+                                if (isset($c['so_buoi'])) {
+                                    echo $c['so_buoi'] . ' buổi';
+                                }
+                                echo ' • Online';
+                                ?>
+                            </div>
+                            <div class="desc">
+                                <?= htmlspecialchars(mb_substr(strip_tags($c['mo_ta'] ?? ''), 0, 100, 'UTF-8')) ?>
+                                <?= mb_strlen($c['mo_ta'] ?? '') > 100 ? '...' : '' ?>
+                            </div>
+                            <div class="price">
+                                <div class="amount"><?= number_format($c['gia'], 0, ',', '.') ?>₫</div>
+                                <a href="index.php?act=client-chi-tiet-khoa-hoc&id=<?= $c['id'] ?>" class="btn-buy">Xem chi tiết</a>
+                            </div>
                         </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
+                <?php endforeach; ?>
+            </div>
 
-        <?php if ($totalPages > 1): ?>
-            <div class="paging">
-                <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                    <a class="<?= ($p == $page) ? 'active' : '' ?>" href="index.php?act=client-khoa-hoc&page=<?= $p ?>"><?= $p ?></a>
-                <?php endfor; ?>
+            <?php if ($totalPages > 1): ?>
+                <div class="paging">
+                    <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                        <a class="<?= ($p == $page) ? 'active' : '' ?>" href="index.php?act=client-chi-tiet-danh-muc&id=<?= $danhMuc['id'] ?>&page=<?= $p ?>"><?= $p ?></a>
+                    <?php endfor; ?>
+                </div>
+            <?php endif; ?>
+        <?php else: ?>
+            <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
+                <p>Chưa có khóa học nào trong danh mục này.</p>
             </div>
         <?php endif; ?>
     </div>
@@ -373,7 +347,10 @@
          FOOTER
     ============================ -->
     <footer>
-        © 2025 Bán Khóa Học Lập Trình — All rights reserved.
+        <div class="container">
+            © 2025 Bán Khóa Học Lập Trình — All rights reserved.
+        </div>
     </footer>
 </body>
 </html>
+
