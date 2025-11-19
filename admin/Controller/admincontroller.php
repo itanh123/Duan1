@@ -151,14 +151,16 @@ class admincontroller{
     // Danh sách khóa học
     public function listKhoaHoc(){
         $this->checkPermission('xem'); // Cần quyền xem
-        $page = $_GET['page'] ?? 1;
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
         $id_danh_muc = $_GET['id_danh_muc'] ?? '';
         
-        $khoaHoc = $this->model->getKhoaHoc($page, $limit, $search, $id_danh_muc);
         $total = $this->model->countKhoaHoc($search, $id_danh_muc);
         $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+        
+        $khoaHoc = $this->model->getKhoaHoc($page, $limit, $search, $id_danh_muc);
         $danhMuc = $this->model->getDanhMuc();
         
         ob_start();
@@ -346,13 +348,15 @@ class admincontroller{
     // Danh sách học sinh
     public function listHocSinh(){
         $this->checkPermission('xem'); // Cần quyền xem
-        $page = $_GET['page'] ?? 1;
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
         
-        $hocSinh = $this->model->getHocSinh($page, $limit, $search);
         $total = $this->model->countHocSinh($search);
         $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+        
+        $hocSinh = $this->model->getHocSinh($page, $limit, $search);
         
         $data = [
             'hocSinh' => $hocSinh,
@@ -518,13 +522,15 @@ class admincontroller{
     // Danh sách danh mục
     public function listDanhMuc(){
         $this->checkPermission('xem'); // Cần quyền xem
-        $page = $_GET['page'] ?? 1;
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
         
-        $danhMuc = $this->model->getDanhMucList($page, $limit, $search);
         $total = $this->model->countDanhMuc($search);
         $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+        
+        $danhMuc = $this->model->getDanhMucList($page, $limit, $search);
         
         ob_start();
         require_once('./admin/View/danh_muc/list_content.php');
@@ -666,13 +672,15 @@ class admincontroller{
     // Danh sách giảng viên
     public function listGiangVien(){
         $this->checkPermission('xem'); // Cần quyền xem
-        $page = $_GET['page'] ?? 1;
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
         
-        $giangVien = $this->model->getGiangVien($page, $limit, $search);
         $total = $this->model->countGiangVien($search);
         $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+        
+        $giangVien = $this->model->getGiangVien($page, $limit, $search);
         
         $data = [
             'giangVien' => $giangVien,
@@ -838,14 +846,16 @@ class admincontroller{
     // Danh sách lớp học
     public function listLopHoc(){
         $this->checkPermission('xem'); // Cần quyền xem
-        $page = $_GET['page'] ?? 1;
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
         $id_khoa_hoc = $_GET['id_khoa_hoc'] ?? '';
         
-        $lopHoc = $this->model->getLopHoc($page, $limit, $search, $id_khoa_hoc);
         $total = $this->model->countLopHoc($search, $id_khoa_hoc);
         $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+        
+        $lopHoc = $this->model->getLopHoc($page, $limit, $search, $id_khoa_hoc);
         $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học để filter
         
         $data = [
@@ -993,7 +1003,7 @@ class admincontroller{
         
         $total = $this->model->countCaHoc($search, $id_lop);
         $totalPages = ceil($total / $limit);
-        $page = max(1, min($page, $totalPages));
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
         
         $caHoc = $this->model->getCaHoc($page, $limit, $search, $id_lop);
         $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học để filter
@@ -1195,15 +1205,17 @@ class admincontroller{
     // Danh sách đăng ký
     public function listDangKy(){
         $this->checkPermission('xem'); // Cần quyền xem
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
         $id_lop = $_GET['id_lop'] ?? '';
         $trang_thai = $_GET['trang_thai'] ?? '';
 
-        $dangKy = $this->model->getDangKy($page, $limit, $search, $id_lop, $trang_thai);
         $total = $this->model->countDangKy($search, $id_lop, $trang_thai);
         $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+
+        $dangKy = $this->model->getDangKy($page, $limit, $search, $id_lop, $trang_thai);
 
         $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học để filter
         
@@ -1303,15 +1315,17 @@ class admincontroller{
     // Danh sách bình luận
     public function listBinhLuan(){
         $this->checkPermission('xem'); // Cần quyền xem
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
         $id_khoa_hoc = $_GET['id_khoa_hoc'] ?? '';
         $trang_thai = $_GET['trang_thai'] ?? '';
 
-        $binhLuan = $this->model->getBinhLuan($page, $limit, $search, $id_khoa_hoc, $trang_thai);
         $total = $this->model->countBinhLuan($search, $id_khoa_hoc, $trang_thai);
         $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+
+        $binhLuan = $this->model->getBinhLuan($page, $limit, $search, $id_khoa_hoc, $trang_thai);
 
         $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học để filter
         
@@ -1423,14 +1437,16 @@ class admincontroller{
     // Danh sách phòng học
     public function listPhongHoc(){
         $this->checkPermission('xem'); // Cần quyền xem
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
         $trang_thai = $_GET['trang_thai'] ?? '';
         
-        $phongHoc = $this->model->getPhongHoc($page, $limit, $search, $trang_thai);
         $total = $this->model->countPhongHoc($search, $trang_thai);
         $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+        
+        $phongHoc = $this->model->getPhongHoc($page, $limit, $search, $trang_thai);
         
         ob_start();
         require_once('./admin/View/phong_hoc/list_content.php');
@@ -1593,9 +1609,11 @@ class admincontroller{
         $id_nguoi_dung = $_GET['id_nguoi_dung'] ?? '';
         $vai_tro = $_GET['vai_tro'] ?? ''; // Filter theo vai trò
 
-        $phanQuyen = $this->model->getPhanQuyen($page, $limit, $search, $id_nguoi_dung, $vai_tro);
         $total = $this->model->countPhanQuyen($search, $id_nguoi_dung, $vai_tro);
         $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+
+        $phanQuyen = $this->model->getPhanQuyen($page, $limit, $search, $id_nguoi_dung, $vai_tro);
 
         $nguoiDungList = $this->model->getNguoiDungForPhanQuyen();
 
@@ -1879,14 +1897,16 @@ class admincontroller{
     public function listTaiKhoan(){
         $this->checkPermission('xem'); // Cần quyền xem
         
-        $page = $_GET['page'] ?? 1;
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
         $trang_thai = $_GET['trang_thai'] ?? '';
         
-        $taiKhoan = $this->model->getAllTaiKhoan($page, $limit, $search, $trang_thai);
         $total = $this->model->countAllTaiKhoan($search, $trang_thai);
         $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+        
+        $taiKhoan = $this->model->getAllTaiKhoan($page, $limit, $search, $trang_thai);
         
         $data = [
             'taiKhoan' => $taiKhoan,
