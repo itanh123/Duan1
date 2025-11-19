@@ -205,7 +205,7 @@
                     <li><a href="index.php?act=client-khoa-hoc">Khóa học</a></li>
                     <li><a href="index.php?act=client-lop-hoc">Lớp học</a></li>
                     <li><a href="index.php?act=client-danh-muc">Danh mục</a></li>
-                    <li><a href="#">Giảng viên</a></li>
+                    <li><a href="index.php?act=client-giang-vien">Giảng viên</a></li>
                     <li><a href="#">Liên hệ</a></li>
                 </ul>
             </nav>

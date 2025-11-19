@@ -182,10 +182,7 @@ $pageTitle = 'Quản lý Phân quyền';
 
 <div class="content-header">
     <h1>Quản lý Phân quyền</h1>
-    <div style="display: flex; gap: 10px;">
-        <a href="?act=admin-list-tai-khoan" class="btn btn-primary">Quản lý Tài khoản</a>
-        <a href="?act=admin-add-phan-quyen" class="btn btn-primary">+ Thêm Phân quyền</a>
-    </div>
+    <a href="?act=admin-add-phan-quyen" class="btn btn-primary">+ Thêm Phân quyền</a>
 </div>
 
 <?php if (isset($_SESSION['success'])): ?>

@@ -834,14 +834,28 @@ class admincontroller{
         $totalPages = ceil($total / $limit);
         $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học để filter
         
-        require_once('./admin/View/lop_hoc/list.php');
+        $data = [
+            'lopHoc' => $lopHoc,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'search' => $search,
+            'id_khoa_hoc' => $id_khoa_hoc,
+            'khoaHocList' => $khoaHocList
+        ];
+
+        $this->renderView('./admin/View/lop_hoc/list_content.php', 'Quản lý Lớp học', $data);
     }
 
     // Form thêm lớp học
     public function addLopHoc(){
         $this->checkPermission('them'); // Cần quyền thêm
         $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
-        require_once('./admin/View/lop_hoc/form.php');
+        
+        $data = [
+            'khoaHocList' => $khoaHocList
+        ];
+
+        $this->renderView('./admin/View/lop_hoc/form_content.php', 'Thêm Lớp học', $data);
     }
 
     // Xử lý thêm lớp học
@@ -895,7 +909,13 @@ class admincontroller{
         }
         
         $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
-        require_once('./admin/View/lop_hoc/form.php');
+        
+        $data = [
+            'lopHoc' => $lopHoc,
+            'khoaHocList' => $khoaHocList
+        ];
+
+        $this->renderView('./admin/View/lop_hoc/form_content.php', 'Sửa Lớp học', $data);
     }
 
     // Xử lý cập nhật lớp học
@@ -964,7 +984,16 @@ class admincontroller{
         $caHoc = $this->model->getCaHoc($page, $limit, $search, $id_lop);
         $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học để filter
         
-        require_once('./admin/View/ca_hoc/list.php');
+        $data = [
+            'caHoc' => $caHoc,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'search' => $search,
+            'id_lop' => $id_lop,
+            'lopHocList' => $lopHocList
+        ];
+
+        $this->renderView('./admin/View/ca_hoc/list_content.php', 'Quản lý Ca học', $data);
     }
 
     // Form thêm ca học
@@ -974,7 +1003,15 @@ class admincontroller{
         $giangVienList = $this->model->getGiangVienList(); // Lấy danh sách giảng viên
         $caMacDinhList = $this->model->getCaMacDinhList(); // Lấy danh sách ca mặc định
         $phongHocList = $this->model->getPhongHocList(); // Lấy danh sách phòng học
-        require_once('./admin/View/ca_hoc/form.php');
+        
+        $data = [
+            'lopHocList' => $lopHocList,
+            'giangVienList' => $giangVienList,
+            'caMacDinhList' => $caMacDinhList,
+            'phongHocList' => $phongHocList
+        ];
+
+        $this->renderView('./admin/View/ca_hoc/form_content.php', 'Thêm Ca học', $data);
     }
 
     // Xử lý thêm ca học
@@ -1035,7 +1072,16 @@ class admincontroller{
         $giangVienList = $this->model->getGiangVienList(); // Lấy danh sách giảng viên
         $caMacDinhList = $this->model->getCaMacDinhList(); // Lấy danh sách ca mặc định
         $phongHocList = $this->model->getPhongHocList(); // Lấy danh sách phòng học
-        require_once('./admin/View/ca_hoc/form.php');
+        
+        $data = [
+            'caHoc' => $caHoc,
+            'lopHocList' => $lopHocList,
+            'giangVienList' => $giangVienList,
+            'caMacDinhList' => $caMacDinhList,
+            'phongHocList' => $phongHocList
+        ];
+
+        $this->renderView('./admin/View/ca_hoc/form_content.php', 'Sửa Ca học', $data);
     }
 
     // Xử lý cập nhật ca học
@@ -1807,7 +1853,7 @@ class admincontroller{
 
     // Danh sách tài khoản
     public function listTaiKhoan(){
-        $this->checkPermission('quan_tri'); // Chỉ admin có quyền quan_tri
+        $this->checkPermission('xem'); // Cần quyền xem
         
         $page = $_GET['page'] ?? 1;
         $limit = 10;
@@ -1831,7 +1877,7 @@ class admincontroller{
 
     // Form sửa tài khoản
     public function editTaiKhoan(){
-        $this->checkPermission('quan_tri');
+        $this->checkPermission('sua'); // Cần quyền sửa
         
         $id = $_GET['id'] ?? 0;
         if (!$id) {
@@ -1856,7 +1902,7 @@ class admincontroller{
 
     // Xử lý cập nhật tài khoản
     public function updateTaiKhoan(){
-        $this->checkPermission('quan_tri');
+        $this->checkPermission('sua'); // Cần quyền sửa
         
         $id = $_POST['id'] ?? 0;
         if (!$id) {
@@ -1912,7 +1958,7 @@ class admincontroller{
 
     // Toggle trạng thái tài khoản (ban/mở ban)
     public function toggleTaiKhoanStatus(){
-        $this->checkPermission('quan_tri');
+        $this->checkPermission('xoa'); // Cần quyền xóa (ban = xóa quyền truy cập)
         
         $id = $_GET['id'] ?? 0;
         if (!$id) {
@@ -1928,14 +1974,19 @@ class admincontroller{
             exit;
         }
 
-        // Không cho ban admin cuối cùng có quyền quan_tri
-        $taiKhoan = $this->model->getTaiKhoanById($id);
-        if ($taiKhoan && $this->model->hasVaiTro($id, 'admin') && $this->model->hasPermission($id, 'quan_tri')) {
-            $countAdmin = $this->model->countAdminWithQuanTri();
-            if ($countAdmin <= 1) {
-                $_SESSION['error'] = 'Không thể ban tài khoản admin cuối cùng có quyền quản trị!';
-                header('Location: ?act=admin-list-tai-khoan');
-                exit;
+        // Không cho ban admin cuối cùng có quyền quan_tri (chỉ admin có quyền quan_tri mới được ban)
+        $adminId = $_SESSION['admin_id'];
+        $hasQuanTri = $this->model->hasPermission($adminId, 'quan_tri');
+        
+        if ($hasQuanTri) {
+            $taiKhoan = $this->model->getTaiKhoanById($id);
+            if ($taiKhoan && $this->model->hasVaiTro($id, 'admin') && $this->model->hasPermission($id, 'quan_tri')) {
+                $countAdmin = $this->model->countAdminWithQuanTri();
+                if ($countAdmin <= 1) {
+                    $_SESSION['error'] = 'Không thể ban tài khoản admin cuối cùng có quyền quản trị!';
+                    header('Location: ?act=admin-list-tai-khoan');
+                    exit;
+                }
             }
         }
 
