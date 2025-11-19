@@ -29,6 +29,44 @@ class KhoaHoc {
         return $this->db->query($sql)->fetch()['total'];
     }
 
+    public function search($keyword, $limit = 12, $offset = 0) {
+        $sql = "SELECT k.*, d.ten_danh_muc
+                FROM khoa_hoc k
+                LEFT JOIN danh_muc d ON k.id_danh_muc = d.id
+                WHERE k.trang_thai = 1
+                  AND (k.ten_khoa_hoc LIKE :keyword 
+                       OR k.mo_ta LIKE :keyword
+                       OR d.ten_danh_muc LIKE :keyword)
+                ORDER BY k.ngay_tao DESC
+                LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->db->prepare($sql);
+        $searchKeyword = '%' . $keyword . '%';
+        $stmt->bindValue(':keyword', $searchKeyword);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    public function countSearch($keyword) {
+        $sql = "SELECT COUNT(*) AS total
+                FROM khoa_hoc k
+                LEFT JOIN danh_muc d ON k.id_danh_muc = d.id
+                WHERE k.trang_thai = 1
+                  AND (k.ten_khoa_hoc LIKE :keyword 
+                       OR k.mo_ta LIKE :keyword
+                       OR d.ten_danh_muc LIKE :keyword)";
+
+        $stmt = $this->db->prepare($sql);
+        $searchKeyword = '%' . $keyword . '%';
+        $stmt->bindValue(':keyword', $searchKeyword);
+        $stmt->execute();
+
+        return $stmt->fetch()['total'];
+    }
+
     public function getById($id) {
         $sql = "SELECT k.*, d.ten_danh_muc
                 FROM khoa_hoc k

@@ -99,6 +99,50 @@ unset($_SESSION['dang_ky_info']);
             color: var(--primary);
         }
 
+        /* Search Form */
+        nav ul li.search-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-form input[type="search"] {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 180px;
+            transition: .2s;
+        }
+
+        .search-form input[type="search"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .search-form button {
+            padding: 8px 12px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: .2s;
+            font-size: 14px;
+        }
+
+        .search-form button:hover {
+            background: #059669;
+        }
+
         /* ===========================
            5) BACK BUTTON
         ============================ */
@@ -438,6 +482,13 @@ unset($_SESSION['dang_ky_info']);
                     <li><a href="index.php?act=client-danh-muc">Danh mục</a></li>
                     <li><a href="index.php?act=client-giang-vien">Giảng viên</a></li>
                     <li><a href="#">Liên hệ</a></li>
+                    <li class="search-item">
+                        <form class="search-form" method="get" action="index.php">
+                            <input type="hidden" name="act" value="client-search-khoa-hoc">
+                            <input type="search" name="q" placeholder="Tìm kiếm..." required>
+                            <button type="submit">🔍</button>
+                        </form>
+                    </li>
                     <?php if (isset($_SESSION['client_id'])): ?>
                         <li style="color: var(--primary); font-weight: 600;">👤 <?= htmlspecialchars($_SESSION['client_ho_ten'] ?? '') ?></li>
                         <li><a href="?act=client-logout" style="color: #dc3545;">🚪 Đăng xuất</a></li>

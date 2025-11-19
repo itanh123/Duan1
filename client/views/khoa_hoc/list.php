@@ -88,6 +88,50 @@
             color: var(--primary);
         }
 
+        /* Search Form */
+        nav ul li.search-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-form input[type="search"] {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 180px;
+            transition: .2s;
+        }
+
+        .search-form input[type="search"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .search-form button {
+            padding: 8px 12px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: .2s;
+            font-size: 14px;
+        }
+
+        .search-form button:hover {
+            background: #059669;
+        }
+
         /* ===========================
            5) HERO SECTION
         ============================ */
@@ -324,6 +368,13 @@
                     <li><a href="index.php?act=client-danh-muc">Danh mục</a></li>
                     <li><a href="index.php?act=client-giang-vien">Giảng viên</a></li>
                     <li><a href="#">Liên hệ</a></li>
+                    <li class="search-item">
+                        <form class="search-form" method="get" action="index.php">
+                            <input type="hidden" name="act" value="client-search-khoa-hoc">
+                            <input type="search" name="q" placeholder="Tìm kiếm..." value="<?= isset($searchKeyword) ? htmlspecialchars($searchKeyword) : '' ?>" required>
+                            <button type="submit">🔍</button>
+                        </form>
+                    </li>
                     <?php if (isset($_SESSION['client_id'])): ?>
                         <li style="color: var(--primary); font-weight: 600;">👤 <?= htmlspecialchars($_SESSION['client_ho_ten'] ?? '') ?></li>
                         <li><a href="?act=client-logout" style="color: #dc3545;">🚪 Đăng xuất</a></li>
@@ -354,8 +405,18 @@
          GRID KHÓA HỌC
     ============================ -->
     <div class="container" id="courses">
-        <h2>Khóa học nổi bật</h2>
+        <?php if (isset($isSearch) && $isSearch): ?>
+            <h2>Kết quả tìm kiếm cho "<?= htmlspecialchars($searchKeyword) ?>" (<?= $total ?> kết quả)</h2>
+        <?php else: ?>
+            <h2>Khóa học nổi bật</h2>
+        <?php endif; ?>
         <div class="grid">
+            <?php if (empty($courses)): ?>
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted);">
+                    <p style="font-size: 18px; margin-bottom: 10px;">😔 Không tìm thấy khóa học nào</p>
+                    <p>Vui lòng thử lại với từ khóa khác hoặc <a href="index.php?act=client-khoa-hoc" style="color: var(--primary);">xem tất cả khóa học</a></p>
+                </div>
+            <?php else: ?>
             <?php foreach ($courses as $c): ?>
                 <div class="card">
                     <a href="index.php?act=client-chi-tiet-khoa-hoc&id=<?= $c['id'] ?>">
@@ -392,12 +453,18 @@
                     </div>
                 </div>
             <?php endforeach; ?>
+            <?php endif; ?>
         </div>
 
         <?php if ($totalPages > 1): ?>
             <div class="paging">
+                <?php 
+                $baseUrl = isset($isSearch) && $isSearch 
+                    ? 'index.php?act=client-search-khoa-hoc&q=' . urlencode($searchKeyword) . '&page='
+                    : 'index.php?act=client-khoa-hoc&page=';
+                ?>
                 <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                    <a class="<?= ($p == $page) ? 'active' : '' ?>" href="index.php?act=client-khoa-hoc&page=<?= $p ?>"><?= $p ?></a>
+                    <a class="<?= ($p == $page) ? 'active' : '' ?>" href="<?= $baseUrl . $p ?>"><?= $p ?></a>
                 <?php endfor; ?>
             </div>
         <?php endif; ?>
