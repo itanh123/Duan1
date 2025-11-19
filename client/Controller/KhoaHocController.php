@@ -374,31 +374,39 @@ class KhoaHocController {
         
         $id_khoa_hoc = isset($_POST['id_khoa_hoc']) ? (int)$_POST['id_khoa_hoc'] : 0;
         $id_lop      = isset($_POST['id_lop']) ? (int)$_POST['id_lop'] : 0;
-        $ho_ten      = trim($_POST['ho_ten'] ?? '');
-        $email       = trim($_POST['email'] ?? '');
-        $sdt         = trim($_POST['sdt'] ?? '');
-        $ghi_chu     = trim($_POST['ghi_chu'] ?? '');
+        $phuong_thuc_thanh_toan = isset($_POST['phuong_thuc_thanh_toan']) ? trim($_POST['phuong_thuc_thanh_toan']) : '';
 
-        // Nếu đã đăng nhập, lấy thông tin từ session
-        if (isset($_SESSION['client_id'])) {
-            $user = $this->userModel->getNguoiDungById($_SESSION['client_id']);
-            if ($user) {
-                $ho_ten = $user['ho_ten'];
-                $email = $user['email'];
-                $sdt = $user['so_dien_thoai'] ?? '';
-            }
+        // Kiểm tra dữ liệu đầu vào
+        if (!$id_khoa_hoc || !$id_lop || empty($phuong_thuc_thanh_toan)) {
+            $_SESSION['dang_ky_error'] = 'Vui lòng điền đầy đủ thông tin!';
+            header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
+            exit;
         }
 
-        if ($id_khoa_hoc && $ho_ten && $email && $sdt) {
-            $result = $this->model->dangKyKhoaHoc($id_khoa_hoc, $id_lop, $ho_ten, $email, $sdt, $ghi_chu);
+        // Lấy id học sinh từ session
+        $id_hoc_sinh = $_SESSION['client_id'] ?? 0;
+        if (!$id_hoc_sinh) {
+            $_SESSION['dang_ky_error'] = 'Vui lòng đăng nhập để đăng ký khóa học!';
+            header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
+            exit;
+        }
+
+        // Xử lý theo phương thức thanh toán
+        if ($phuong_thuc_thanh_toan === 'truc_tiep') {
+            // Thanh toán trực tiếp: Lưu vào bảng dang_ky với trạng thái "Chờ xác nhận"
+            $result = $this->model->dangKyKhoaHoc($id_hoc_sinh, $id_lop, 'Chờ xác nhận');
             
             if ($result) {
                 $_SESSION['dang_ky_success'] = true;
+                $_SESSION['dang_ky_message'] = 'Đăng ký thành công! Vui lòng đến trung tâm để thanh toán và xác nhận đăng ký.';
             } else {
                 $_SESSION['dang_ky_error'] = 'Đăng ký thất bại. Vui lòng thử lại!';
             }
+        } else if ($phuong_thuc_thanh_toan === 'online') {
+            // Thanh toán online: Chưa làm gì (theo yêu cầu)
+            $_SESSION['dang_ky_info'] = 'Chức năng thanh toán online đang được phát triển. Vui lòng chọn phương thức thanh toán trực tiếp.';
         } else {
-            $_SESSION['dang_ky_error'] = 'Vui lòng điền đầy đủ thông tin!';
+            $_SESSION['dang_ky_error'] = 'Phương thức thanh toán không hợp lệ!';
         }
 
         header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);

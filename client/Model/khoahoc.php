@@ -90,24 +90,21 @@ class KhoaHoc {
         }
     }
 
-    public function dangKyKhoaHoc($id_khoa_hoc, $id_lop, $ho_ten, $email, $sdt, $ghi_chu = '') {
+    public function dangKyKhoaHoc($id_hoc_sinh, $id_lop, $trang_thai = 'Chờ xác nhận') {
         try {
-            $sql = "INSERT INTO dang_ky (id_khoa_hoc, id_lop, ho_ten, email, sdt, ghi_chu, trang_thai, ngay_tao)
-                    VALUES (:id_khoa_hoc, :id_lop, :ho_ten, :email, :sdt, :ghi_chu, 'Chờ xử lý', NOW())";
+            $sql = "INSERT INTO dang_ky (id_hoc_sinh, id_lop, trang_thai, ngay_dang_ky)
+                    VALUES (:id_hoc_sinh, :id_lop, :trang_thai, NOW())";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
-                ':id_khoa_hoc' => $id_khoa_hoc,
-                ':id_lop' => $id_lop ?: null,
-                ':ho_ten' => $ho_ten,
-                ':email' => $email,
-                ':sdt' => $sdt,
-                ':ghi_chu' => $ghi_chu
+                ':id_hoc_sinh' => $id_hoc_sinh,
+                ':id_lop' => $id_lop,
+                ':trang_thai' => $trang_thai
             ]);
 
             return true;
         } catch (PDOException $e) {
-            // Nếu bảng không tồn tại, trả về false
+            error_log("Lỗi đăng ký khóa học: " . $e->getMessage());
             return false;
         }
     }
