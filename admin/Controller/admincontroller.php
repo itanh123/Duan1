@@ -354,7 +354,14 @@ class admincontroller{
         $total = $this->model->countHocSinh($search);
         $totalPages = ceil($total / $limit);
         
-        require_once('./admin/View/hoc_sinh/list.php');
+        $data = [
+            'hocSinh' => $hocSinh,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'search' => $search
+        ];
+
+        $this->renderView('./admin/View/hoc_sinh/list_content.php', 'Quản lý Học sinh', $data);
     }
 
     // Form thêm học sinh
@@ -667,7 +674,14 @@ class admincontroller{
         $total = $this->model->countGiangVien($search);
         $totalPages = ceil($total / $limit);
         
-        require_once('./admin/View/giang_vien/list.php');
+        $data = [
+            'giangVien' => $giangVien,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'search' => $search
+        ];
+
+        $this->renderView('./admin/View/giang_vien/list_content.php', 'Quản lý Giảng viên', $data);
     }
 
     // Form thêm giảng viên
@@ -1193,7 +1207,17 @@ class admincontroller{
 
         $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học để filter
         
-        require_once('./admin/View/dang_ky/list.php');
+        $data = [
+            'dangKy' => $dangKy,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'search' => $search,
+            'id_lop' => $id_lop,
+            'trang_thai' => $trang_thai,
+            'lopHocList' => $lopHocList
+        ];
+
+        $this->renderView('./admin/View/dang_ky/list_content.php', 'Quản lý Đăng ký', $data);
     }
 
     // Form sửa đăng ký
