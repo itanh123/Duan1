@@ -1102,16 +1102,36 @@ class adminmodel
     // Thêm học sinh mới
     public function addHocSinh($data)
     {
-        $sql = "INSERT INTO nguoi_dung (ho_ten, email, mat_khau, so_dien_thoai, dia_chi, vai_tro, trang_thai) 
-                VALUES (:ho_ten, :email, :mat_khau, :so_dien_thoai, :dia_chi, 'hoc_sinh', :trang_thai)";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':ho_ten', $data['ho_ten']);
-        $stmt->bindValue(':email', $data['email']);
-        $stmt->bindValue(':mat_khau', $data['mat_khau']);
-        $stmt->bindValue(':so_dien_thoai', $data['so_dien_thoai'] ?? null);
-        $stmt->bindValue(':dia_chi', $data['dia_chi'] ?? null);
-        $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 1, PDO::PARAM_INT);
-        return $stmt->execute();
+        try {
+            $sql = "INSERT INTO nguoi_dung (ho_ten, email, mat_khau, so_dien_thoai, dia_chi, vai_tro, trang_thai, ngay_tao) 
+                    VALUES (:ho_ten, :email, :mat_khau, :so_dien_thoai, :dia_chi, 'hoc_sinh', :trang_thai, NOW())";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':ho_ten', $data['ho_ten']);
+            $stmt->bindValue(':email', $data['email']);
+            $stmt->bindValue(':mat_khau', $data['mat_khau']);
+            $stmt->bindValue(':so_dien_thoai', $data['so_dien_thoai'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':dia_chi', $data['dia_chi'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 1, PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                // Lấy ID vừa tạo và thêm vào bảng nguoi_dung_vai_tro
+                $id_nguoi_dung = $this->conn->lastInsertId();
+                
+                // Thêm vai trò vào bảng nguoi_dung_vai_tro
+                $sql_vai_tro = "INSERT INTO nguoi_dung_vai_tro (id_nguoi_dung, vai_tro) 
+                                VALUES (:id_nguoi_dung, 'hoc_sinh') 
+                                ON DUPLICATE KEY UPDATE vai_tro = 'hoc_sinh'";
+                $stmt_vai_tro = $this->conn->prepare($sql_vai_tro);
+                $stmt_vai_tro->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
+                $stmt_vai_tro->execute();
+                
+                return true;
+            }
+            return false;
+        } catch (PDOException $e) {
+            error_log("Lỗi thêm học sinh: " . $e->getMessage());
+            return false;
+        }
     }
 
     // Cập nhật học sinh

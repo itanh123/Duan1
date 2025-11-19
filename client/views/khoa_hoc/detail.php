@@ -8,8 +8,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $dang_ky_success = isset($_SESSION['dang_ky_success']) ? $_SESSION['dang_ky_success'] : false;
 $dang_ky_error = isset($_SESSION['dang_ky_error']) ? $_SESSION['dang_ky_error'] : '';
+$dang_ky_message = isset($_SESSION['dang_ky_message']) ? $_SESSION['dang_ky_message'] : '';
+$dang_ky_info = isset($_SESSION['dang_ky_info']) ? $_SESSION['dang_ky_info'] : '';
 unset($_SESSION['dang_ky_success']);
 unset($_SESSION['dang_ky_error']);
+unset($_SESSION['dang_ky_message']);
+unset($_SESSION['dang_ky_info']);
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -277,6 +281,12 @@ unset($_SESSION['dang_ky_error']);
             border: 1px solid #ef4444;
         }
 
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+
         /* ===========================
            8) CLASSES SECTION
         ============================ */
@@ -481,7 +491,12 @@ unset($_SESSION['dang_ky_error']);
             <?php else: ?>
                 <?php if ($dang_ky_success): ?>
                     <div class="alert alert-success">
-                        <strong>Thành công!</strong> Đăng ký của bạn đã được ghi nhận. Chúng tôi sẽ liên hệ với bạn sớm nhất có thể.
+                        <strong>Thành công!</strong> 
+                        <?php if ($dang_ky_message): ?>
+                            <?= htmlspecialchars($dang_ky_message) ?>
+                        <?php else: ?>
+                            Đăng ký của bạn đã được ghi nhận. Chúng tôi sẽ liên hệ với bạn sớm nhất có thể.
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
 
@@ -491,35 +506,42 @@ unset($_SESSION['dang_ky_error']);
                     </div>
                 <?php endif; ?>
 
-                <form method="post" action="index.php?act=client-dang-ky-khoa-hoc">
+                <?php if ($dang_ky_info): ?>
+                    <div class="alert alert-info">
+                        <strong>Thông báo!</strong> <?= htmlspecialchars($dang_ky_info) ?>
+                    </div>
+                <?php endif; ?>
+
+                <form method="post" action="index.php?act=client-dang-ky-khoa-hoc" id="registrationForm">
                 <input type="hidden" name="id_khoa_hoc" value="<?= (int)$course['id'] ?>">
                 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="ho_ten">Họ và tên <span style="color:red">*</span></label>
-                        <input type="text" id="ho_ten" name="ho_ten" required placeholder="Nhập họ và tên của bạn">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="email">Email <span style="color:red">*</span></label>
-                        <input type="email" id="email" name="email" required placeholder="example@email.com">
-                    </div>
+                <div class="form-group">
+                    <label for="id_lop">Chọn lớp học <span style="color:red">*</span></label>
+                    <select id="id_lop" name="id_lop" required>
+                        <option value="">-- Chọn lớp học --</option>
+                        <?php foreach ($lops as $lop): ?>
+                            <option value="<?= $lop['id'] ?>"><?= htmlspecialchars($lop['ten_lop']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="sdt">Số điện thoại <span style="color:red">*</span></label>
-                        <input type="tel" id="sdt" name="sdt" required placeholder="0123456789">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="id_lop">Chọn lớp học</label>
-                        <select id="id_lop" name="id_lop">
-                            <option value="0">Không chọn lớp cụ thể</option>
-                            <?php foreach ($lops as $lop): ?>
-                                <option value="<?= $lop['id'] ?>"><?= htmlspecialchars($lop['ten_lop']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                <div class="form-group">
+                    <label>Phương thức thanh toán <span style="color:red">*</span></label>
+                    <div style="display: flex; gap: 20px; margin-top: 10px;">
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 12px; border: 2px solid #ddd; border-radius: 8px; flex: 1; transition: .2s;" id="payment-direct-label">
+                            <input type="radio" name="phuong_thuc_thanh_toan" value="truc_tiep" required style="margin-right: 8px; cursor: pointer;">
+                            <div>
+                                <strong>Thanh toán trực tiếp</strong>
+                                <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Thanh toán tại trung tâm</div>
+                            </div>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 12px; border: 2px solid #ddd; border-radius: 8px; flex: 1; transition: .2s;" id="payment-online-label">
+                            <input type="radio" name="phuong_thuc_thanh_toan" value="online" required style="margin-right: 8px; cursor: pointer;">
+                            <div>
+                                <strong>Thanh toán online</strong>
+                                <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Thanh toán qua ví điện tử</div>
+                            </div>
+                        </label>
                     </div>
                 </div>
 
@@ -528,8 +550,25 @@ unset($_SESSION['dang_ky_error']);
                     <textarea id="ghi_chu" name="ghi_chu" placeholder="Bạn có câu hỏi hoặc yêu cầu đặc biệt nào không?"></textarea>
                 </div>
 
-                    <button type="submit" class="btn-submit">Đăng ký ngay</button>
+                <button type="submit" class="btn-submit">Đăng ký ngay</button>
                 </form>
+
+                <script>
+                // Thêm style cho radio button khi được chọn
+                document.querySelectorAll('input[name="phuong_thuc_thanh_toan"]').forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        document.querySelectorAll('label[id$="-label"]').forEach(label => {
+                            label.style.borderColor = '#ddd';
+                            label.style.backgroundColor = '#fff';
+                        });
+                        if (this.checked) {
+                            const label = document.getElementById(this.value === 'truc_tiep' ? 'payment-direct-label' : 'payment-online-label');
+                            label.style.borderColor = 'var(--primary)';
+                            label.style.backgroundColor = '#f0fdf4';
+                        }
+                    });
+                });
+                </script>
             <?php endif; ?>
         </div>
 
