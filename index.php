@@ -55,6 +55,7 @@ match ($act) {
     'client-chi-tiet-khoa-hoc' => $khoaHocController->detail(),
     'client-binh-luan-khoa-hoc' => $khoaHocController->addComment(),
     'client-dang-ky-khoa-hoc' => $khoaHocController->dangKy(),
+    'client-search-khoa-hoc' => $khoaHocController->search(),
     
     // ============================
     //  CLIENT - CA HỌC

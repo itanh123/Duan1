@@ -309,6 +309,36 @@ class KhoaHocController {
     }
 
     // ===========================================
+    //  TÌM KIẾM KHÓA HỌC  (action = search)
+    // ===========================================
+    public function search() 
+    {
+        // Không cần đăng nhập để tìm kiếm khóa học
+        $keyword = isset($_GET['q']) ? trim($_GET['q']) : '';
+        
+        if (empty($keyword)) {
+            // Nếu không có từ khóa, chuyển về trang danh sách
+            header('Location: index.php?act=client-khoa-hoc');
+            exit;
+        }
+
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 12;
+        $offset = ($page - 1) * $perPage;
+
+        $courses = $this->model->search($keyword, $perPage, $offset);
+        $total   = $this->model->countSearch($keyword);
+        $totalPages = ceil($total / $perPage);
+
+        // Truyền keyword và isSearch để view biết đang ở chế độ tìm kiếm
+        $isSearch = true;
+        $searchKeyword = $keyword;
+
+        // gọi view (dùng chung view list.php)
+        require __DIR__ . '/../views/khoa_hoc/list.php';
+    }
+
+    // ===========================================
     //  CHI TIẾT KHÓA HỌC (action = detail)
     // ===========================================
     public function detail()
