@@ -126,13 +126,29 @@ unset($_SESSION['dang_ky_error']);
 
         .course-image {
             flex: 0 0 400px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f0f0f0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
         .course-image img {
             width: 100%;
-            height: 300px;
+            height: 100%;
+            min-height: 400px;
             object-fit: cover;
-            border-radius: 12px;
+            display: block;
+        }
+
+        .course-image-placeholder {
+            width: 100%;
+            min-height: 400px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 80px;
         }
 
         .course-info {
@@ -410,8 +426,15 @@ unset($_SESSION['dang_ky_error']);
                     <li><a href="index.php?act=client-khoa-hoc">Khóa học</a></li>
                     <li><a href="index.php?act=client-lop-hoc">Lớp học</a></li>
                     <li><a href="index.php?act=client-danh-muc">Danh mục</a></li>
-                    <li><a href="#">Giảng viên</a></li>
+                    <li><a href="index.php?act=client-giang-vien">Giảng viên</a></li>
                     <li><a href="#">Liên hệ</a></li>
+                    <?php if (isset($_SESSION['client_id'])): ?>
+                        <li style="color: var(--primary); font-weight: 600;">👤 <?= htmlspecialchars($_SESSION['client_ho_ten'] ?? '') ?></li>
+                        <li><a href="?act=client-logout" style="color: #dc3545;">🚪 Đăng xuất</a></li>
+                    <?php else: ?>
+                        <li><a href="?act=client-register" style="color: var(--primary); font-weight: 600;">📝 Đăng ký</a></li>
+                        <li><a href="?act=client-login" style="color: var(--primary);">🔐 Đăng nhập</a></li>
+                    <?php endif; ?>
                 </ul>
             </nav>
         </div>
@@ -424,8 +447,15 @@ unset($_SESSION['dang_ky_error']);
         <!-- Course Detail -->
         <div class="course-detail">
             <div class="course-image">
-                <?php $img = $course['hinh_anh'] ? '/uploads/' . $course['hinh_anh'] : 'https://via.placeholder.com/600x400?text=Khóa+Học'; ?>
-                <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($course['ten_khoa_hoc']) ?>">
+                <?php if (!empty($course['hinh_anh']) && file_exists('./uploads/' . $course['hinh_anh'])): ?>
+                    <img src="./uploads/<?= htmlspecialchars($course['hinh_anh']) ?>" 
+                         alt="<?= htmlspecialchars($course['ten_khoa_hoc']) ?>"
+                         loading="lazy">
+                <?php else: ?>
+                    <div class="course-image-placeholder">
+                        📚
+                    </div>
+                <?php endif; ?>
             </div>
             <div class="course-info">
                 <h1><?= htmlspecialchars($course['ten_khoa_hoc']) ?></h1>
@@ -444,19 +474,24 @@ unset($_SESSION['dang_ky_error']);
         <div class="registration-section">
             <h2>Đăng ký khóa học</h2>
             
-            <?php if ($dang_ky_success): ?>
-                <div class="alert alert-success">
-                    <strong>Thành công!</strong> Đăng ký của bạn đã được ghi nhận. Chúng tôi sẽ liên hệ với bạn sớm nhất có thể.
-                </div>
-            <?php endif; ?>
-
-            <?php if ($dang_ky_error): ?>
+            <?php if (!isset($_SESSION['client_id'])): ?>
                 <div class="alert alert-error">
-                    <strong>Lỗi!</strong> <?= htmlspecialchars($dang_ky_error) ?>
+                    <strong>Yêu cầu đăng nhập!</strong> Vui lòng <a href="?act=client-login" style="color: var(--primary); font-weight: 600;">đăng nhập</a> hoặc <a href="?act=client-register" style="color: var(--primary); font-weight: 600;">đăng ký tài khoản</a> để đăng ký khóa học.
                 </div>
-            <?php endif; ?>
+            <?php else: ?>
+                <?php if ($dang_ky_success): ?>
+                    <div class="alert alert-success">
+                        <strong>Thành công!</strong> Đăng ký của bạn đã được ghi nhận. Chúng tôi sẽ liên hệ với bạn sớm nhất có thể.
+                    </div>
+                <?php endif; ?>
 
-            <form method="post" action="index.php?act=client-dang-ky-khoa-hoc">
+                <?php if ($dang_ky_error): ?>
+                    <div class="alert alert-error">
+                        <strong>Lỗi!</strong> <?= htmlspecialchars($dang_ky_error) ?>
+                    </div>
+                <?php endif; ?>
+
+                <form method="post" action="index.php?act=client-dang-ky-khoa-hoc">
                 <input type="hidden" name="id_khoa_hoc" value="<?= (int)$course['id'] ?>">
                 
                 <div class="form-row">
@@ -493,8 +528,9 @@ unset($_SESSION['dang_ky_error']);
                     <textarea id="ghi_chu" name="ghi_chu" placeholder="Bạn có câu hỏi hoặc yêu cầu đặc biệt nào không?"></textarea>
                 </div>
 
-                <button type="submit" class="btn-submit">Đăng ký ngay</button>
-            </form>
+                    <button type="submit" class="btn-submit">Đăng ký ngay</button>
+                </form>
+            <?php endif; ?>
         </div>
 
         <!-- Comments Section -->
@@ -520,22 +556,24 @@ unset($_SESSION['dang_ky_error']);
 
             <div class="comment-form">
                 <h3>Gửi bình luận</h3>
-                <form method="post" action="index.php?act=client-binh-luan-khoa-hoc">
-                    <input type="hidden" name="id_khoa_hoc" value="<?= (int)$course['id'] ?>">
-                    <div class="form-group">
-                        <label for="id_hoc_sinh">ID học sinh (demo):</label>
-                        <input type="number" id="id_hoc_sinh" name="id_hoc_sinh" required>
+                <?php if (!isset($_SESSION['client_id'])): ?>
+                    <div class="alert alert-error">
+                        <strong>Yêu cầu đăng nhập!</strong> Vui lòng <a href="?act=client-login" style="color: var(--primary); font-weight: 600;">đăng nhập</a> hoặc <a href="?act=client-register" style="color: var(--primary); font-weight: 600;">đăng ký tài khoản</a> để bình luận.
                     </div>
-                    <div class="form-group">
-                        <label for="noi_dung">Nội dung bình luận:</label>
-                        <textarea id="noi_dung" name="noi_dung" required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="danh_gia">Đánh giá (1-5 sao):</label>
-                        <input type="number" id="danh_gia" name="danh_gia" min="1" max="5" placeholder="Chọn số sao">
-                    </div>
-                    <button type="submit" class="btn-submit">Gửi bình luận</button>
-                </form>
+                <?php else: ?>
+                    <form method="post" action="index.php?act=client-binh-luan-khoa-hoc">
+                        <input type="hidden" name="id_khoa_hoc" value="<?= (int)$course['id'] ?>">
+                        <div class="form-group">
+                            <label for="noi_dung">Nội dung bình luận:</label>
+                            <textarea id="noi_dung" name="noi_dung" required placeholder="Nhập bình luận của bạn..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="danh_gia">Đánh giá (1-5 sao):</label>
+                            <input type="number" id="danh_gia" name="danh_gia" min="1" max="5" placeholder="Chọn số sao (tùy chọn)">
+                        </div>
+                        <button type="submit" class="btn-submit">Gửi bình luận</button>
+                    </form>
+                <?php endif; ?>
             </div>
         </div>
     </div>

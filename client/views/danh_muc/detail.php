@@ -143,10 +143,36 @@
             box-shadow: 0 5px 20px #00000015;
         }
 
+        .card-image {
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .card img {
             width: 100%;
-            height: 160px;
+            height: 100%;
             object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover img {
+            transform: scale(1.05);
+        }
+
+        .card-image-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 48px;
         }
 
         .card-content {
@@ -276,7 +302,7 @@
                     <li><a href="index.php?act=client-khoa-hoc">Khóa học</a></li>
                     <li><a href="index.php?act=client-lop-hoc">Lớp học</a></li>
                     <li><a href="index.php?act=client-danh-muc">Danh mục</a></li>
-                    <li><a href="#">Giảng viên</a></li>
+                    <li><a href="index.php?act=client-giang-vien">Giảng viên</a></li>
                     <li><a href="#">Liên hệ</a></li>
                 </ul>
             </nav>
@@ -300,11 +326,18 @@
             <div class="grid">
                 <?php foreach ($courses as $c): ?>
                     <div class="card">
-                        <?php 
-                        $img = $c['hinh_anh'] ? '/uploads/' . $c['hinh_anh'] : 'https://via.placeholder.com/600x400?text=Khóa+Học'; 
-                        ?>
                         <a href="index.php?act=client-chi-tiet-khoa-hoc&id=<?= $c['id'] ?>">
-                            <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($c['ten_khoa_hoc']) ?>">
+                            <div class="card-image">
+                                <?php if (!empty($c['hinh_anh']) && file_exists('./uploads/' . $c['hinh_anh'])): ?>
+                                    <img src="./uploads/<?= htmlspecialchars($c['hinh_anh']) ?>" 
+                                         alt="<?= htmlspecialchars($c['ten_khoa_hoc']) ?>"
+                                         loading="lazy">
+                                <?php else: ?>
+                                    <div class="card-image-placeholder">
+                                        📚
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                         </a>
                         <div class="card-content">
                             <h3><?= htmlspecialchars($c['ten_khoa_hoc']) ?></h3>

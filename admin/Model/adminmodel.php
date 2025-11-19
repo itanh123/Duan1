@@ -486,6 +486,56 @@ class adminmodel
         return $stmt->fetchAll();
     }
 
+    // Lấy danh sách giảng viên cho client (chỉ hiển thị thông tin công khai)
+    public function getGiangVienForClient($page = 1, $limit = 12, $search = '')
+    {
+        $offset = ($page - 1) * $limit;
+        $sql = "SELECT nd.id, nd.ho_ten, nd.email, nd.so_dien_thoai, nd.dia_chi
+                FROM nguoi_dung nd
+                INNER JOIN nguoi_dung_vai_tro ndvt ON nd.id = ndvt.id_nguoi_dung
+                WHERE ndvt.vai_tro = 'giang_vien' AND nd.trang_thai = 1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (nd.ho_ten LIKE :search OR nd.email LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        $sql .= " ORDER BY nd.ho_ten ASC LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Đếm tổng số giảng viên cho client
+    public function countGiangVienForClient($search = '')
+    {
+        $sql = "SELECT COUNT(DISTINCT nd.id) as total
+                FROM nguoi_dung nd
+                INNER JOIN nguoi_dung_vai_tro ndvt ON nd.id = ndvt.id_nguoi_dung
+                WHERE ndvt.vai_tro = 'giang_vien' AND nd.trang_thai = 1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (nd.ho_ten LIKE :search OR nd.email LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return (int)$result['total'];
+    }
+
     // Thêm lớp học mới
     public function addLopHoc($data)
     {

@@ -295,7 +295,7 @@ class KhoaHocController {
     // ===========================================
     public function index() 
     {
-        $this->checkClientLogin();
+        // Không cần đăng nhập để xem danh sách khóa học
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 12;
         $offset = ($page - 1) * $perPage;
@@ -348,8 +348,11 @@ class KhoaHocController {
     // ===========================================
     public function addComment()
     {
+        // Cần đăng nhập để bình luận
+        $this->checkClientLogin();
+        
         $id_khoa_hoc = $_POST['id_khoa_hoc'] ?? 0;
-        $id_hoc_sinh = $_POST['id_hoc_sinh'] ?? 0;
+        $id_hoc_sinh = $_SESSION['client_id'] ?? 0;
         $noi_dung    = trim($_POST['noi_dung'] ?? '');
         $danh_gia    = isset($_POST['danh_gia']) ? (int)$_POST['danh_gia'] : null;
 
@@ -366,12 +369,25 @@ class KhoaHocController {
     // ===========================================
     public function dangKy()
     {
+        // Cần đăng nhập để đăng ký khóa học
+        $this->checkClientLogin();
+        
         $id_khoa_hoc = isset($_POST['id_khoa_hoc']) ? (int)$_POST['id_khoa_hoc'] : 0;
         $id_lop      = isset($_POST['id_lop']) ? (int)$_POST['id_lop'] : 0;
         $ho_ten      = trim($_POST['ho_ten'] ?? '');
         $email       = trim($_POST['email'] ?? '');
         $sdt         = trim($_POST['sdt'] ?? '');
         $ghi_chu     = trim($_POST['ghi_chu'] ?? '');
+
+        // Nếu đã đăng nhập, lấy thông tin từ session
+        if (isset($_SESSION['client_id'])) {
+            $user = $this->userModel->getNguoiDungById($_SESSION['client_id']);
+            if ($user) {
+                $ho_ten = $user['ho_ten'];
+                $email = $user['email'];
+                $sdt = $user['so_dien_thoai'] ?? '';
+            }
+        }
 
         if ($id_khoa_hoc && $ho_ten && $email && $sdt) {
             $result = $this->model->dangKyKhoaHoc($id_khoa_hoc, $id_lop, $ho_ten, $email, $sdt, $ghi_chu);
