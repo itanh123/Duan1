@@ -381,8 +381,11 @@ class KhoaHocController {
 
         // Sử dụng CaHoc model để lấy thông tin ca học
         $lopCa = [];
+        $lopSoLuong = []; // Lưu số lượng đăng ký của mỗi lớp
         foreach ($lops as $lop) {
             $lopCa[$lop['id']] = $this->caHocModel->getCaHocByLop($lop['id']);
+            // Đếm số lượng đăng ký đã xác nhận của lớp học
+            $lopSoLuong[$lop['id']] = $this->userModel->countDangKyByLop($lop['id']);
         }
 
         $binh_luan = $this->model->getBinhLuan($id);
@@ -436,6 +439,28 @@ class KhoaHocController {
             $_SESSION['dang_ky_error'] = 'Vui lòng đăng nhập để đăng ký khóa học!';
             header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
             exit;
+        }
+
+        // Kiểm tra số lượng đăng ký của lớp học
+        require_once(__DIR__ . '/../../admin/Model/adminmodel.php');
+        $adminModel = new adminmodel();
+        $lopHoc = $adminModel->getLopHocById($id_lop);
+        
+        if (!$lopHoc) {
+            $_SESSION['dang_ky_error'] = 'Không tìm thấy thông tin lớp học!';
+            header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
+            exit;
+        }
+
+        // Kiểm tra nếu lớp học có giới hạn số lượng
+        if (!empty($lopHoc['so_luong_toi_da'])) {
+            $soLuongDangKy = $adminModel->countDangKyByLop($id_lop);
+            
+            if ($soLuongDangKy >= $lopHoc['so_luong_toi_da']) {
+                $_SESSION['dang_ky_error'] = 'Lớp học này đã đầy! Số lượng đăng ký hiện tại: ' . $soLuongDangKy . '/' . $lopHoc['so_luong_toi_da'] . '. Vui lòng chọn lớp học khác.';
+                header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
+                exit;
+            }
         }
 
         // Xử lý theo phương thức thanh toán

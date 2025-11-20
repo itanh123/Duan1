@@ -68,7 +68,7 @@ match ($act) {
     //  CLIENT - TRANG CHỦ (MẶC ĐỊNH)
     // ============================
     'client' => $khoaHocController->index(),
-    '/' => $khoaHocController->index(),
+    '' => $khoaHocController->index(),
     
     // ============================
     //  CLIENT - KHÓA HỌC

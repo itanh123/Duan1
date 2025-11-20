@@ -702,6 +702,88 @@ class adminmodel
         return $stmt->fetchAll();
     }
 
+    // Kiểm tra trùng ca học (cùng ca, cùng thứ thì phải khác giảng viên và khác phòng)
+    public function checkTrungCaHoc($id_ca, $thu_trong_tuan, $id_giang_vien, $id_phong, $excludeId = null)
+    {
+        // Kiểm tra trùng giảng viên (nếu có chọn giảng viên)
+        if (!empty($id_giang_vien)) {
+            $sql = "SELECT ch.*, lh.ten_lop, nd.ho_ten as ten_giang_vien, ph.ten_phong
+                    FROM ca_hoc ch
+                    LEFT JOIN lop_hoc lh ON ch.id_lop = lh.id
+                    LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id
+                    LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
+                    WHERE ch.id_ca = :id_ca 
+                    AND ch.thu_trong_tuan = :thu_trong_tuan
+                    AND ch.id_giang_vien = :id_giang_vien";
+            
+            $params = [
+                ':id_ca' => $id_ca,
+                ':thu_trong_tuan' => $thu_trong_tuan,
+                ':id_giang_vien' => $id_giang_vien
+            ];
+            
+            if ($excludeId) {
+                $sql .= " AND ch.id != :exclude_id";
+                $params[':exclude_id'] = $excludeId;
+            }
+            
+            $stmt = $this->conn->prepare($sql);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->execute();
+            $result = $stmt->fetch();
+            
+            if ($result) {
+                return [
+                    'trung' => true,
+                    'loi' => 'giang_vien',
+                    'thong_tin' => $result
+                ];
+            }
+        }
+        
+        // Kiểm tra trùng phòng học (nếu có chọn phòng)
+        if (!empty($id_phong)) {
+            $sql = "SELECT ch.*, lh.ten_lop, nd.ho_ten as ten_giang_vien, ph.ten_phong
+                    FROM ca_hoc ch
+                    LEFT JOIN lop_hoc lh ON ch.id_lop = lh.id
+                    LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id
+                    LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
+                    WHERE ch.id_ca = :id_ca 
+                    AND ch.thu_trong_tuan = :thu_trong_tuan
+                    AND ch.id_phong = :id_phong";
+            
+            $params = [
+                ':id_ca' => $id_ca,
+                ':thu_trong_tuan' => $thu_trong_tuan,
+                ':id_phong' => $id_phong
+            ];
+            
+            if ($excludeId) {
+                $sql .= " AND ch.id != :exclude_id";
+                $params[':exclude_id'] = $excludeId;
+            }
+            
+            $stmt = $this->conn->prepare($sql);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->execute();
+            $result = $stmt->fetch();
+            
+            if ($result) {
+                return [
+                    'trung' => true,
+                    'loi' => 'phong',
+                    'thong_tin' => $result
+                ];
+            }
+        }
+        
+        return ['trung' => false];
+    }
+
     // Thêm ca học mới
     public function addCaHoc($data)
     {
@@ -746,6 +828,20 @@ class adminmodel
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         return $stmt->execute();
+    }
+
+    // Đếm số lượng đăng ký hiện tại của lớp học (chỉ đếm đăng ký đã xác nhận)
+    public function countDangKyByLop($id_lop)
+    {
+        $sql = "SELECT COUNT(*) as total 
+                FROM dang_ky 
+                WHERE id_lop = :id_lop 
+                AND trang_thai = 'Đã xác nhận'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id_lop', $id_lop, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return (int)$result['total'];
     }
 
     // Xóa lớp học

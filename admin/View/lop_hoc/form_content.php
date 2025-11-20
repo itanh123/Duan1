@@ -41,13 +41,27 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="so_luong_toi_da">Số lượng tối đa</label>
+                <?php if (isset($lopHoc) && isset($soLuongDangKy)): ?>
+                    <div style="margin-bottom: 5px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 13px;">
+                        <strong>Thông tin hiện tại:</strong> 
+                        Đã có <span style="color: #28a745; font-weight: bold;"><?= $soLuongDangKy ?></span> học sinh đăng ký (đã xác nhận)
+                        <?php if (!empty($lopHoc['so_luong_toi_da'])): ?>
+                            / <?= $lopHoc['so_luong_toi_da'] ?> tối đa
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
                 <input type="number" 
                        name="so_luong_toi_da" 
                        id="so_luong_toi_da" 
                        class="form-control" 
                        value="<?= $lopHoc['so_luong_toi_da'] ?? '' ?>" 
-                       min="1"
+                       min="<?= isset($lopHoc) && isset($soLuongDangKy) ? max(1, $soLuongDangKy) : 1 ?>"
                        placeholder="Để trống nếu không giới hạn">
+                <?php if (isset($lopHoc) && isset($soLuongDangKy) && $soLuongDangKy > 0): ?>
+                    <small style="color: #dc3545; display: block; margin-top: 5px;">
+                        ⚠️ Số lượng tối đa phải >= <?= $soLuongDangKy ?> (số học sinh đã đăng ký)
+                    </small>
+                <?php endif; ?>
             </div>
 
             <div class="form-group">
