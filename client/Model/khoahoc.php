@@ -128,21 +128,345 @@ class KhoaHoc {
         }
     }
 
-    public function dangKyKhoaHoc($id_hoc_sinh, $id_lop, $trang_thai = 'Chờ xác nhận') {
+    /**
+     * Hủy các đăng ký quá hạn (sau 10 phút chưa thanh toán)
+     * Chỉ hủy các đăng ký có trạng thái "Chờ xác nhận" và có vnp_TxnRef (đăng ký online)
+     * 
+     * @return int Số lượng đăng ký đã hủy
+     */
+    public function cancelExpiredRegistrations() {
         try {
-            $sql = "INSERT INTO dang_ky (id_hoc_sinh, id_lop, trang_thai, ngay_dang_ky)
-                    VALUES (:id_hoc_sinh, :id_lop, :trang_thai, NOW())";
-
+            // Tìm các đăng ký có:
+            // - Trạng thái = "Chờ xác nhận"
+            // - Có vnp_TxnRef (đăng ký online)
+            // - Đã quá 10 phút kể từ ngày đăng ký
+            $sql = "UPDATE dang_ky 
+                    SET trang_thai = 'Đã hủy'
+                    WHERE trang_thai = 'Chờ xác nhận'
+                    AND vnp_TxnRef IS NOT NULL
+                    AND vnp_TxnRef != ''
+                    AND vnp_TransactionNo IS NULL
+                    AND TIMESTAMPDIFF(MINUTE, ngay_dang_ky, NOW()) > 10";
+            
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([
-                ':id_hoc_sinh' => $id_hoc_sinh,
-                ':id_lop' => $id_lop,
-                ':trang_thai' => $trang_thai
-            ]);
+            $stmt->execute();
+            
+            $count = $stmt->rowCount();
+            
+            if ($count > 0) {
+                error_log("Đã hủy $count đăng ký quá hạn (sau 10 phút chưa thanh toán)");
+            }
+            
+            return $count;
+        } catch (PDOException $e) {
+            error_log("Lỗi khi hủy đăng ký quá hạn: " . $e->getMessage());
+            return 0;
+        }
+    }
+    
+    public function dangKyKhoaHoc($id_hoc_sinh, $id_lop, $trang_thai = 'Chờ xác nhận', $vnp_TxnRef = null) {
+        try {
+            // Lấy thông tin học sinh từ database
+            require_once __DIR__ . '/../../admin/Model/adminmodel.php';
+            $adminModel = new adminmodel();
+            $hocSinh = $adminModel->getNguoiDungById($id_hoc_sinh);
+            
+            if (!$hocSinh) {
+                error_log("Không tìm thấy học sinh với ID: " . $id_hoc_sinh);
+                return false;
+            }
+            
+            // Lấy thông tin lớp học để lấy id_khoa_hoc
+            $lopHoc = $adminModel->getLopHocById($id_lop);
+            if (!$lopHoc) {
+                error_log("Không tìm thấy lớp học với ID: " . $id_lop);
+                return false;
+            }
+            
+            // Kiểm tra xem bảng có cột id_hoc_sinh hay không
+            try {
+                $checkColumn = $this->db->query("SHOW COLUMNS FROM dang_ky LIKE 'id_hoc_sinh'");
+                $hasIdHocSinh = $checkColumn->rowCount() > 0;
+            } catch (PDOException $e) {
+                error_log("Lỗi kiểm tra cột id_hoc_sinh: " . $e->getMessage());
+                $hasIdHocSinh = false;
+            }
+            
+            if ($hasIdHocSinh) {
+                // Bảng đã có cột id_hoc_sinh (cấu trúc mới)
+                // Kiểm tra xem có cột ngay_dang_ky hay ngay_tao
+                $checkNgayDangKy = $this->db->query("SHOW COLUMNS FROM dang_ky LIKE 'ngay_dang_ky'");
+                $hasNgayDangKy = $checkNgayDangKy->rowCount() > 0;
+                $ngayColumn = $hasNgayDangKy ? 'ngay_dang_ky' : 'ngay_tao';
+                
+                // Kiểm tra cột vnp_TxnRef
+                $checkVnpColumn = $this->db->query("SHOW COLUMNS FROM dang_ky LIKE 'vnp_TxnRef'");
+                $hasVnpColumn = $checkVnpColumn->rowCount() > 0;
+                
+                if ($hasVnpColumn) {
+                    $sql = "INSERT INTO dang_ky (id_hoc_sinh, id_lop, trang_thai, $ngayColumn, vnp_TxnRef)
+                            VALUES (:id_hoc_sinh, :id_lop, :trang_thai, NOW(), :vnp_TxnRef)";
+                } else {
+                    $sql = "INSERT INTO dang_ky (id_hoc_sinh, id_lop, trang_thai, $ngayColumn)
+                            VALUES (:id_hoc_sinh, :id_lop, :trang_thai, NOW())";
+                }
+                
+                $params = [
+                    ':id_hoc_sinh' => $id_hoc_sinh,
+                    ':id_lop' => $id_lop,
+                    ':trang_thai' => $trang_thai
+                ];
+                
+                if ($hasVnpColumn) {
+                    $params[':vnp_TxnRef'] = $vnp_TxnRef;
+                }
+                
+                $stmt = $this->db->prepare($sql);
+                
+                // Log SQL và params để debug
+                error_log("SQL: " . $sql);
+                error_log("Params: " . json_encode($params));
+                
+                $result = $stmt->execute($params);
+                
+                if (!$result) {
+                    $errorInfo = $stmt->errorInfo();
+                    error_log("Lỗi khi execute SQL insert (cấu trúc mới): " . implode(", ", $errorInfo));
+                    error_log("Error Code: " . ($errorInfo[0] ?? 'N/A'));
+                    error_log("Error Message: " . ($errorInfo[2] ?? 'N/A'));
+                    return false;
+                }
+            } else {
+                // Bảng cũ, cần insert với id_khoa_hoc, ho_ten, email, sdt
+                $checkVnpColumn = $this->db->query("SHOW COLUMNS FROM dang_ky LIKE 'vnp_TxnRef'");
+                $hasVnpColumn = $checkVnpColumn->rowCount() > 0;
+                
+                if ($hasVnpColumn) {
+                    $sql = "INSERT INTO dang_ky (id_khoa_hoc, id_lop, ho_ten, email, sdt, trang_thai, ngay_tao, vnp_TxnRef)
+                            VALUES (:id_khoa_hoc, :id_lop, :ho_ten, :email, :sdt, :trang_thai, NOW(), :vnp_TxnRef)";
+                } else {
+                    $sql = "INSERT INTO dang_ky (id_khoa_hoc, id_lop, ho_ten, email, sdt, trang_thai, ngay_tao)
+                            VALUES (:id_khoa_hoc, :id_lop, :ho_ten, :email, :sdt, :trang_thai, NOW())";
+                }
+                
+                $params = [
+                    ':id_khoa_hoc' => $lopHoc['id_khoa_hoc'],
+                    ':id_lop' => $id_lop,
+                    ':ho_ten' => $hocSinh['ho_ten'],
+                    ':email' => $hocSinh['email'],
+                    ':sdt' => $hocSinh['so_dien_thoai'] ?? '',
+                    ':trang_thai' => $trang_thai
+                ];
+                
+                if ($hasVnpColumn) {
+                    $params[':vnp_TxnRef'] = $vnp_TxnRef;
+                }
+                
+                $stmt = $this->db->prepare($sql);
+                
+                // Log SQL và params để debug
+                error_log("SQL: " . $sql);
+                error_log("Params: " . json_encode($params));
+                
+                $result = $stmt->execute($params);
+                
+                if (!$result) {
+                    $errorInfo = $stmt->errorInfo();
+                    error_log("Lỗi khi execute SQL insert (cấu trúc cũ): " . implode(", ", $errorInfo));
+                    error_log("Error Code: " . ($errorInfo[0] ?? 'N/A'));
+                    error_log("Error Message: " . ($errorInfo[2] ?? 'N/A'));
+                    return false;
+                }
+            }
 
-            return true;
+            $insertId = $this->db->lastInsertId();
+            
+            // Log để debug
+            error_log("Insert thành công - lastInsertId: " . var_export($insertId, true));
+            
+            // Kiểm tra kết quả
+            if ($insertId === false || $insertId === '0' || empty($insertId)) {
+                error_log("lastInsertId() trả về giá trị không hợp lệ: " . var_export($insertId, true));
+                error_log("SQL executed: " . ($result ? 'true' : 'false'));
+                
+                // Thử lấy ID bằng cách query lại
+                if ($hasIdHocSinh) {
+                    $checkSql = "SELECT id FROM dang_ky WHERE id_hoc_sinh = :id_hoc_sinh AND id_lop = :id_lop ORDER BY id DESC LIMIT 1";
+                    $checkStmt = $this->db->prepare($checkSql);
+                    $checkStmt->execute([':id_hoc_sinh' => $id_hoc_sinh, ':id_lop' => $id_lop]);
+                    $result = $checkStmt->fetch();
+                    if ($result && isset($result['id'])) {
+                        error_log("Tìm thấy ID bằng query lại: " . $result['id']);
+                        return $result['id'];
+                    }
+                } else {
+                    $checkSql = "SELECT id FROM dang_ky WHERE email = :email AND id_lop = :id_lop ORDER BY id DESC LIMIT 1";
+                    $checkStmt = $this->db->prepare($checkSql);
+                    $checkStmt->execute([':email' => $hocSinh['email'], ':id_lop' => $id_lop]);
+                    $result = $checkStmt->fetch();
+                    if ($result && isset($result['id'])) {
+                        error_log("Tìm thấy ID bằng query lại: " . $result['id']);
+                        return $result['id'];
+                    }
+                }
+                
+                // Nếu vẫn không tìm thấy, có thể là lỗi insert
+                error_log("Không thể lấy ID đăng ký sau khi insert");
+                return false;
+            }
+            
+            error_log("Đăng ký thành công với ID: " . $insertId);
+            return $insertId;
         } catch (PDOException $e) {
             error_log("Lỗi đăng ký khóa học: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return false;
+        }
+    }
+    
+    /**
+     * Hủy các đăng ký quá hạn (sau 10 phút chưa thanh toán)
+     * Chỉ hủy các đăng ký có trạng thái "Chờ xác nhận" và có vnp_TxnRef (đăng ký online)
+     */
+    public function huyDangKyQuaHan() {
+        try {
+            // Kiểm tra xem có cột vnp_TxnRef không
+            $checkVnpColumn = $this->db->query("SHOW COLUMNS FROM dang_ky LIKE 'vnp_TxnRef'");
+            $hasVnpColumn = $checkVnpColumn->rowCount() > 0;
+            
+            if (!$hasVnpColumn) {
+                // Nếu không có cột vnp_TxnRef, không thể xác định đăng ký online
+                return 0;
+            }
+            
+            // Kiểm tra cột ngay_dang_ky hoặc ngay_tao
+            $checkNgayDangKy = $this->db->query("SHOW COLUMNS FROM dang_ky LIKE 'ngay_dang_ky'");
+            $hasNgayDangKy = $checkNgayDangKy->rowCount() > 0;
+            $ngayColumn = $hasNgayDangKy ? 'ngay_dang_ky' : 'ngay_tao';
+            
+            // Tìm các đăng ký:
+            // - Trạng thái = "Chờ xác nhận"
+            // - Có vnp_TxnRef (đã tạo mã đơn hàng VNPay)
+            // - vnp_TransactionNo IS NULL (chưa thanh toán)
+            // - Quá 10 phút từ lúc tạo
+            $sql = "UPDATE dang_ky 
+                    SET trang_thai = 'Đã hủy'
+                    WHERE trang_thai = 'Chờ xác nhận'
+                    AND vnp_TxnRef IS NOT NULL
+                    AND (vnp_TransactionNo IS NULL OR vnp_TransactionNo = '')
+                    AND $ngayColumn < DATE_SUB(NOW(), INTERVAL 10 MINUTE)";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            
+            $count = $stmt->rowCount();
+            
+            if ($count > 0) {
+                error_log("Đã hủy $count đăng ký quá hạn (sau 10 phút chưa thanh toán)");
+            }
+            
+            return $count;
+        } catch (PDOException $e) {
+            error_log("Lỗi khi hủy đăng ký quá hạn: " . $e->getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * Cập nhật mã đơn hàng VNPay vào đăng ký
+     */
+    public function updateVNPayTxnRef($id_dang_ky, $vnp_TxnRef) {
+        try {
+            // Kiểm tra xem bảng có cột vnp_TxnRef hay không
+            $checkColumn = $this->db->query("SHOW COLUMNS FROM dang_ky LIKE 'vnp_TxnRef'");
+            if ($checkColumn->rowCount() == 0) {
+                error_log("Bảng dang_ky chưa có cột vnp_TxnRef. Vui lòng chạy migration SQL.");
+                return false;
+            }
+            
+            $sql = "UPDATE dang_ky 
+                    SET vnp_TxnRef = :vnp_TxnRef
+                    WHERE id = :id";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':vnp_TxnRef' => $vnp_TxnRef,
+                ':id' => $id_dang_ky
+            ]);
+            
+            return true;
+        } catch (PDOException $e) {
+            error_log("Lỗi cập nhật mã đơn hàng VNPay: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Cập nhật thông tin thanh toán VNPay
+     */
+    public function updateVNPayInfo($vnp_TxnRef, $vnp_TransactionNo, $vnp_ResponseCode) {
+        try {
+            $trang_thai = ($vnp_ResponseCode === '00') ? 'Đã xác nhận' : 'Chờ xác nhận';
+            
+            // Kiểm tra xem bảng có các cột VNPay hay không
+            $checkVnpTxnRef = $this->db->query("SHOW COLUMNS FROM dang_ky LIKE 'vnp_TxnRef'");
+            $checkVnpTransactionNo = $this->db->query("SHOW COLUMNS FROM dang_ky LIKE 'vnp_TransactionNo'");
+            
+            if ($checkVnpTxnRef->rowCount() == 0 || $checkVnpTransactionNo->rowCount() == 0) {
+                error_log("Bảng dang_ky chưa có các cột VNPay. Vui lòng chạy migration SQL.");
+                return false;
+            }
+            
+            $sql = "UPDATE dang_ky 
+                    SET vnp_TransactionNo = :vnp_TransactionNo,
+                        trang_thai = :trang_thai
+                    WHERE vnp_TxnRef = :vnp_TxnRef";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':vnp_TransactionNo' => $vnp_TransactionNo,
+                ':trang_thai' => $trang_thai,
+                ':vnp_TxnRef' => $vnp_TxnRef
+            ]);
+            
+            return true;
+        } catch (PDOException $e) {
+            error_log("Lỗi cập nhật thông tin VNPay: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Lấy thông tin đăng ký theo mã đơn hàng VNPay
+     */
+    public function getDangKyByVnpTxnRef($vnp_TxnRef) {
+        try {
+            // Kiểm tra xem bảng có cột id_hoc_sinh hay không
+            $checkColumn = $this->db->query("SHOW COLUMNS FROM dang_ky LIKE 'id_hoc_sinh'");
+            $hasIdHocSinh = $checkColumn->rowCount() > 0;
+            
+            if ($hasIdHocSinh) {
+                $sql = "SELECT dk.*, lh.ten_lop, kh.ten_khoa_hoc, kh.gia
+                        FROM dang_ky dk
+                        LEFT JOIN lop_hoc lh ON dk.id_lop = lh.id
+                        LEFT JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
+                        WHERE dk.vnp_TxnRef = :vnp_TxnRef
+                        LIMIT 1";
+            } else {
+                $sql = "SELECT dk.*, lh.ten_lop, kh.ten_khoa_hoc, kh.gia
+                        FROM dang_ky dk
+                        LEFT JOIN lop_hoc lh ON dk.id_lop = lh.id
+                        LEFT JOIN khoa_hoc kh ON dk.id_khoa_hoc = kh.id
+                        WHERE dk.vnp_TxnRef = :vnp_TxnRef
+                        LIMIT 1";
+            }
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':vnp_TxnRef' => $vnp_TxnRef]);
+            
+            return $stmt->fetch();
+        } catch (PDOException $e) {
+            error_log("Lỗi lấy thông tin đăng ký: " . $e->getMessage());
             return false;
         }
     }

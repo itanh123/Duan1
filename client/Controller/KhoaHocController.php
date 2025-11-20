@@ -295,6 +295,9 @@ class KhoaHocController {
     // ===========================================
     public function index() 
     {
+        // Kiểm tra và hủy các đăng ký quá hạn
+        $this->checkAndCancelExpiredRegistrations();
+        
         // Không cần đăng nhập để xem danh sách khóa học
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 12;
@@ -341,8 +344,22 @@ class KhoaHocController {
     // ===========================================
     //  CHI TIẾT KHÓA HỌC (action = detail)
     // ===========================================
+    /**
+     * Kiểm tra và hủy các đăng ký quá hạn
+     * Gọi hàm này trước khi hiển thị danh sách hoặc chi tiết khóa học
+     */
+    private function checkAndCancelExpiredRegistrations() {
+        try {
+            $this->model->huyDangKyQuaHan();
+        } catch (Exception $e) {
+            error_log("Lỗi khi kiểm tra đăng ký quá hạn: " . $e->getMessage());
+        }
+    }
+    
     public function detail()
     {
+        // Kiểm tra và hủy các đăng ký quá hạn
+        $this->checkAndCancelExpiredRegistrations();
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -433,8 +450,122 @@ class KhoaHocController {
                 $_SESSION['dang_ky_error'] = 'Đăng ký thất bại. Vui lòng thử lại!';
             }
         } else if ($phuong_thuc_thanh_toan === 'online') {
-            // Thanh toán online: Chưa làm gì (theo yêu cầu)
-            $_SESSION['dang_ky_info'] = 'Chức năng thanh toán online đang được phát triển. Vui lòng chọn phương thức thanh toán trực tiếp.';
+            // Thanh toán online: Tích hợp VNPay
+            try {
+                // Kiểm tra file helper có tồn tại không
+                $vnpayHelperPath = __DIR__ . '/../../Commons/vnpay_helper.php';
+                if (!file_exists($vnpayHelperPath)) {
+                    throw new Exception('File VNPay helper không tồn tại!');
+                }
+                
+                require_once($vnpayHelperPath);
+                require_once(__DIR__ . '/../../admin/Model/adminmodel.php');
+                
+                // Lấy thông tin lớp học để tính học phí
+                $adminModel = new adminmodel();
+                $lopHoc = $adminModel->getLopHocById($id_lop);
+                
+                if (!$lopHoc) {
+                    $_SESSION['dang_ky_error'] = 'Không tìm thấy thông tin lớp học!';
+                    header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
+                    exit;
+                }
+                
+                // Kiểm tra session và thông tin trước khi đăng ký
+                if (empty($id_hoc_sinh) || empty($id_lop)) {
+                    error_log("Thông tin không đầy đủ - ID học sinh: " . var_export($id_hoc_sinh, true) . ", ID lớp: " . var_export($id_lop, true));
+                    $_SESSION['dang_ky_error'] = 'Thông tin đăng ký không đầy đủ!';
+                    header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
+                    exit;
+                }
+                
+                // Tạo đăng ký tạm thời với trạng thái "Chờ xác nhận" (sẽ chuyển thành "Đã xác nhận" sau khi thanh toán thành công)
+                error_log("Bắt đầu đăng ký - ID học sinh: $id_hoc_sinh, ID lớp: $id_lop");
+                $id_dang_ky = $this->model->dangKyKhoaHoc($id_hoc_sinh, $id_lop, 'Chờ xác nhận');
+                
+                // Kiểm tra kết quả đăng ký
+                if ($id_dang_ky === false || $id_dang_ky === 0 || empty($id_dang_ky)) {
+                    // Lấy thông tin lỗi chi tiết từ error log
+                    $errorMsg = 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin hoặc thử lại sau!';
+                    
+                    // Log để debug
+                    error_log("Đăng ký thất bại - ID học sinh: $id_hoc_sinh, ID lớp: $id_lop");
+                    error_log("Kết quả dangKyKhoaHoc: " . var_export($id_dang_ky, true));
+                    error_log("Kiểm tra session - client_id: " . ($_SESSION['client_id'] ?? 'KHÔNG CÓ'));
+                    
+                    $_SESSION['dang_ky_error'] = $errorMsg;
+                    header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
+                    exit;
+                }
+                
+                error_log("Đăng ký thành công - ID đăng ký: $id_dang_ky");
+                
+                // Tạo mã đơn hàng VNPay
+                $vnp_TxnRef = VNPayHelper::generateOrderId($id_dang_ky);
+                
+                // Cập nhật mã đơn hàng vào đăng ký
+                $updateResult = $this->model->updateVNPayTxnRef($id_dang_ky, $vnp_TxnRef);
+                if (!$updateResult) {
+                    error_log("Không thể cập nhật mã đơn hàng VNPay cho đăng ký ID: " . $id_dang_ky);
+                }
+                
+                // Lấy thông tin khóa học
+                $khoaHoc = $this->model->getById($id_khoa_hoc);
+                if (!$khoaHoc) {
+                    $_SESSION['dang_ky_error'] = 'Không tìm thấy thông tin khóa học!';
+                    header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
+                    exit;
+                }
+                
+                // Tính số tiền (lấy từ khoa_hoc.gia hoặc lop_hoc.hoc_phi, nhân với 100 vì VNPay yêu cầu)
+                $hoc_phi = 0;
+                if (isset($lopHoc['hoc_phi']) && !empty($lopHoc['hoc_phi']) && $lopHoc['hoc_phi'] > 0) {
+                    $hoc_phi = (int)$lopHoc['hoc_phi'] * 100;
+                } elseif (isset($khoaHoc['gia']) && !empty($khoaHoc['gia']) && $khoaHoc['gia'] > 0) {
+                    $hoc_phi = (int)$khoaHoc['gia'] * 100;
+                } else {
+                    // Nếu không có giá, đặt mặc định 10000 VND (100 đồng) để test
+                    $hoc_phi = 10000; // 100 VND
+                }
+                
+                // Kiểm tra số tiền tối thiểu của VNPay (thường là 1000 VND = 100000)
+                if ($hoc_phi < 100000) {
+                    $hoc_phi = 100000; // Tối thiểu 1000 VND
+                }
+                
+                // Tạo thông tin đơn hàng (giới hạn 255 ký tự)
+                $orderInfo = "Thanh toan don hang #" . $vnp_TxnRef;
+                if (mb_strlen($orderInfo) > 255) {
+                    $orderInfo = mb_substr($orderInfo, 0, 250) . '...';
+                }
+                
+                // Tạo URL thanh toán VNPay
+                $vnp_Url = VNPayHelper::createPaymentUrl([
+                    'vnp_TxnRef' => $vnp_TxnRef,
+                    'vnp_OrderInfo' => $orderInfo,
+                    'vnp_OrderType' => 'billpayment',
+                    'vnp_Amount' => $hoc_phi,
+                    'vnp_Locale' => 'vn'
+                ]);
+                
+                if (empty($vnp_Url)) {
+                    throw new Exception('Không thể tạo URL thanh toán VNPay!');
+                }
+                
+                // Log để debug
+                error_log("VNPay URL created: " . $vnp_Url);
+                error_log("Order ID: " . $vnp_TxnRef . ", Amount: " . $hoc_phi);
+                
+                // Redirect đến VNPay
+                header('Location: ' . $vnp_Url);
+                exit;
+                
+            } catch (Exception $e) {
+                error_log("Lỗi thanh toán online: " . $e->getMessage());
+                $_SESSION['dang_ky_error'] = 'Lỗi khi xử lý thanh toán online: ' . $e->getMessage();
+                header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
+                exit;
+            }
         } else {
             $_SESSION['dang_ky_error'] = 'Phương thức thanh toán không hợp lệ!';
         }

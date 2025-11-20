@@ -12,11 +12,32 @@ require_once('./Commons/env.php');
 require_once('./Commons/function.php');
 require_once('./admin/Model/adminmodel.php');
 require_once('./admin/Controller/admincontroller.php');
+require_once('./client/Model/khoahoc.php');
 require_once('./client/Controller/KhoaHocController.php');
 require_once('./client/Controller/CaHocController.php');
 require_once('./client/Controller/LopHocController.php');
 require_once('./client/Controller/DanhMucController.php');
 require_once('./client/Controller/GiangVienController.php');
+require_once('./client/Controller/VNPayController.php');
+
+// Tự động hủy các đăng ký quá hạn (chạy mỗi lần có request, nhưng chỉ kiểm tra nếu đã qua ít nhất 1 phút kể từ lần kiểm tra cuối)
+// Để tránh chạy quá nhiều, chỉ chạy nếu đã qua 5 phút hoặc random 10% (để đảm bảo luôn có kiểm tra)
+if (!isset($_SESSION['last_expired_check'])) {
+    $_SESSION['last_expired_check'] = 0;
+}
+
+$timeSinceLastCheck = time() - $_SESSION['last_expired_check'];
+// Chỉ chạy nếu đã qua ít nhất 5 phút hoặc random 10% (để đảm bảo luôn có kiểm tra)
+if ($timeSinceLastCheck >= 300 || (rand(1, 10) === 1 && $timeSinceLastCheck >= 60)) {
+    try {
+        $khoaHocModel = new KhoaHoc();
+        $khoaHocModel->cancelExpiredRegistrations();
+        $_SESSION['last_expired_check'] = time();
+    } catch (Exception $e) {
+        // Không làm gián đoạn flow chính nếu có lỗi
+        error_log("Lỗi khi kiểm tra đăng ký quá hạn: " . $e->getMessage());
+    }
+}
 
 // route
 $act = $_GET['act'] ?? '/';
@@ -28,6 +49,7 @@ $caHocController = new CaHocController();
 $lopHocController = new LopHocController();
 $danhMucController = new DanhMucController();
 $giangVienController = new GiangVienController();
+$vnpayController = new VNPayController();
 
 match ($act) {
     // ============================
@@ -78,6 +100,13 @@ match ($act) {
     //  CLIENT - GIẢNG VIÊN
     // ============================
     'client-giang-vien' => $giangVienController->index(),
+    
+    // ============================
+    //  VNPAY - THANH TOÁN
+    // ============================
+    'vnpay-return' => $vnpayController->returnUrl(),
+    'vnpay-ipn' => $vnpayController->ipnUrl(),
+    
     //  ADMIN - ĐĂNG NHẬP/ĐĂNG XUẤT
     // ============================
     'admin-login' => $adminController->login(),
