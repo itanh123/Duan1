@@ -291,6 +291,24 @@ class KhoaHocController {
     }
 
     // ===========================================
+    //  XEM LỚP HỌC CỦA HỌC SINH (action = myClasses)
+    // ===========================================
+    public function myClasses()
+    {
+        $this->checkClientLogin();
+        
+        $id_hoc_sinh = $_SESSION['client_id'] ?? 0;
+        if (!$id_hoc_sinh) {
+            header('Location: ?act=client-login');
+            exit;
+        }
+        
+        $lopHocs = $this->userModel->getLopHocByHocSinh($id_hoc_sinh);
+        
+        require __DIR__ . '/../views/khoa_hoc/my_classes.php';
+    }
+
+    // ===========================================
     //  HIỂN THỊ DANH SÁCH KHÓA HỌC  (action = index)
     // ===========================================
     public function index() 

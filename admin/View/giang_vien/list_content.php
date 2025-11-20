@@ -92,6 +92,9 @@ $pageTitle = 'Quản lý Giảng viên';
                             <td><?= isset($gv['ngay_tao']) ? date('d/m/Y', strtotime($gv['ngay_tao'])) : 'N/A' ?></td>
                             <td>
                                 <div class="action-buttons">
+                                    <a href="?act=admin-view-lop-hoc-giang-vien&id=<?= $gv['id'] ?>" 
+                                       class="btn btn-info btn-sm" 
+                                       style="background: #17a2b8; color: white; margin-right: 5px;">Lớp học</a>
                                     <a href="?act=admin-edit-giang-vien&id=<?= $gv['id'] ?>" 
                                        class="btn btn-warning btn-sm">Sửa</a>
                                     <a href="?act=admin-delete-giang-vien&id=<?= $gv['id'] ?>" 

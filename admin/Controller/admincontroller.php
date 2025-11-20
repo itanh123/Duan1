@@ -525,6 +525,33 @@ class admincontroller{
         exit;
     }
 
+    // Xem lớp học của học sinh
+    public function viewLopHocHocSinh(){
+        $this->checkPermission('xem'); // Cần quyền xem
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+        
+        $hocSinh = $this->model->getHocSinhById($id);
+        if (!$hocSinh) {
+            $_SESSION['error'] = 'Không tìm thấy học sinh!';
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+        
+        $lopHocs = $this->model->getLopHocDetailByHocSinh($id);
+        
+        $data = [
+            'hocSinh' => $hocSinh,
+            'lopHocs' => $lopHocs
+        ];
+        
+        $this->renderView('./admin/View/hoc_sinh/lop_hoc_detail.php', 'Lớp học của ' . htmlspecialchars($hocSinh['ho_ten']), $data);
+    }
+
     // ===========================================
     //  QUẢN LÝ DANH MỤC
     // ===========================================
@@ -857,6 +884,33 @@ class admincontroller{
         exit;
     }
 
+    // Xem lớp học của giảng viên
+    public function viewLopHocGiangVien(){
+        $this->checkPermission('xem'); // Cần quyền xem
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-giang-vien');
+            exit;
+        }
+        
+        $giangVien = $this->model->getGiangVienById($id);
+        if (!$giangVien) {
+            $_SESSION['error'] = 'Không tìm thấy giảng viên!';
+            header('Location: ?act=admin-list-giang-vien');
+            exit;
+        }
+        
+        $lopHocs = $this->model->getLopHocDetailByGiangVien($id);
+        
+        $data = [
+            'giangVien' => $giangVien,
+            'lopHocs' => $lopHocs
+        ];
+        
+        $this->renderView('./admin/View/giang_vien/lop_hoc_detail.php', 'Lớp học của ' . htmlspecialchars($giangVien['ho_ten']), $data);
+    }
+
     // ===========================================
     //  QUẢN LÝ LỚP HỌC
     // ===========================================
@@ -952,11 +1006,13 @@ class admincontroller{
         
         $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
         $soLuongDangKy = $this->model->countDangKyByLop($id); // Đếm số lượng đăng ký hiện tại
+        $phongHocInfo = $this->model->getSucChuaPhongHocNhoNhatByLop($id); // Lấy thông tin sức chứa phòng học
         
         $data = [
             'lopHoc' => $lopHoc,
             'khoaHocList' => $khoaHocList,
-            'soLuongDangKy' => $soLuongDangKy
+            'soLuongDangKy' => $soLuongDangKy,
+            'phongHocInfo' => $phongHocInfo
         ];
 
         $this->renderView('./admin/View/lop_hoc/form_content.php', 'Sửa Lớp học', $data);
@@ -1000,17 +1056,61 @@ class admincontroller{
         }
 
         // Kiểm tra số lượng tối đa không được nhỏ hơn số lượng đăng ký hiện tại
+        $soLuongDangKy = $this->model->countDangKyByLop($id);
+        $soLuongToiDaCu = $lopHoc['so_luong_toi_da'] ?? null;
+        
         if (!empty($data['so_luong_toi_da'])) {
-            $soLuongDangKy = $this->model->countDangKyByLop($id);
+            // Kiểm tra 1: Số lượng tối đa không được nhỏ hơn số lượng đăng ký hiện tại
             if ($data['so_luong_toi_da'] < $soLuongDangKy) {
                 $_SESSION['error'] = "Không thể đặt số lượng tối đa là {$data['so_luong_toi_da']}! Lớp học này hiện có {$soLuongDangKy} học sinh đã đăng ký (đã xác nhận). Số lượng tối đa phải >= {$soLuongDangKy}.";
+                header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
+                exit;
+            }
+            
+            // Kiểm tra 2: Số lượng tối đa không được lớn hơn sức chứa của phòng học
+            $phongHocInfo = $this->model->getSucChuaPhongHocNhoNhatByLop($id);
+            if ($phongHocInfo && $data['so_luong_toi_da'] > $phongHocInfo['suc_chua']) {
+                $_SESSION['error'] = "Không thể đặt số lượng tối đa là {$data['so_luong_toi_da']}! Lớp học này đang sử dụng phòng học có sức chứa tối đa là {$phongHocInfo['suc_chua']} người (Phòng: {$phongHocInfo['danh_sach_phong']}). Số lượng tối đa phải <= {$phongHocInfo['suc_chua']}.";
                 header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
                 exit;
             }
         }
 
         if ($this->model->updateLopHoc($id, $data)) {
-            $_SESSION['success'] = 'Cập nhật lớp học thành công!';
+            // Tạo thông báo chi tiết
+            $message = 'Cập nhật lớp học thành công!';
+            
+            // Thông báo về số lượng nếu có thay đổi
+            if ($soLuongToiDaCu !== $data['so_luong_toi_da']) {
+                if ($soLuongToiDaCu === null && !empty($data['so_luong_toi_da'])) {
+                    // Từ không giới hạn -> có giới hạn
+                    $message .= " Đã đặt số lượng tối đa: {$data['so_luong_toi_da']} học sinh. Hiện có {$soLuongDangKy} học sinh đã đăng ký (đã xác nhận).";
+                } elseif (!empty($soLuongToiDaCu) && empty($data['so_luong_toi_da'])) {
+                    // Từ có giới hạn -> không giới hạn
+                    $message .= " Đã bỏ giới hạn số lượng. Hiện có {$soLuongDangKy} học sinh đã đăng ký (đã xác nhận).";
+                } elseif (!empty($soLuongToiDaCu) && !empty($data['so_luong_toi_da'])) {
+                    // Thay đổi số lượng
+                    if ($data['so_luong_toi_da'] > $soLuongToiDaCu) {
+                        $tang = $data['so_luong_toi_da'] - $soLuongToiDaCu;
+                        $conLai = $data['so_luong_toi_da'] - $soLuongDangKy;
+                        $message .= " Đã tăng số lượng tối đa từ {$soLuongToiDaCu} lên {$data['so_luong_toi_da']} (+{$tang}). Hiện có {$soLuongDangKy} học sinh đã đăng ký, còn lại {$conLai} chỗ trống.";
+                    } elseif ($data['so_luong_toi_da'] < $soLuongToiDaCu) {
+                        $giam = $soLuongToiDaCu - $data['so_luong_toi_da'];
+                        $conLai = $data['so_luong_toi_da'] - $soLuongDangKy;
+                        $message .= " Đã giảm số lượng tối đa từ {$soLuongToiDaCu} xuống {$data['so_luong_toi_da']} (-{$giam}). Hiện có {$soLuongDangKy} học sinh đã đăng ký, còn lại {$conLai} chỗ trống.";
+                    }
+                }
+            } else {
+                // Không thay đổi số lượng nhưng vẫn hiển thị thông tin
+                if (!empty($data['so_luong_toi_da'])) {
+                    $conLai = $data['so_luong_toi_da'] - $soLuongDangKy;
+                    $message .= " Số lượng tối đa: {$data['so_luong_toi_da']}. Hiện có {$soLuongDangKy} học sinh đã đăng ký, còn lại {$conLai} chỗ trống.";
+                } else {
+                    $message .= " Hiện có {$soLuongDangKy} học sinh đã đăng ký (đã xác nhận).";
+                }
+            }
+            
+            $_SESSION['success'] = $message;
             header('Location: ?act=admin-list-lop-hoc');
         } else {
             $_SESSION['error'] = 'Cập nhật lớp học thất bại!';

@@ -844,6 +844,236 @@ class adminmodel
         return (int)$result['total'];
     }
 
+    // Lấy sức chứa phòng học nhỏ nhất của lớp học (lớp có thể có nhiều ca học với nhiều phòng)
+    public function getSucChuaPhongHocNhoNhatByLop($id_lop)
+    {
+        $sql = "SELECT MIN(ph.suc_chua) as suc_chua_nho_nhat, 
+                       GROUP_CONCAT(DISTINCT ph.ten_phong SEPARATOR ', ') as danh_sach_phong
+                FROM ca_hoc ch
+                INNER JOIN phong_hoc ph ON ch.id_phong = ph.id
+                WHERE ch.id_lop = :id_lop
+                AND ph.trang_thai = 'Sử dụng'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id_lop', $id_lop, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch();
+        
+        if ($result && $result['suc_chua_nho_nhat'] !== null) {
+            return [
+                'suc_chua' => (int)$result['suc_chua_nho_nhat'],
+                'danh_sach_phong' => $result['danh_sach_phong']
+            ];
+        }
+        
+        return null; // Lớp học chưa có phòng học được phân công
+    }
+
+    // Lấy danh sách lớp học mà học sinh đã đăng ký (với thông tin ca học, phòng học)
+    public function getLopHocByHocSinh($id_hoc_sinh)
+    {
+        $sql = "SELECT dk.id as id_dang_ky,
+                       dk.trang_thai as trang_thai_dang_ky,
+                       dk.ngay_dang_ky,
+                       lh.id as id_lop,
+                       lh.ten_lop,
+                       lh.mo_ta as mo_ta_lop,
+                       lh.so_luong_toi_da,
+                       lh.trang_thai as trang_thai_lop,
+                       kh.id as id_khoa_hoc,
+                       kh.ten_khoa_hoc,
+                       kh.gia,
+                       kh.hinh_anh
+                FROM dang_ky dk
+                INNER JOIN lop_hoc lh ON dk.id_lop = lh.id
+                INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
+                WHERE dk.id_hoc_sinh = :id_hoc_sinh
+                AND dk.trang_thai = 'Đã xác nhận'
+                ORDER BY dk.ngay_dang_ky DESC";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id_hoc_sinh', $id_hoc_sinh, PDO::PARAM_INT);
+        $stmt->execute();
+        $lopHocs = $stmt->fetchAll();
+        
+        // Lấy thông tin ca học và phòng học cho mỗi lớp
+        foreach ($lopHocs as &$lop) {
+            $sqlCaHoc = "SELECT ch.id as id_ca_hoc,
+                                ch.thu_trong_tuan,
+                                cmd.ten_ca,
+                                cmd.gio_bat_dau,
+                                cmd.gio_ket_thuc,
+                                ph.ten_phong,
+                                ph.suc_chua,
+                                nd.ho_ten as ten_giang_vien
+                         FROM ca_hoc ch
+                         LEFT JOIN ca_mac_dinh cmd ON ch.id_ca = cmd.id
+                         LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
+                         LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id
+                         WHERE ch.id_lop = :id_lop
+                         ORDER BY ch.thu_trong_tuan, cmd.gio_bat_dau";
+            
+            $stmtCaHoc = $this->conn->prepare($sqlCaHoc);
+            $stmtCaHoc->bindValue(':id_lop', $lop['id_lop'], PDO::PARAM_INT);
+            $stmtCaHoc->execute();
+            $lop['ca_hoc'] = $stmtCaHoc->fetchAll();
+        }
+        
+        return $lopHocs;
+    }
+
+    // Lấy danh sách lớp học mà giảng viên đang dạy (với thông tin ca học)
+    public function getLopHocByGiangVien($id_giang_vien)
+    {
+        $sql = "SELECT DISTINCT
+                       lh.id as id_lop,
+                       lh.ten_lop,
+                       lh.mo_ta as mo_ta_lop,
+                       lh.so_luong_toi_da,
+                       lh.trang_thai as trang_thai_lop,
+                       kh.id as id_khoa_hoc,
+                       kh.ten_khoa_hoc,
+                       kh.gia,
+                       kh.hinh_anh
+                FROM ca_hoc ch
+                INNER JOIN lop_hoc lh ON ch.id_lop = lh.id
+                INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
+                WHERE ch.id_giang_vien = :id_giang_vien
+                ORDER BY lh.ten_lop";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id_giang_vien', $id_giang_vien, PDO::PARAM_INT);
+        $stmt->execute();
+        $lopHocs = $stmt->fetchAll();
+        
+        // Lấy thông tin ca học cho mỗi lớp
+        foreach ($lopHocs as &$lop) {
+            $sqlCaHoc = "SELECT ch.id as id_ca_hoc,
+                                ch.thu_trong_tuan,
+                                cmd.ten_ca,
+                                cmd.gio_bat_dau,
+                                cmd.gio_ket_thuc,
+                                ph.ten_phong,
+                                ph.suc_chua
+                         FROM ca_hoc ch
+                         LEFT JOIN ca_mac_dinh cmd ON ch.id_ca = cmd.id
+                         LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
+                         WHERE ch.id_lop = :id_lop
+                         AND ch.id_giang_vien = :id_giang_vien
+                         ORDER BY ch.thu_trong_tuan, cmd.gio_bat_dau";
+            
+            $stmtCaHoc = $this->conn->prepare($sqlCaHoc);
+            $stmtCaHoc->bindValue(':id_lop', $lop['id_lop'], PDO::PARAM_INT);
+            $stmtCaHoc->bindValue(':id_giang_vien', $id_giang_vien, PDO::PARAM_INT);
+            $stmtCaHoc->execute();
+            $lop['ca_hoc'] = $stmtCaHoc->fetchAll();
+        }
+        
+        return $lopHocs;
+    }
+
+    // Lấy thông tin chi tiết lớp học của một học sinh cụ thể (dùng trong admin)
+    public function getLopHocDetailByHocSinh($id_hoc_sinh)
+    {
+        $sql = "SELECT dk.id as id_dang_ky,
+                       dk.trang_thai as trang_thai_dang_ky,
+                       dk.ngay_dang_ky,
+                       lh.id as id_lop,
+                       lh.ten_lop,
+                       lh.mo_ta as mo_ta_lop,
+                       lh.so_luong_toi_da,
+                       lh.trang_thai as trang_thai_lop,
+                       kh.id as id_khoa_hoc,
+                       kh.ten_khoa_hoc,
+                       kh.gia,
+                       kh.hinh_anh
+                FROM dang_ky dk
+                INNER JOIN lop_hoc lh ON dk.id_lop = lh.id
+                INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
+                WHERE dk.id_hoc_sinh = :id_hoc_sinh
+                AND dk.trang_thai = 'Đã xác nhận'
+                ORDER BY dk.ngay_dang_ky DESC";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id_hoc_sinh', $id_hoc_sinh, PDO::PARAM_INT);
+        $stmt->execute();
+        $lopHocs = $stmt->fetchAll();
+        
+        // Lấy thông tin ca học và phòng học cho mỗi lớp
+        foreach ($lopHocs as &$lop) {
+            $sqlCaHoc = "SELECT ch.id as id_ca_hoc,
+                                ch.thu_trong_tuan,
+                                cmd.ten_ca,
+                                cmd.gio_bat_dau,
+                                cmd.gio_ket_thuc,
+                                ph.ten_phong,
+                                ph.suc_chua,
+                                nd.ho_ten as ten_giang_vien
+                         FROM ca_hoc ch
+                         LEFT JOIN ca_mac_dinh cmd ON ch.id_ca = cmd.id
+                         LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
+                         LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id
+                         WHERE ch.id_lop = :id_lop
+                         ORDER BY ch.thu_trong_tuan, cmd.gio_bat_dau";
+            
+            $stmtCaHoc = $this->conn->prepare($sqlCaHoc);
+            $stmtCaHoc->bindValue(':id_lop', $lop['id_lop'], PDO::PARAM_INT);
+            $stmtCaHoc->execute();
+            $lop['ca_hoc'] = $stmtCaHoc->fetchAll();
+        }
+        
+        return $lopHocs;
+    }
+
+    // Lấy thông tin chi tiết lớp học của một giảng viên cụ thể (dùng trong admin)
+    public function getLopHocDetailByGiangVien($id_giang_vien)
+    {
+        $sql = "SELECT DISTINCT
+                       lh.id as id_lop,
+                       lh.ten_lop,
+                       lh.mo_ta as mo_ta_lop,
+                       lh.so_luong_toi_da,
+                       lh.trang_thai as trang_thai_lop,
+                       kh.id as id_khoa_hoc,
+                       kh.ten_khoa_hoc,
+                       kh.gia,
+                       kh.hinh_anh
+                FROM ca_hoc ch
+                INNER JOIN lop_hoc lh ON ch.id_lop = lh.id
+                INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
+                WHERE ch.id_giang_vien = :id_giang_vien
+                ORDER BY lh.ten_lop";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id_giang_vien', $id_giang_vien, PDO::PARAM_INT);
+        $stmt->execute();
+        $lopHocs = $stmt->fetchAll();
+        
+        // Lấy thông tin ca học cho mỗi lớp
+        foreach ($lopHocs as &$lop) {
+            $sqlCaHoc = "SELECT ch.id as id_ca_hoc,
+                                ch.thu_trong_tuan,
+                                cmd.ten_ca,
+                                cmd.gio_bat_dau,
+                                cmd.gio_ket_thuc,
+                                ph.ten_phong,
+                                ph.suc_chua
+                         FROM ca_hoc ch
+                         LEFT JOIN ca_mac_dinh cmd ON ch.id_ca = cmd.id
+                         LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
+                         WHERE ch.id_lop = :id_lop
+                         AND ch.id_giang_vien = :id_giang_vien
+                         ORDER BY ch.thu_trong_tuan, cmd.gio_bat_dau";
+            
+            $stmtCaHoc = $this->conn->prepare($sqlCaHoc);
+            $stmtCaHoc->bindValue(':id_lop', $lop['id_lop'], PDO::PARAM_INT);
+            $stmtCaHoc->bindValue(':id_giang_vien', $id_giang_vien, PDO::PARAM_INT);
+            $stmtCaHoc->execute();
+            $lop['ca_hoc'] = $stmtCaHoc->fetchAll();
+        }
+        
+        return $lopHocs;
+    }
+
     // Xóa lớp học
     public function deleteLopHoc($id)
     {
