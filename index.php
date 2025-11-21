@@ -68,7 +68,7 @@ match ($act) {
     //  CLIENT - TRANG CHỦ (MẶC ĐỊNH)
     // ============================
     'client' => $khoaHocController->index(),
-    '/' => $khoaHocController->index(),
+    '' => $khoaHocController->index(),
     
     // ============================
     //  CLIENT - KHÓA HỌC
@@ -100,6 +100,12 @@ match ($act) {
     //  CLIENT - GIẢNG VIÊN
     // ============================
     'client-giang-vien' => $giangVienController->index(),
+    'client-giang-vien-lop-hoc' => $giangVienController->myClasses(),
+    
+    // ============================
+    //  CLIENT - LỚP HỌC CỦA HỌC SINH
+    // ============================
+    'client-hoc-sinh-lop-hoc' => $khoaHocController->myClasses(),
     
     // ============================
     //  VNPAY - THANH TOÁN
@@ -142,6 +148,7 @@ match ($act) {
     'admin-edit-hoc-sinh' => $adminController->editHocSinh(),
     'admin-update-hoc-sinh' => $adminController->updateHocSinh(),
     'admin-delete-hoc-sinh' => $adminController->deleteHocSinh(),
+    'admin-view-lop-hoc-hoc-sinh' => $adminController->viewLopHocHocSinh(),
     
     // ============================
     //  ADMIN - QUẢN LÝ DANH MỤC
@@ -166,6 +173,7 @@ match ($act) {
     'admin-edit-giang-vien' => $adminController->editGiangVien(),
     'admin-update-giang-vien' => $adminController->updateGiangVien(),
     'admin-delete-giang-vien' => $adminController->deleteGiangVien(),
+    'admin-view-lop-hoc-giang-vien' => $adminController->viewLopHocGiangVien(),
     
     // ============================
     //  ADMIN - QUẢN LÝ LỚP HỌC

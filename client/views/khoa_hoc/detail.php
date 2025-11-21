@@ -570,10 +570,31 @@ unset($_SESSION['dang_ky_info']);
                     <label for="id_lop">Chọn lớp học <span style="color:red">*</span></label>
                     <select id="id_lop" name="id_lop" required>
                         <option value="">-- Chọn lớp học --</option>
-                        <?php foreach ($lops as $lop): ?>
-                            <option value="<?= $lop['id'] ?>"><?= htmlspecialchars($lop['ten_lop']) ?></option>
+                        <?php foreach ($lops as $lop): 
+                            $soLuongDangKy = $lopSoLuong[$lop['id']] ?? 0;
+                            $soLuongToiDa = $lop['so_luong_toi_da'] ?? null;
+                            $isFull = $soLuongToiDa !== null && $soLuongDangKy >= $soLuongToiDa;
+                            $conLai = $soLuongToiDa !== null ? ($soLuongToiDa - $soLuongDangKy) : null;
+                        ?>
+                            <option value="<?= $lop['id'] ?>" 
+                                    <?= $isFull ? 'disabled' : '' ?>
+                                    data-full="<?= $isFull ? '1' : '0' ?>"
+                                    data-so-luong="<?= $soLuongDangKy ?>"
+                                    data-toi-da="<?= $soLuongToiDa ?? 'Không giới hạn' ?>">
+                                <?= htmlspecialchars($lop['ten_lop']) ?>
+                                <?php if ($isFull): ?>
+                                    - [ĐÃ ĐẦY] (<?= $soLuongDangKy ?>/<?= $soLuongToiDa ?>)
+                                <?php elseif ($soLuongToiDa !== null): ?>
+                                    - Còn <?= $conLai ?> chỗ (<?= $soLuongDangKy ?>/<?= $soLuongToiDa ?>)
+                                <?php else: ?>
+                                    - Không giới hạn
+                                <?php endif; ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
+                    <div id="lop-info" style="margin-top: 8px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 13px; display: none;">
+                        <span id="lop-info-text"></span>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -618,6 +639,55 @@ unset($_SESSION['dang_ky_info']);
                             label.style.backgroundColor = '#f0fdf4';
                         }
                     });
+                });
+
+                // Hiển thị thông tin lớp học khi chọn
+                const selectLop = document.getElementById('id_lop');
+                const lopInfo = document.getElementById('lop-info');
+                const lopInfoText = document.getElementById('lop-info-text');
+                const form = document.getElementById('registrationForm');
+
+                selectLop.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const isFull = selectedOption.getAttribute('data-full') === '1';
+                    const soLuong = selectedOption.getAttribute('data-so-luong');
+                    const toiDa = selectedOption.getAttribute('data-toi-da');
+
+                    if (this.value && !isFull) {
+                        lopInfo.style.display = 'block';
+                        if (toiDa && toiDa !== 'Không giới hạn') {
+                            const conLai = parseInt(toiDa) - parseInt(soLuong);
+                            lopInfo.style.background = conLai <= 3 ? '#fff3cd' : '#d1ecf1';
+                            lopInfo.style.border = '1px solid ' + (conLai <= 3 ? '#ffc107' : '#0c5460');
+                            lopInfoText.innerHTML = `<strong>Thông tin lớp:</strong> Đã có ${soLuong}/${toiDa} học sinh đăng ký. Còn lại ${conLai} chỗ trống.`;
+                            if (conLai <= 3) {
+                                lopInfoText.innerHTML += ' <span style="color: #856404;">⚠️ Sắp đầy!</span>';
+                            }
+                        } else {
+                            lopInfo.style.background = '#d1ecf1';
+                            lopInfo.style.border = '1px solid #0c5460';
+                            lopInfoText.innerHTML = `<strong>Thông tin lớp:</strong> Đã có ${soLuong} học sinh đăng ký. Lớp học không giới hạn số lượng.`;
+                        }
+                    } else if (isFull) {
+                        lopInfo.style.display = 'block';
+                        lopInfo.style.background = '#f8d7da';
+                        lopInfo.style.border = '1px solid #dc3545';
+                        lopInfoText.innerHTML = `<strong style="color: #721c24;">⚠️ Lớp học này đã đầy!</strong> (${soLuong}/${toiDa}) Vui lòng chọn lớp học khác.`;
+                    } else {
+                        lopInfo.style.display = 'none';
+                    }
+                });
+
+                // Ngăn submit nếu lớp đã đầy
+                form.addEventListener('submit', function(e) {
+                    const selectedOption = selectLop.options[selectLop.selectedIndex];
+                    const isFull = selectedOption.getAttribute('data-full') === '1';
+                    
+                    if (isFull) {
+                        e.preventDefault();
+                        alert('Lớp học này đã đầy! Vui lòng chọn lớp học khác.');
+                        return false;
+                    }
                 });
                 </script>
             <?php endif; ?>

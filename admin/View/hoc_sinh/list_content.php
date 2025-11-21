@@ -92,6 +92,9 @@ $pageTitle = 'Quản lý Học sinh';
                             <td><?= isset($hs['ngay_tao']) ? date('d/m/Y', strtotime($hs['ngay_tao'])) : 'N/A' ?></td>
                             <td>
                                 <div class="action-buttons">
+                                    <a href="?act=admin-view-lop-hoc-hoc-sinh&id=<?= $hs['id'] ?>" 
+                                       class="btn btn-info btn-sm" 
+                                       style="background: #17a2b8; color: white; margin-right: 5px;">Lớp học</a>
                                     <a href="?act=admin-edit-hoc-sinh&id=<?= $hs['id'] ?>" 
                                        class="btn btn-warning btn-sm">Sửa</a>
                                     <a href="?act=admin-delete-hoc-sinh&id=<?= $hs['id'] ?>" 

@@ -41,13 +41,78 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="so_luong_toi_da">Số lượng tối đa</label>
+                <?php if (isset($lopHoc) && isset($soLuongDangKy)): ?>
+                    <div style="margin-bottom: 5px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 13px;">
+                        <strong>Thông tin hiện tại:</strong> 
+                        Đã có <span style="color: #28a745; font-weight: bold;"><?= $soLuongDangKy ?></span> học sinh đăng ký (đã xác nhận)
+                        <?php if (!empty($lopHoc['so_luong_toi_da'])): ?>
+                            / <?= $lopHoc['so_luong_toi_da'] ?> tối đa
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+                <?php
+                $minValue = 1;
+                $maxValue = null;
+                if (isset($lopHoc) && isset($soLuongDangKy) && $soLuongDangKy > 0) {
+                    $minValue = max(1, $soLuongDangKy);
+                }
+                if (isset($phongHocInfo) && $phongHocInfo) {
+                    $maxValue = $phongHocInfo['suc_chua'];
+                    if ($minValue > $maxValue) {
+                        $minValue = $maxValue; // Đảm bảo min không lớn hơn max
+                    }
+                }
+                ?>
                 <input type="number" 
                        name="so_luong_toi_da" 
                        id="so_luong_toi_da" 
                        class="form-control" 
                        value="<?= $lopHoc['so_luong_toi_da'] ?? '' ?>" 
-                       min="1"
+                       min="<?= $minValue ?>"
+                       <?= $maxValue ? 'max="' . $maxValue . '"' : '' ?>
                        placeholder="Để trống nếu không giới hạn">
+                <?php if (isset($lopHoc)): ?>
+                    <div style="margin-top: 8px; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 13px;">
+                        <strong style="color: #856404;">⚠️ Lưu ý quan trọng:</strong>
+                        <div style="margin-top: 5px; color: #856404;">
+                            <?php if (isset($soLuongDangKy) && $soLuongDangKy > 0): ?>
+                                Lớp học này hiện có <strong><?= $soLuongDangKy ?></strong> học sinh đã đăng ký (đã xác nhận).
+                                <br>
+                                Số lượng tối đa phải <strong>≥ <?= $soLuongDangKy ?></strong> để đảm bảo không ảnh hưởng đến các học sinh đã đăng ký.
+                                <?php if (!empty($lopHoc['so_luong_toi_da'])): ?>
+                                    <?php 
+                                    $conLai = $lopHoc['so_luong_toi_da'] - $soLuongDangKy;
+                                    if ($conLai > 0):
+                                    ?>
+                                        <br>
+                                        <span style="color: #28a745;">✓ Hiện tại còn <?= $conLai ?> chỗ trống.</span>
+                                    <?php elseif ($conLai == 0): ?>
+                                        <br>
+                                        <span style="color: #dc3545;">⚠️ Lớp học đã đầy!</span>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <?php if (isset($phongHocInfo) && $phongHocInfo): ?>
+                                <?php if (isset($soLuongDangKy) && $soLuongDangKy > 0): ?>
+                                    <br><br>
+                                <?php endif; ?>
+                                <strong>Giới hạn phòng học:</strong>
+                                <br>
+                                Lớp học này đang sử dụng phòng học có sức chứa tối đa là <strong><?= $phongHocInfo['suc_chua'] ?></strong> người.
+                                <br>
+                                Phòng: <strong><?= htmlspecialchars($phongHocInfo['danh_sach_phong']) ?></strong>
+                                <br>
+                                Số lượng tối đa phải <strong>≤ <?= $phongHocInfo['suc_chua'] ?></strong> để phù hợp với sức chứa phòng học.
+                            <?php else: ?>
+                                <?php if (isset($soLuongDangKy) && $soLuongDangKy > 0): ?>
+                                    <br><br>
+                                <?php endif; ?>
+                                <span style="color: #6c757d;">ℹ️ Lớp học này chưa có phòng học được phân công trong ca học.</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div class="form-group">
