@@ -106,6 +106,7 @@ match ($act) {
     //  CLIENT - LỚP HỌC CỦA HỌC SINH
     // ============================
     'client-hoc-sinh-lop-hoc' => $khoaHocController->myClasses(),
+    'client-khoa-hoc-da-dang-ky' => $khoaHocController->myCourses(),
     
     // ============================
     //  VNPAY - THANH TOÁN
