@@ -437,6 +437,32 @@ class KhoaHoc {
     }
     
     /**
+     * Kiểm tra học sinh đã đăng ký khóa học chưa (trạng thái "Đã xác nhận")
+     */
+    public function daDangKyKhoaHoc($id_hoc_sinh, $id_khoa_hoc) {
+        try {
+            $sql = "SELECT COUNT(*) as count
+                    FROM dang_ky dk
+                    INNER JOIN lop_hoc lh ON dk.id_lop = lh.id
+                    WHERE dk.id_hoc_sinh = :id_hoc_sinh
+                    AND lh.id_khoa_hoc = :id_khoa_hoc
+                    AND dk.trang_thai = 'Đã xác nhận'";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':id_hoc_sinh' => $id_hoc_sinh,
+                ':id_khoa_hoc' => $id_khoa_hoc
+            ]);
+            
+            $result = $stmt->fetch();
+            return $result['count'] > 0;
+        } catch (PDOException $e) {
+            error_log("Lỗi kiểm tra đăng ký khóa học: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
      * Lấy danh sách khóa học đã đăng ký của học sinh (group by khóa học)
      */
     public function getKhoaHocDaDangKy($id_hoc_sinh) {
