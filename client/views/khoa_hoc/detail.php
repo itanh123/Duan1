@@ -21,6 +21,10 @@ unset($_SESSION['dang_ky_info']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($course['ten_khoa_hoc']) ?> - Trang bán khóa học lập trình</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         /* ===========================
            1) BIẾN MÀU
@@ -307,6 +311,108 @@ unset($_SESSION['dang_ky_info']);
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
 
+        .btn-register {
+            background: var(--primary);
+            color: #fff;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: .2s;
+            width: 100%;
+        }
+
+        .btn-register:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        /* ===========================
+           8) MODAL
+        ============================ */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            animation: slideDown 0.3s;
+            position: relative;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--text);
+        }
+
+        .close {
+            color: var(--muted);
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: .2s;
+            line-height: 1;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: var(--text);
+        }
+
         .alert {
             padding: 16px;
             border-radius: 8px;
@@ -531,7 +637,7 @@ unset($_SESSION['dang_ky_info']);
             </div>
         </div>
 
-        <!-- Registration Form -->
+        <!-- Registration Section -->
         <div class="registration-section">
             <h2>Đăng ký khóa học</h2>
             
@@ -563,135 +669,165 @@ unset($_SESSION['dang_ky_info']);
                     </div>
                 <?php endif; ?>
 
-                <form method="post" action="index.php?act=client-dang-ky-khoa-hoc" id="registrationForm">
-                <input type="hidden" name="id_khoa_hoc" value="<?= (int)$course['id'] ?>">
-                
-                <div class="form-group">
-                    <label for="id_lop">Chọn lớp học <span style="color:red">*</span></label>
-                    <select id="id_lop" name="id_lop" required>
-                        <option value="">-- Chọn lớp học --</option>
-                        <?php foreach ($lops as $lop): 
-                            $soLuongDangKy = $lopSoLuong[$lop['id']] ?? 0;
-                            $soLuongToiDa = $lop['so_luong_toi_da'] ?? null;
-                            $isFull = $soLuongToiDa !== null && $soLuongDangKy >= $soLuongToiDa;
-                            $conLai = $soLuongToiDa !== null ? ($soLuongToiDa - $soLuongDangKy) : null;
-                        ?>
-                            <option value="<?= $lop['id'] ?>" 
-                                    <?= $isFull ? 'disabled' : '' ?>
-                                    data-full="<?= $isFull ? '1' : '0' ?>"
-                                    data-so-luong="<?= $soLuongDangKy ?>"
-                                    data-toi-da="<?= $soLuongToiDa ?? 'Không giới hạn' ?>">
-                                <?= htmlspecialchars($lop['ten_lop']) ?>
-                                <?php if ($isFull): ?>
-                                    - [ĐÃ ĐẦY] (<?= $soLuongDangKy ?>/<?= $soLuongToiDa ?>)
-                                <?php elseif ($soLuongToiDa !== null): ?>
-                                    - Còn <?= $conLai ?> chỗ (<?= $soLuongDangKy ?>/<?= $soLuongToiDa ?>)
-                                <?php else: ?>
-                                    - Không giới hạn
-                                <?php endif; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <div id="lop-info" style="margin-top: 8px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 13px; display: none;">
-                        <span id="lop-info-text"></span>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Phương thức thanh toán <span style="color:red">*</span></label>
-                    <div style="display: flex; gap: 20px; margin-top: 10px;">
-                        <label style="display: flex; align-items: center; cursor: pointer; padding: 12px; border: 2px solid #ddd; border-radius: 8px; flex: 1; transition: .2s;" id="payment-direct-label">
-                            <input type="radio" name="phuong_thuc_thanh_toan" value="truc_tiep" required style="margin-right: 8px; cursor: pointer;">
-                            <div>
-                                <strong>Thanh toán trực tiếp</strong>
-                                <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Thanh toán tại trung tâm</div>
-                            </div>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer; padding: 12px; border: 2px solid #ddd; border-radius: 8px; flex: 1; transition: .2s;" id="payment-online-label">
-                            <input type="radio" name="phuong_thuc_thanh_toan" value="online" required style="margin-right: 8px; cursor: pointer;">
-                            <div>
-                                <strong>Thanh toán online</strong>
-                                <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Thanh toán qua ví điện tử</div>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="ghi_chu">Ghi chú (tùy chọn)</label>
-                    <textarea id="ghi_chu" name="ghi_chu" placeholder="Bạn có câu hỏi hoặc yêu cầu đặc biệt nào không?"></textarea>
-                </div>
-
-                <button type="submit" class="btn-submit">Đăng ký ngay</button>
-                </form>
-
-                <script>
-                // Thêm style cho radio button khi được chọn
-                document.querySelectorAll('input[name="phuong_thuc_thanh_toan"]').forEach(radio => {
-                    radio.addEventListener('change', function() {
-                        document.querySelectorAll('label[id$="-label"]').forEach(label => {
-                            label.style.borderColor = '#ddd';
-                            label.style.backgroundColor = '#fff';
-                        });
-                        if (this.checked) {
-                            const label = document.getElementById(this.value === 'truc_tiep' ? 'payment-direct-label' : 'payment-online-label');
-                            label.style.borderColor = 'var(--primary)';
-                            label.style.backgroundColor = '#f0fdf4';
-                        }
-                    });
-                });
-
-                // Hiển thị thông tin lớp học khi chọn
-                const selectLop = document.getElementById('id_lop');
-                const lopInfo = document.getElementById('lop-info');
-                const lopInfoText = document.getElementById('lop-info-text');
-                const form = document.getElementById('registrationForm');
-
-                selectLop.addEventListener('change', function() {
-                    const selectedOption = this.options[this.selectedIndex];
-                    const isFull = selectedOption.getAttribute('data-full') === '1';
-                    const soLuong = selectedOption.getAttribute('data-so-luong');
-                    const toiDa = selectedOption.getAttribute('data-toi-da');
-
-                    if (this.value && !isFull) {
-                        lopInfo.style.display = 'block';
-                        if (toiDa && toiDa !== 'Không giới hạn') {
-                            const conLai = parseInt(toiDa) - parseInt(soLuong);
-                            lopInfo.style.background = conLai <= 3 ? '#fff3cd' : '#d1ecf1';
-                            lopInfo.style.border = '1px solid ' + (conLai <= 3 ? '#ffc107' : '#0c5460');
-                            lopInfoText.innerHTML = `<strong>Thông tin lớp:</strong> Đã có ${soLuong}/${toiDa} học sinh đăng ký. Còn lại ${conLai} chỗ trống.`;
-                            if (conLai <= 3) {
-                                lopInfoText.innerHTML += ' <span style="color: #856404;">⚠️ Sắp đầy!</span>';
-                            }
-                        } else {
-                            lopInfo.style.background = '#d1ecf1';
-                            lopInfo.style.border = '1px solid #0c5460';
-                            lopInfoText.innerHTML = `<strong>Thông tin lớp:</strong> Đã có ${soLuong} học sinh đăng ký. Lớp học không giới hạn số lượng.`;
-                        }
-                    } else if (isFull) {
-                        lopInfo.style.display = 'block';
-                        lopInfo.style.background = '#f8d7da';
-                        lopInfo.style.border = '1px solid #dc3545';
-                        lopInfoText.innerHTML = `<strong style="color: #721c24;">⚠️ Lớp học này đã đầy!</strong> (${soLuong}/${toiDa}) Vui lòng chọn lớp học khác.`;
-                    } else {
-                        lopInfo.style.display = 'none';
-                    }
-                });
-
-                // Ngăn submit nếu lớp đã đầy
-                form.addEventListener('submit', function(e) {
-                    const selectedOption = selectLop.options[selectLop.selectedIndex];
-                    const isFull = selectedOption.getAttribute('data-full') === '1';
-                    
-                    if (isFull) {
-                        e.preventDefault();
-                        alert('Lớp học này đã đầy! Vui lòng chọn lớp học khác.');
-                        return false;
-                    }
-                });
-                </script>
+                <button type="button" class="btn-register" id="btnOpenModal">Đăng ký ngay</button>
             <?php endif; ?>
         </div>
+
+        <!-- Modal Form Đăng ký -->
+        <div id="registrationModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Đăng ký khóa học</h2>
+                    <span class="close" id="closeModal">&times;</span>
+                </div>
+                
+                <form method="post" action="index.php?act=client-dang-ky-khoa-hoc" id="registrationForm">
+                    <input type="hidden" name="id_khoa_hoc" value="<?= (int)$course['id'] ?>">
+                    
+                    <div class="form-group">
+                        <label for="modal_id_lop">Chọn lớp học <span style="color:red">*</span></label>
+                        <select id="modal_id_lop" name="id_lop" required>
+                            <option value="">-- Chọn lớp học --</option>
+                            <?php foreach ($lops as $lop): 
+                                $soLuongDangKy = $lopSoLuong[$lop['id']] ?? 0;
+                                $soLuongToiDa = $lop['so_luong_toi_da'] ?? null;
+                                $isFull = $soLuongToiDa !== null && $soLuongDangKy >= $soLuongToiDa;
+                                $conLai = $soLuongToiDa !== null ? ($soLuongToiDa - $soLuongDangKy) : null;
+                            ?>
+                                <option value="<?= $lop['id'] ?>" 
+                                        <?= $isFull ? 'disabled' : '' ?>
+                                        data-full="<?= $isFull ? '1' : '0' ?>"
+                                        data-so-luong="<?= $soLuongDangKy ?>"
+                                        data-toi-da="<?= $soLuongToiDa ?? 'Không giới hạn' ?>">
+                                    <?= htmlspecialchars($lop['ten_lop']) ?>
+                                    <?php if ($isFull): ?>
+                                        - [ĐÃ ĐẦY] (<?= $soLuongDangKy ?>/<?= $soLuongToiDa ?>)
+                                    <?php elseif ($soLuongToiDa !== null): ?>
+                                        - Còn <?= $conLai ?> chỗ (<?= $soLuongDangKy ?>/<?= $soLuongToiDa ?>)
+                                    <?php else: ?>
+                                        - Không giới hạn
+                                    <?php endif; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div id="modal-lop-info" style="margin-top: 8px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 13px; display: none;">
+                            <span id="modal-lop-info-text"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="mb-3">Phương thức thanh toán <span style="color:red">*</span></label>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <input type="radio" class="btn-check" name="phuong_thuc_thanh_toan" id="payment-direct" value="truc_tiep" required>
+                                <label class="btn btn-outline-primary w-100 h-100 p-3 d-flex flex-column align-items-center justify-content-center" for="payment-direct" id="modal-payment-direct-label" style="min-height: 120px; cursor: pointer;">
+                                    <i class="bi bi-cash-coin fs-1 mb-2"></i>
+                                    <strong class="mb-1">Thanh toán trực tiếp</strong>
+                                    <small class="text-muted text-center">Thanh toán tại trung tâm</small>
+                                </label>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="radio" class="btn-check" name="phuong_thuc_thanh_toan" id="payment-online" value="online" required>
+                                <label class="btn btn-outline-success w-100 h-100 p-3 d-flex flex-column align-items-center justify-content-center" for="payment-online" id="modal-payment-online-label" style="min-height: 120px; cursor: pointer;">
+                                    <i class="bi bi-credit-card fs-1 mb-2"></i>
+                                    <strong class="mb-1">Thanh toán online</strong>
+                                    <small class="text-muted text-center">Thanh toán qua ví điện tử</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal_ghi_chu">Ghi chú (tùy chọn)</label>
+                        <textarea id="modal_ghi_chu" name="ghi_chu" placeholder="Bạn có câu hỏi hoặc yêu cầu đặc biệt nào không?"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Xác nhận đăng ký</button>
+                </form>
+            </div>
+        </div>
+
+        <script>
+        // Mở modal
+        const btnOpenModal = document.getElementById('btnOpenModal');
+        const modal = document.getElementById('registrationModal');
+        const closeModal = document.getElementById('closeModal');
+        
+        if (btnOpenModal) {
+            btnOpenModal.addEventListener('click', function() {
+                modal.classList.add('show');
+            });
+        }
+
+        // Đóng modal khi click vào X
+        if (closeModal) {
+            closeModal.addEventListener('click', function() {
+                modal.classList.remove('show');
+            });
+        }
+
+        // Đóng modal khi click bên ngoài
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.classList.remove('show');
+            }
+        });
+
+        // Bootstrap tự động xử lý style cho radio buttons, không cần code thêm
+
+        // Hiển thị thông tin lớp học khi chọn
+        const selectLop = document.getElementById('modal_id_lop');
+        const lopInfo = document.getElementById('modal-lop-info');
+        const lopInfoText = document.getElementById('modal-lop-info-text');
+        const form = document.getElementById('registrationForm');
+
+        if (selectLop && lopInfo && lopInfoText) {
+            selectLop.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const isFull = selectedOption.getAttribute('data-full') === '1';
+                const soLuong = selectedOption.getAttribute('data-so-luong');
+                const toiDa = selectedOption.getAttribute('data-toi-da');
+
+                if (this.value && !isFull) {
+                    lopInfo.style.display = 'block';
+                    if (toiDa && toiDa !== 'Không giới hạn') {
+                        const conLai = parseInt(toiDa) - parseInt(soLuong);
+                        lopInfo.style.background = conLai <= 3 ? '#fff3cd' : '#d1ecf1';
+                        lopInfo.style.border = '1px solid ' + (conLai <= 3 ? '#ffc107' : '#0c5460');
+                        lopInfoText.innerHTML = `<strong>Thông tin lớp:</strong> Đã có ${soLuong}/${toiDa} học sinh đăng ký. Còn lại ${conLai} chỗ trống.`;
+                        if (conLai <= 3) {
+                            lopInfoText.innerHTML += ' <span style="color: #856404;">⚠️ Sắp đầy!</span>';
+                        }
+                    } else {
+                        lopInfo.style.background = '#d1ecf1';
+                        lopInfo.style.border = '1px solid #0c5460';
+                        lopInfoText.innerHTML = `<strong>Thông tin lớp:</strong> Đã có ${soLuong} học sinh đăng ký. Lớp học không giới hạn số lượng.`;
+                    }
+                } else if (isFull) {
+                    lopInfo.style.display = 'block';
+                    lopInfo.style.background = '#f8d7da';
+                    lopInfo.style.border = '1px solid #dc3545';
+                    lopInfoText.innerHTML = `<strong style="color: #721c24;">⚠️ Lớp học này đã đầy!</strong> (${soLuong}/${toiDa}) Vui lòng chọn lớp học khác.`;
+                } else {
+                    lopInfo.style.display = 'none';
+                }
+            });
+        }
+
+        // Ngăn submit nếu lớp đã đầy
+        if (form && selectLop) {
+            form.addEventListener('submit', function(e) {
+                const selectedOption = selectLop.options[selectLop.selectedIndex];
+                const isFull = selectedOption.getAttribute('data-full') === '1';
+                
+                if (isFull) {
+                    e.preventDefault();
+                    alert('Lớp học này đã đầy! Vui lòng chọn lớp học khác.');
+                    return false;
+                }
+            });
+        }
+        </script>
 
         <!-- Comments Section -->
         <div class="comments-section">
@@ -746,5 +882,8 @@ unset($_SESSION['dang_ky_info']);
             © 2025 Bán Khóa Học Lập Trình — All rights reserved.
         </div>
     </footer>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
