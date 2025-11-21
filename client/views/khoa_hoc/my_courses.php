@@ -236,7 +236,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         <li><a href="?act=client-lop-hoc">Lớp học</a></li>
                         <li><a href="?act=client-danh-muc">Danh mục</a></li>
                         <li><a href="?act=client-giang-vien">Giảng viên</a></li>
-                        <?php if (isset($_SESSION['client_id'])): ?>
+                        <?php if (isset($_SESSION['client_id']) && (!isset($_SESSION['client_vai_tro']) || $_SESSION['client_vai_tro'] === 'hoc_sinh')): ?>
                             <li><a href="?act=client-khoa-hoc-da-dang-ky" style="color: var(--primary); font-weight: 600;">📚 Khóa học của tôi</a></li>
                             <li><a href="?act=client-hoc-sinh-lop-hoc" style="color: var(--primary);">Lớp của tôi</a></li>
                             <li style="color: var(--primary); font-weight: 600;">👤 <?= htmlspecialchars($_SESSION['client_ho_ten'] ?? '') ?></li>

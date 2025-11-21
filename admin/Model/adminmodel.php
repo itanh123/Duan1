@@ -831,6 +831,30 @@ class adminmodel
     }
 
     // Đếm số lượng đăng ký hiện tại của lớp học (chỉ đếm đăng ký đã xác nhận)
+    // Lấy danh sách học sinh đã đăng ký lớp học
+    public function getHocSinhByLop($id_lop)
+    {
+        $sql = "SELECT dk.id as id_dang_ky,
+                       dk.trang_thai as trang_thai_dang_ky,
+                       dk.ngay_dang_ky,
+                       nd.id as id_hoc_sinh,
+                       nd.ho_ten,
+                       nd.email,
+                       nd.so_dien_thoai,
+                       nd.dia_chi
+                FROM dang_ky dk
+                INNER JOIN nguoi_dung nd ON dk.id_hoc_sinh = nd.id
+                WHERE dk.id_lop = :id_lop
+                AND dk.trang_thai = 'Đã xác nhận'
+                ORDER BY dk.ngay_dang_ky DESC";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id_lop', $id_lop, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll();
+    }
+
     public function countDangKyByLop($id_lop)
     {
         $sql = "SELECT COUNT(*) as total 
