@@ -308,6 +308,23 @@ class KhoaHocController {
         require __DIR__ . '/../views/khoa_hoc/my_classes.php';
     }
 
+    //  XEM KHÓA HỌC ĐÃ ĐĂNG KÝ (action = myCourses)
+    // ===========================================
+    public function myCourses()
+    {
+        $this->checkClientLogin();
+        
+        $id_hoc_sinh = $_SESSION['client_id'] ?? 0;
+        if (!$id_hoc_sinh) {
+            header('Location: ?act=client-login');
+            exit;
+        }
+        
+        $khoaHocs = $this->model->getKhoaHocDaDangKy($id_hoc_sinh);
+        
+        require __DIR__ . '/../views/khoa_hoc/my_courses.php';
+    }
+
     // ===========================================
     //  HIỂN THỊ DANH SÁCH KHÓA HỌC  (action = index)
     // ===========================================

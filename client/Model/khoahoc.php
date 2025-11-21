@@ -437,6 +437,64 @@ class KhoaHoc {
     }
     
     /**
+     * Lấy danh sách khóa học đã đăng ký của học sinh (group by khóa học)
+     */
+    public function getKhoaHocDaDangKy($id_hoc_sinh) {
+        try {
+            $sql = "SELECT DISTINCT
+                       kh.id as id_khoa_hoc,
+                       kh.ten_khoa_hoc,
+                       kh.mo_ta,
+                       kh.gia,
+                       kh.hinh_anh,
+                       kh.trang_thai,
+                       d.ten_danh_muc,
+                       COUNT(DISTINCT dk.id) as so_lop_da_dang_ky,
+                       MIN(dk.ngay_dang_ky) as ngay_dang_ky_dau_tien
+                FROM dang_ky dk
+                INNER JOIN lop_hoc lh ON dk.id_lop = lh.id
+                INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
+                LEFT JOIN danh_muc d ON kh.id_danh_muc = d.id
+                WHERE dk.id_hoc_sinh = :id_hoc_sinh
+                AND dk.trang_thai = 'Đã xác nhận'
+                GROUP BY kh.id, kh.ten_khoa_hoc, kh.mo_ta, kh.gia, kh.hinh_anh, kh.trang_thai, d.ten_danh_muc
+                ORDER BY ngay_dang_ky_dau_tien DESC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':id_hoc_sinh', $id_hoc_sinh, PDO::PARAM_INT);
+            $stmt->execute();
+            $khoaHocs = $stmt->fetchAll();
+            
+            // Lấy thông tin lớp học đã đăng ký cho mỗi khóa học
+            foreach ($khoaHocs as &$khoaHoc) {
+                $sqlLop = "SELECT dk.id as id_dang_ky,
+                                  dk.trang_thai as trang_thai_dang_ky,
+                                  dk.ngay_dang_ky,
+                                  lh.id as id_lop,
+                                  lh.ten_lop,
+                                  lh.mo_ta as mo_ta_lop
+                           FROM dang_ky dk
+                           INNER JOIN lop_hoc lh ON dk.id_lop = lh.id
+                           WHERE dk.id_hoc_sinh = :id_hoc_sinh
+                           AND lh.id_khoa_hoc = :id_khoa_hoc
+                           AND dk.trang_thai = 'Đã xác nhận'
+                           ORDER BY dk.ngay_dang_ky DESC";
+                
+                $stmtLop = $this->db->prepare($sqlLop);
+                $stmtLop->bindValue(':id_hoc_sinh', $id_hoc_sinh, PDO::PARAM_INT);
+                $stmtLop->bindValue(':id_khoa_hoc', $khoaHoc['id_khoa_hoc'], PDO::PARAM_INT);
+                $stmtLop->execute();
+                $khoaHoc['lop_hoc'] = $stmtLop->fetchAll();
+            }
+            
+            return $khoaHocs;
+        } catch (PDOException $e) {
+            error_log("Lỗi lấy khóa học đã đăng ký: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
      * Lấy thông tin đăng ký theo mã đơn hàng VNPay
      */
     public function getDangKyByVnpTxnRef($vnp_TxnRef) {
