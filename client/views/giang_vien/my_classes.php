@@ -241,17 +241,13 @@ if (session_status() === PHP_SESSION_NONE) {
                 </div>
                 <nav>
                     <ul>
-                        <li><a href="?act=client-khoa-hoc">Khóa học</a></li>
-                        <li><a href="?act=client-lop-hoc">Lớp học</a></li>
-                        <li><a href="?act=client-danh-muc">Danh mục</a></li>
-                        <li><a href="?act=client-giang-vien">Giảng viên</a></li>
-                        <?php if (isset($_SESSION['client_id'])): ?>
-                            <?php if (isset($_SESSION['client_vai_tro']) && $_SESSION['client_vai_tro'] === 'giang_vien'): ?>
-                                <li><a href="?act=client-giang-vien-lop-hoc" style="color: var(--primary);">Lớp của tôi</a></li>
-                            <?php endif; ?>
-                            <li><a href="?act=client-logout">Đăng xuất</a></li>
+                        <?php if (isset($_SESSION['giang_vien_id'])): ?>
+                            <li><a href="?act=giang-vien-dashboard" style="color: var(--primary);">Dashboard</a></li>
+                            <li><a href="?act=giang-vien-lop-hoc" style="color: var(--primary);">Lớp của tôi</a></li>
+                            <li style="color: var(--primary); font-weight: 600;">👤 <?= htmlspecialchars($_SESSION['giang_vien_ho_ten'] ?? '') ?></li>
+                            <li><a href="?act=giang-vien-logout" style="color: #dc3545;">Đăng xuất</a></li>
                         <?php else: ?>
-                            <li><a href="?act=client-login">Đăng nhập</a></li>
+                            <li><a href="?act=giang-vien-login" style="color: var(--primary);">Đăng nhập</a></li>
                         <?php endif; ?>
                     </ul>
                 </nav>

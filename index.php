@@ -99,8 +99,23 @@ match ($act) {
     // ============================
     //  CLIENT - GIẢNG VIÊN
     // ============================
+    // ============================
+    //  GIẢNG VIÊN - ĐĂNG NHẬP/ĐĂNG XUẤT
+    // ============================
+    'giang-vien-login' => $giangVienController->login(),
+    'giang-vien-process-login' => $giangVienController->processLogin(),
+    'giang-vien-logout' => $giangVienController->logout(),
+    
+    // ============================
+    //  GIẢNG VIÊN - DASHBOARD VÀ QUẢN LÝ
+    // ============================
+    'giang-vien-dashboard' => $giangVienController->dashboard(),
+    'giang-vien-lop-hoc' => $giangVienController->myClasses(),
+    
+    // ============================
+    //  CLIENT - XEM DANH SÁCH GIẢNG VIÊN
+    // ============================
     'client-giang-vien' => $giangVienController->index(),
-    'client-giang-vien-lop-hoc' => $giangVienController->myClasses(),
     
     // ============================
     //  CLIENT - LỚP HỌC CỦA HỌC SINH

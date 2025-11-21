@@ -20,6 +20,13 @@ class KhoaHocController {
 
     // Kiểm tra đăng nhập client
     private function checkClientLogin(){
+        // Ngăn giảng viên truy cập các chức năng của client
+        if (isset($_SESSION['giang_vien_id'])) {
+            $_SESSION['error'] = 'Bạn đang đăng nhập với tài khoản giảng viên. Vui lòng đăng xuất và đăng nhập lại với tài khoản học sinh!';
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
         if (!isset($_SESSION['client_id']) || !isset($_SESSION['client_vai_tro']) || $_SESSION['client_vai_tro'] !== 'hoc_sinh') {
             header('Location: ?act=client-login');
             exit;
@@ -39,8 +46,23 @@ class KhoaHocController {
         }
     }
 
-    // Trang đăng nhập client (chung cho cả admin và client)
+    // Kiểm tra không phải giảng viên (cho các trang công khai của client)
+    private function checkNotGiangVien(){
+        if (isset($_SESSION['giang_vien_id'])) {
+            $_SESSION['error'] = 'Bạn đang đăng nhập với tài khoản giảng viên. Vui lòng đăng xuất để truy cập trang này!';
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+    }
+
+    // Trang đăng nhập client (chỉ dành cho học sinh)
     public function login(){
+        // Ngăn giảng viên truy cập form đăng nhập client
+        if (isset($_SESSION['giang_vien_id'])) {
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
         // Nếu đã đăng nhập client thì chuyển về trang danh sách
         if (isset($_SESSION['client_id']) && $_SESSION['client_vai_tro'] === 'hoc_sinh') {
             header('Location: ?act=client-khoa-hoc');
@@ -54,8 +76,15 @@ class KhoaHocController {
         require_once(__DIR__ . '/../views/login.php');
     }
 
-    // Xử lý đăng nhập client
+    // Xử lý đăng nhập client (chỉ dành cho học sinh)
     public function processLogin(){
+        // Ngăn giảng viên đăng nhập qua form client
+        if (isset($_SESSION['giang_vien_id'])) {
+            $_SESSION['error'] = 'Bạn đang đăng nhập với tài khoản giảng viên. Vui lòng sử dụng form đăng nhập giảng viên!';
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
 
@@ -65,30 +94,43 @@ class KhoaHocController {
             exit;
         }
 
+        // Chỉ cho phép đăng nhập với vai trò học sinh
         $user = $this->userModel->login($email, $password, 'hoc_sinh');
         
         if ($user) {
+            // Xóa session giảng viên nếu có (để tránh xung đột)
+            unset($_SESSION['giang_vien_id']);
+            unset($_SESSION['giang_vien_email']);
+            unset($_SESSION['giang_vien_ho_ten']);
+            unset($_SESSION['giang_vien_vai_tro']);
+            
             $_SESSION['client_id'] = $user['id'];
             $_SESSION['client_email'] = $user['email'];
             $_SESSION['client_ho_ten'] = $user['ho_ten'];
-            $_SESSION['client_vai_tro'] = $user['vai_tro'];
+            $_SESSION['client_vai_tro'] = 'hoc_sinh';
             $_SESSION['success'] = 'Đăng nhập thành công!';
             header('Location: ?act=client-khoa-hoc');
         } else {
-            $_SESSION['error'] = 'Email hoặc mật khẩu không đúng!';
+            $_SESSION['error'] = 'Email hoặc mật khẩu không đúng! Hoặc tài khoản này không phải là tài khoản học sinh.';
             header('Location: ?act=client-login');
         }
         exit;
     }
 
-    // Trang đăng ký
+    // Trang đăng ký (chỉ dành cho học sinh)
     public function register(){
+        // Ngăn giảng viên truy cập form đăng ký client
+        if (isset($_SESSION['giang_vien_id'])) {
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
         // Nếu đã đăng nhập thì chuyển về trang chủ
-        if (isset($_SESSION['client_id']) && $_SESSION['client_vai_tro'] === 'hoc_sinh') {
+        if (isset($_SESSION['client_id']) && isset($_SESSION['client_vai_tro']) && $_SESSION['client_vai_tro'] === 'hoc_sinh') {
             header('Location: ?act=client-khoa-hoc');
             exit;
         }
-        if (isset($_SESSION['admin_id']) && $_SESSION['admin_vai_tro'] === 'admin') {
+        if (isset($_SESSION['admin_id']) && isset($_SESSION['admin_vai_tro']) && $_SESSION['admin_vai_tro'] === 'admin') {
             header('Location: ?act=admin-dashboard');
             exit;
         }
@@ -229,6 +271,10 @@ class KhoaHocController {
             $_SESSION['admin_vai_tro'] = $vaiTro;
             $_SESSION['success'] = 'Đăng nhập Admin thành công!';
             header('Location: ?act=admin-dashboard');
+        } elseif ($vaiTro == 'giang_vien') {
+            // Redirect đến trang đăng nhập giảng viên riêng
+            $_SESSION['info'] = 'Vui lòng đăng nhập qua trang dành cho giảng viên!';
+            header('Location: ?act=giang-vien-login');
         } else {
             $_SESSION['client_id'] = $user['id'];
             $_SESSION['client_email'] = $user['email'];
@@ -268,6 +314,9 @@ class KhoaHocController {
             'email' => $_SESSION['temp_user_email'],
             'ho_ten' => $_SESSION['temp_user_ho_ten']
         ];
+        
+        // Thiết lập session theo vai trò
+        $this->setSessionByVaiTro($user, $vaiTro);
         
         // Xóa session tạm
         unset($_SESSION['temp_user_id']);
@@ -333,7 +382,13 @@ class KhoaHocController {
         // Kiểm tra và hủy các đăng ký quá hạn
         $this->checkAndCancelExpiredRegistrations();
         
-        // Không cần đăng nhập để xem danh sách khóa học
+        // Nếu giảng viên truy cập, redirect về dashboard giảng viên
+        if (isset($_SESSION['giang_vien_id'])) {
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
+        // Không cần đăng nhập để xem danh sách khóa học (chỉ dành cho client)
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 12;
         $offset = ($page - 1) * $perPage;
@@ -351,7 +406,13 @@ class KhoaHocController {
     // ===========================================
     public function search() 
     {
-        // Không cần đăng nhập để tìm kiếm khóa học
+        // Nếu giảng viên truy cập, redirect về dashboard giảng viên
+        if (isset($_SESSION['giang_vien_id'])) {
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
+        // Không cần đăng nhập để tìm kiếm khóa học (chỉ dành cho client)
         $keyword = isset($_GET['q']) ? trim($_GET['q']) : '';
         
         if (empty($keyword)) {
@@ -393,6 +454,12 @@ class KhoaHocController {
     
     public function detail()
     {
+        // Nếu giảng viên truy cập, redirect về dashboard giảng viên
+        if (isset($_SESSION['giang_vien_id'])) {
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
         // Kiểm tra và hủy các đăng ký quá hạn
         $this->checkAndCancelExpiredRegistrations();
         if (session_status() === PHP_SESSION_NONE) {
