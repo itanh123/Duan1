@@ -640,7 +640,7 @@ unset($_SESSION['dang_ky_info']);
         </div>
 
         <!-- Registration Section -->
-        <div class="registration-section">
+        <div class="registration-section" id="registration-section">
             <h2>Đăng ký khóa học</h2>
             
             <?php if (!isset($_SESSION['client_id'])): ?>
@@ -857,6 +857,11 @@ unset($_SESSION['dang_ky_info']);
                 <?php if (!isset($_SESSION['client_id'])): ?>
                     <div class="alert alert-error">
                         <strong>Yêu cầu đăng nhập!</strong> Vui lòng <a href="?act=client-login" style="color: var(--primary); font-weight: 600;">đăng nhập</a> hoặc <a href="?act=client-register" style="color: var(--primary); font-weight: 600;">đăng ký tài khoản</a> để bình luận.
+                    </div>
+                <?php elseif (!isset($daDangKy) || !$daDangKy): ?>
+                    <div class="alert alert-warning" style="background: #fff3cd; color: #856404; border: 1px solid #ffc107;">
+                        <strong>⚠️ Yêu cầu đăng ký khóa học!</strong> Chỉ những học viên đã đăng ký khóa học (trạng thái "Đã xác nhận") mới có thể bình luận. 
+                        <a href="#registration-section" style="color: var(--primary); font-weight: 600;">Đăng ký ngay</a> để tham gia thảo luận!
                     </div>
                 <?php else: ?>
                     <form method="post" action="index.php?act=client-binh-luan-khoa-hoc">

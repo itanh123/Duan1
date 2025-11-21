@@ -425,6 +425,13 @@ class KhoaHocController {
 
         $binh_luan = $this->model->getBinhLuan($id);
 
+        // Kiểm tra xem học sinh đã đăng ký khóa học chưa (chỉ hiển thị form bình luận nếu đã đăng ký)
+        $daDangKy = false;
+        if (isset($_SESSION['client_id'])) {
+            $id_hoc_sinh = $_SESSION['client_id'];
+            $daDangKy = $this->model->daDangKyKhoaHoc($id_hoc_sinh, $id);
+        }
+
         require __DIR__ . '/../views/khoa_hoc/detail.php';
     }
 
@@ -441,8 +448,20 @@ class KhoaHocController {
         $noi_dung    = trim($_POST['noi_dung'] ?? '');
         $danh_gia    = isset($_POST['danh_gia']) ? (int)$_POST['danh_gia'] : null;
 
+        // Kiểm tra học sinh đã đăng ký khóa học chưa
+        if ($id_khoa_hoc && $id_hoc_sinh) {
+            $daDangKy = $this->model->daDangKyKhoaHoc($id_hoc_sinh, $id_khoa_hoc);
+            if (!$daDangKy) {
+                $_SESSION['dang_ky_error'] = 'Bạn cần đăng ký khóa học trước khi bình luận!';
+                header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
+                exit;
+            }
+        }
+
         if ($id_khoa_hoc && $id_hoc_sinh && $noi_dung !== '') {
             $this->model->addBinhLuan($id_khoa_hoc, $id_hoc_sinh, $noi_dung, $danh_gia);
+            $_SESSION['dang_ky_success'] = true;
+            $_SESSION['dang_ky_message'] = 'Bình luận của bạn đã được gửi thành công!';
         }
 
         header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
