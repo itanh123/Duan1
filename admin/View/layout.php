@@ -285,7 +285,7 @@ $hasXem = $hasQuanTri || $adminModel->hasPermission($adminId, 'xem');
                     <span class="menu-item-icon">👤</span>
                     Tài Khoản
                 </a>
-                <a href="?act=admin-list-hoc-sinh" class="menu-item <?= (isset($_GET['act']) && strpos($_GET['act'], 'hoc-sinh') !== false) ? 'active' : '' ?>">
+                <a href="?act=admin-list-hoc-sinh" class="menu-item <?= (isset($_GET['act']) && strpos($_GET['act'], 'hoc-sinh') !== false && strpos($_GET['act'], 'giang-vien') === false) ? 'active' : '' ?>">
                     <span class="menu-item-icon">👥</span>
                     Học Sinh
                 </a>

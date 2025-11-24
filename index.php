@@ -111,6 +111,8 @@ match ($act) {
     // ============================
     'giang-vien-dashboard' => $giangVienController->dashboard(),
     'giang-vien-lop-hoc' => $giangVienController->myClasses(),
+    'giang-vien-list-hoc-sinh' => $giangVienController->listHocSinh(),
+    'giang-vien-view-hoc-sinh-detail' => $giangVienController->viewHocSinhDetail(),
     
     // ============================
     //  CLIENT - XEM DANH SÁCH GIẢNG VIÊN

@@ -181,5 +181,59 @@ class GiangVienController {
         
         require __DIR__ . '/../views/giang_vien/my_classes.php';
     }
+
+    // ===========================================
+    //  DANH SÁCH HỌC SINH (action = listHocSinh)
+    // ===========================================
+    public function listHocSinh()
+    {
+        $this->checkGiangVienLogin();
+        $id_giang_vien = $_SESSION['giang_vien_id'];
+        
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $limit = 10;
+        $search = $_GET['search'] ?? '';
+        
+        $total = $this->model->countHocSinhByGiangVien($id_giang_vien, $search);
+        $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+        
+        $hocSinh = $this->model->getHocSinhByGiangVien($id_giang_vien, $page, $limit, $search);
+        
+        require __DIR__ . '/../views/giang_vien/list_hoc_sinh.php';
+    }
+
+    // ===========================================
+    //  XEM CHI TIẾT LỚP HỌC CỦA HỌC SINH
+    // ===========================================
+    public function viewHocSinhDetail()
+    {
+        $this->checkGiangVienLogin();
+        $id_giang_vien = $_SESSION['giang_vien_id'];
+        $id_hoc_sinh = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+        if (!$id_hoc_sinh) {
+            $_SESSION['error'] = 'ID học sinh không hợp lệ!';
+            header('Location: ?act=giang-vien-list-hoc-sinh');
+            exit;
+        }
+
+        $hocSinh = $this->model->getNguoiDungById($id_hoc_sinh);
+        if (!$hocSinh || $hocSinh['vai_tro'] !== 'hoc_sinh') {
+            $_SESSION['error'] = 'Không tìm thấy học sinh hoặc học sinh không tồn tại!';
+            header('Location: ?act=giang-vien-list-hoc-sinh');
+            exit;
+        }
+
+        // Lấy các lớp học mà học sinh này đã đăng ký VÀ giảng viên này đang dạy
+        $lopHocs = $this->model->getLopHocDetailByHocSinhAndGiangVien($id_hoc_sinh, $id_giang_vien);
+
+        $data = [
+            'hocSinh' => $hocSinh,
+            'lopHocs' => $lopHocs
+        ];
+
+        require __DIR__ . '/../views/giang_vien/hoc_sinh_detail.php';
+    }
 }
 

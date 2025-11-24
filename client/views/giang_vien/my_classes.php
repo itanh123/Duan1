@@ -244,6 +244,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         <?php if (isset($_SESSION['giang_vien_id'])): ?>
                             <li><a href="?act=giang-vien-dashboard" style="color: var(--primary);">Dashboard</a></li>
                             <li><a href="?act=giang-vien-lop-hoc" style="color: var(--primary);">Lớp của tôi</a></li>
+                            <li><a href="?act=giang-vien-list-hoc-sinh" style="color: var(--primary);">Danh sách học sinh</a></li>
                             <li style="color: var(--primary); font-weight: 600;">👤 <?= htmlspecialchars($_SESSION['giang_vien_ho_ten'] ?? '') ?></li>
                             <li><a href="?act=giang-vien-logout" style="color: #dc3545;">Đăng xuất</a></li>
                         <?php else: ?>

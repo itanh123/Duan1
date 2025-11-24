@@ -104,8 +104,7 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
-        .btn {
-            width: 100%;
+        .btn {a
             padding: 12px;
             border: none;
             border-radius: 8px;

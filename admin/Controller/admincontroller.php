@@ -285,7 +285,7 @@ class admincontroller{
             $_SESSION['error'] = 'Cập nhật khóa học thất bại!';
             header('Location: ?act=admin-edit-khoa-hoc&id=' . $id);
         }
-        exit;
+        exit; 
     }
 
     // Xóa khóa học
@@ -551,6 +551,7 @@ class admincontroller{
         
         $this->renderView('./admin/View/hoc_sinh/lop_hoc_detail.php', 'Lớp học của ' . htmlspecialchars($hocSinh['ho_ten']), $data);
     }
+
 
     // ===========================================
     //  QUẢN LÝ DANH MỤC
