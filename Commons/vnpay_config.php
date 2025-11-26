@@ -6,7 +6,8 @@
 
 $vnp_TmnCode = "RBAAWEC9";  
 $vnp_HashSecret = "TC9PTPS6V6L3A8B4S4X84LFRKG0ATM0L"; 
-$vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"; 
+$vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+$vnp_ApiUrl = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction"; // API query transaction 
 
 // Tự động lấy URL return dựa trên server hiện tại
 if (isset($_SERVER['HTTP_HOST'])) {
@@ -29,6 +30,7 @@ if (isset($_SERVER['HTTP_HOST'])) {
 define('VNPAY_TMN_CODE', $vnp_TmnCode);
 define('VNPAY_HASH_SECRET', $vnp_HashSecret);
 define('VNPAY_URL', $vnp_Url);
+define('VNPAY_API_URL', $vnp_ApiUrl);
 define('VNPAY_RETURN_URL', $vnp_Returnurl);
 define('VNPAY_IPN_URL', $vnp_Returnurl); // IPN URL giống return URL
 

@@ -18,7 +18,7 @@ $pageTitle = 'Quản lý Học sinh';
                     <label>Tìm kiếm</label>
                     <input type="text" name="search" class="form-control" 
                            value="<?= htmlspecialchars($search ?? '') ?>" 
-                           placeholder="Tìm theo tên, email, số điện thoại...">
+                           placeholder="Tìm theo mã người dùng, tên, email, số điện thoại...">
                 </div>
                 <div class="form-group">
                     <button type="submit" class="btn btn-primary" style="width: 100%;">Tìm kiếm</button>
@@ -41,7 +41,7 @@ $pageTitle = 'Quản lý Học sinh';
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>Mã người dùng</th>
                         <th>Họ tên</th>
                         <th>Email</th>
                         <th>Số điện thoại</th>
@@ -55,7 +55,7 @@ $pageTitle = 'Quản lý Học sinh';
                 <tbody>
                     <?php foreach ($hocSinh as $hs): ?>
                         <tr>
-                            <td><?= $hs['id'] ?></td>
+                            <td><strong><?= htmlspecialchars($hs['ma_nguoi_dung'] ?? 'N/A') ?></strong></td>
                             <td><strong><?= htmlspecialchars($hs['ho_ten']) ?></strong></td>
                             <td><?= htmlspecialchars($hs['email']) ?></td>
                             <td><?= htmlspecialchars($hs['so_dien_thoai'] ?? 'N/A') ?></td>

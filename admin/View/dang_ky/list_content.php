@@ -61,7 +61,6 @@ $pageTitle = 'Quản lý Đăng ký';
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Học sinh</th>
                         <th>Email</th>
                         <th>Số điện thoại</th>
@@ -75,7 +74,6 @@ $pageTitle = 'Quản lý Đăng ký';
                 <tbody>
                     <?php foreach ($dangKy as $dk): ?>
                         <tr>
-                            <td><?= $dk['id'] ?></td>
                             <td><strong><?= htmlspecialchars($dk['ten_hoc_sinh'] ?? 'N/A') ?></strong></td>
                             <td><?= htmlspecialchars($dk['email_hoc_sinh'] ?? 'N/A') ?></td>
                             <td><?= htmlspecialchars($dk['so_dien_thoai'] ?? 'N/A') ?></td>

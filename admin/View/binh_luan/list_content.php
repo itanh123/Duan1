@@ -54,7 +54,6 @@
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Khóa học</th>
                         <th>Học sinh</th>
                         <th>Nội dung</th>
@@ -67,7 +66,6 @@
                 <tbody>
                     <?php foreach ($binhLuan as $bl): ?>
                         <tr>
-                            <td><?= $bl['id'] ?></td>
                             <td><?= htmlspecialchars($bl['ten_khoa_hoc'] ?? 'N/A') ?></td>
                             <td><?= htmlspecialchars($bl['ten_hoc_sinh'] ?? 'N/A') ?></td>
                             <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($bl['noi_dung']) ?>">

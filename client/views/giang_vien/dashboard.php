@@ -264,7 +264,7 @@ if (session_status() === PHP_SESSION_NONE) {
             <div class="header-wrap">
                 <div class="logo">
                     <a href="?act=giang-vien-dashboard">
-                        <img src="https://websitedemos.net/be-bold-beauty-store-04/wp-content/uploads/sites/1117/2022/08/logo-regular.png" alt="Logo">
+                        <img src="./uploads/logo.png" alt="Logo">
                     </a>
                 </div>
                 <nav>
@@ -272,6 +272,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         <li><a href="?act=giang-vien-dashboard"><i class="bi bi-house-door"></i> Dashboard</a></li>
                         <li><a href="?act=giang-vien-lop-hoc"><i class="bi bi-book"></i> Lớp học của tôi</a></li>
                         <li><a href="?act=giang-vien-list-hoc-sinh"><i class="bi bi-people"></i> Danh sách học sinh</a></li>
+                        <li><a href="?act=giang-vien-profile"><i class="bi bi-person-circle"></i> Thông tin cá nhân</a></li>
                         <li style="color: var(--primary); font-weight: 600;"><i class="bi bi-person-badge"></i> <?= htmlspecialchars($_SESSION['giang_vien_ho_ten'] ?? '') ?></li>
                         <li><a href="?act=giang-vien-logout" style="color: #dc3545;"><i class="bi bi-box-arrow-right"></i> Đăng xuất</a></li>
                     </ul>

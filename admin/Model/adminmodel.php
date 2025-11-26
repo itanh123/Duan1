@@ -275,7 +275,7 @@ class adminmodel
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (nd.ho_ten LIKE :search OR nd.email LIKE :search OR nd.so_dien_thoai LIKE :search)";
+            $sql .= " AND (nd.ma_nguoi_dung LIKE :search OR nd.ho_ten LIKE :search OR nd.email LIKE :search OR nd.so_dien_thoai LIKE :search)";
             $params[':search'] = "%$search%";
         }
 
@@ -306,7 +306,7 @@ class adminmodel
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR so_dien_thoai LIKE :search)";
+            $sql .= " AND (ma_nguoi_dung LIKE :search OR ho_ten LIKE :search OR email LIKE :search OR so_dien_thoai LIKE :search)";
             $params[':search'] = "%$search%";
         }
 

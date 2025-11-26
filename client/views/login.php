@@ -162,7 +162,7 @@
         <div class="login-header">
             <div class="login-icon">🔐</div>
             <h1>Đăng nhập</h1>
-            <p>Đăng nhập với tài khoản Admin hoặc Học sinh</p>
+            <p>Đăng nhập với tài khoản Admin, Giảng viên hoặc Học sinh</p>
         </div>
 
         <?php if (isset($_SESSION['success'])): ?>

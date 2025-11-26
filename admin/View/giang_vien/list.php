@@ -241,7 +241,7 @@
                         <label>Tìm kiếm</label>
                         <input type="text" name="search" class="form-control" 
                                value="<?= htmlspecialchars($search ?? '') ?>" 
-                               placeholder="Tìm theo tên, email, số điện thoại...">
+                               placeholder="Tìm theo mã người dùng, tên, email, số điện thoại...">
                     </div>
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary" style="width: 100%;">Tìm kiếm</button>
@@ -263,7 +263,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>Mã người dùng</th>
                         <th>Họ tên</th>
                         <th>Email</th>
                         <th>Số điện thoại</th>
@@ -277,7 +277,7 @@
                 <tbody>
                     <?php foreach ($giangVien as $gv): ?>
                         <tr>
-                            <td><?= $gv['id'] ?></td>
+                            <td><strong><?= htmlspecialchars($gv['ma_nguoi_dung'] ?? 'N/A') ?></strong></td>
                             <td><?= htmlspecialchars($gv['ho_ten']) ?></td>
                             <td><?= htmlspecialchars($gv['email']) ?></td>
                             <td><?= htmlspecialchars($gv['so_dien_thoai'] ?? 'N/A') ?></td>

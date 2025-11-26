@@ -53,7 +53,6 @@ $pageTitle = 'Quản lý Ca học';
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Lớp học</th>
                         <th>Khóa học</th>
                         <th>Ca học</th>
@@ -68,7 +67,6 @@ $pageTitle = 'Quản lý Ca học';
                 <tbody>
                     <?php foreach ($caHoc as $ch): ?>
                         <tr>
-                            <td><?= $ch['id'] ?></td>
                             <td><strong><?= htmlspecialchars($ch['ten_lop'] ?? 'N/A') ?></strong></td>
                             <td><?= htmlspecialchars($ch['ten_khoa_hoc'] ?? 'N/A') ?></td>
                             <td><?= htmlspecialchars($ch['ten_ca'] ?? 'N/A') ?></td>

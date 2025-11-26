@@ -92,30 +92,10 @@ class admincontroller{
         exit;
     }
 
-    // Xử lý đăng nhập admin
+    // Xử lý đăng nhập admin - redirect về unified login
     public function processLogin(){
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
-
-        if (empty($email) || empty($password)) {
-            $_SESSION['error'] = 'Vui lòng nhập đầy đủ email và mật khẩu!';
-            header('Location: ?act=client-login');
-            exit;
-        }
-
-        $user = $this->model->login($email, $password, 'admin');
-        
-        if ($user) {
-            $_SESSION['admin_id'] = $user['id'];
-            $_SESSION['admin_email'] = $user['email'];
-            $_SESSION['admin_ho_ten'] = $user['ho_ten'];
-            $_SESSION['admin_vai_tro'] = $user['vai_tro'];
-            $_SESSION['success'] = 'Đăng nhập thành công!';
-            header('Location: ?act=admin-dashboard');
-        } else {
-            $_SESSION['error'] = 'Email hoặc mật khẩu không đúng!';
-            header('Location: ?act=client-login');
-        }
+        // Redirect về form đăng nhập chung
+        header('Location: ?act=client-login');
         exit;
     }
 

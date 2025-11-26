@@ -236,7 +236,7 @@ if (session_status() === PHP_SESSION_NONE) {
             <div class="header-wrap">
                 <div class="logo">
                     <a href="?act=client-khoa-hoc">
-                        <img src="https://via.placeholder.com/150x48/10B981/ffffff?text=LOGO" alt="Logo">
+                        <img src="./uploads/logo.png" alt="Logo">
                     </a>
                 </div>
                 <nav>
@@ -245,7 +245,8 @@ if (session_status() === PHP_SESSION_NONE) {
                             <li><a href="?act=giang-vien-dashboard" style="color: var(--primary);">Dashboard</a></li>
                             <li><a href="?act=giang-vien-lop-hoc" style="color: var(--primary);">Lớp của tôi</a></li>
                             <li><a href="?act=giang-vien-list-hoc-sinh" style="color: var(--primary);">Danh sách học sinh</a></li>
-                            <li style="color: var(--primary); font-weight: 600;">👤 <?= htmlspecialchars($_SESSION['giang_vien_ho_ten'] ?? '') ?></li>
+                            <li><a href="?act=giang-vien-profile" style="color: var(--primary);">👤 Thông tin cá nhân</a></li>
+                            <li style="color: var(--primary); font-weight: 600;"><?= htmlspecialchars($_SESSION['giang_vien_ho_ten'] ?? '') ?></li>
                             <li><a href="?act=giang-vien-logout" style="color: #dc3545;">Đăng xuất</a></li>
                         <?php else: ?>
                             <li><a href="?act=giang-vien-login" style="color: var(--primary);">Đăng nhập</a></li>

@@ -277,7 +277,6 @@
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Tên phòng</th>
                         <th>Sức chứa</th>
                         <th>Mô tả</th>
@@ -288,7 +287,6 @@
                 <tbody>
                     <?php foreach ($phongHoc as $ph): ?>
                         <tr>
-                            <td><?= $ph['id'] ?></td>
                             <td><strong><?= htmlspecialchars($ph['ten_phong']) ?></strong></td>
                             <td><?= $ph['suc_chua'] ?> người</td>
                             <td><?= htmlspecialchars($ph['mo_ta'] ?? 'N/A') ?></td>

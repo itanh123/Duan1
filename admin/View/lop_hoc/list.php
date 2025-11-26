@@ -280,7 +280,6 @@
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Tên lớp</th>
                         <th>Khóa học</th>
                         <th>Số lượng tối đa</th>
@@ -292,7 +291,6 @@
                 <tbody>
                     <?php foreach ($lopHoc as $lh): ?>
                         <tr>
-                            <td><?= $lh['id'] ?></td>
                             <td><strong><?= htmlspecialchars($lh['ten_lop']) ?></strong></td>
                             <td><?= htmlspecialchars($lh['ten_khoa_hoc'] ?? 'N/A') ?></td>
                             <td><?= $lh['so_luong_toi_da'] ? number_format($lh['so_luong_toi_da']) : 'Không giới hạn' ?></td>
