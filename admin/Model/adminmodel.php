@@ -267,11 +267,7 @@ class adminmodel
     public function getGiangVien($page = 1, $limit = 10, $search = '')
     {
         $offset = ($page - 1) * $limit;
-        $sql = "SELECT nd.*, 
-                       GROUP_CONCAT(pq.ten_quyen SEPARATOR ', ') as danh_sach_quyen
-                FROM nguoi_dung nd
-                LEFT JOIN phan_quyen pq ON nd.id = pq.id_nguoi_dung
-                WHERE nd.vai_tro = 'giang_vien'";
+        $sql = "SELECT nd.* FROM nguoi_dung nd WHERE nd.vai_tro = 'giang_vien'";
         $params = [];
 
         if (!empty($search)) {
@@ -279,7 +275,7 @@ class adminmodel
             $params[':search'] = "%$search%";
         }
 
-        $sql .= " GROUP BY nd.id ORDER BY nd.id DESC LIMIT :limit OFFSET :offset";
+        $sql .= " ORDER BY nd.id DESC LIMIT :limit OFFSET :offset";
 
         $stmt = $this->conn->prepare($sql);
         foreach ($params as $key => $value) {
@@ -288,15 +284,7 @@ class adminmodel
         $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         $stmt->execute();
-        $results = $stmt->fetchAll();
-        
-        // Xử lý danh sách quyền thành array
-        foreach ($results as &$row) {
-            $row['quyen'] = !empty($row['danh_sach_quyen']) ? explode(', ', $row['danh_sach_quyen']) : [];
-            unset($row['danh_sach_quyen']);
-        }
-        
-        return $results;
+        return $stmt->fetchAll();
     }
 
     // Đếm tổng số giảng viên
@@ -946,14 +934,37 @@ class adminmodel
     }
 
     // Lấy danh sách lớp học mà giảng viên đang dạy (với thông tin ca học)
-    public function getLopHocByGiangVien($id_giang_vien)
+    public function getLopHocByGiangVien($id_giang_vien, $filterDate = '')
     {
+        // Map thứ trong tuần
+        $thuMap = [
+            1 => 'Thứ 2',
+            2 => 'Thứ 3',
+            3 => 'Thứ 4',
+            4 => 'Thứ 5',
+            5 => 'Thứ 6',
+            6 => 'Thứ 7',
+            7 => 'Chủ nhật'
+        ];
+        
+        // Tính thứ trong tuần từ filterDate nếu có
+        $filterThu = '';
+        if ($filterDate) {
+            $filterDateObj = new DateTime($filterDate);
+            $dayOfWeek = (int)$filterDateObj->format('N'); // 1 = Monday, 7 = Sunday
+            if (isset($thuMap[$dayOfWeek])) {
+                $filterThu = $thuMap[$dayOfWeek];
+            }
+        }
+        
         $sql = "SELECT DISTINCT
                        lh.id as id_lop,
                        lh.ten_lop,
                        lh.mo_ta as mo_ta_lop,
                        lh.so_luong_toi_da,
                        lh.trang_thai as trang_thai_lop,
+                       lh.ngay_bat_dau,
+                       lh.ngay_ket_thuc,
                        kh.id as id_khoa_hoc,
                        kh.ten_khoa_hoc,
                        kh.gia,
@@ -962,6 +973,8 @@ class adminmodel
                 INNER JOIN lop_hoc lh ON ch.id_lop = lh.id
                 INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
                 WHERE ch.id_giang_vien = :id_giang_vien
+                AND lh.ngay_bat_dau IS NOT NULL
+                AND lh.ngay_ket_thuc IS NOT NULL
                 ORDER BY lh.ten_lop";
         
         $stmt = $this->conn->prepare($sql);
@@ -982,12 +995,21 @@ class adminmodel
                          LEFT JOIN ca_mac_dinh cmd ON ch.id_ca = cmd.id
                          LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
                          WHERE ch.id_lop = :id_lop
-                         AND ch.id_giang_vien = :id_giang_vien
-                         ORDER BY ch.thu_trong_tuan, cmd.gio_bat_dau";
+                         AND ch.id_giang_vien = :id_giang_vien";
+            
+            // Nếu có filter ngày, chỉ lấy ca học của thứ tương ứng
+            if ($filterThu) {
+                $sqlCaHoc .= " AND ch.thu_trong_tuan = :thu_trong_tuan";
+            }
+            
+            $sqlCaHoc .= " ORDER BY ch.thu_trong_tuan, cmd.gio_bat_dau";
             
             $stmtCaHoc = $this->conn->prepare($sqlCaHoc);
             $stmtCaHoc->bindValue(':id_lop', $lop['id_lop'], PDO::PARAM_INT);
             $stmtCaHoc->bindValue(':id_giang_vien', $id_giang_vien, PDO::PARAM_INT);
+            if ($filterThu) {
+                $stmtCaHoc->bindValue(':thu_trong_tuan', $filterThu);
+            }
             $stmtCaHoc->execute();
             $lop['ca_hoc'] = $stmtCaHoc->fetchAll();
         }
@@ -1386,11 +1408,7 @@ class adminmodel
     public function getHocSinh($page = 1, $limit = 10, $search = '')
     {
         $offset = ($page - 1) * $limit;
-        $sql = "SELECT nd.*, 
-                       GROUP_CONCAT(pq.ten_quyen SEPARATOR ', ') as danh_sach_quyen
-                FROM nguoi_dung nd
-                LEFT JOIN phan_quyen pq ON nd.id = pq.id_nguoi_dung
-                WHERE nd.vai_tro = 'hoc_sinh'";
+        $sql = "SELECT nd.* FROM nguoi_dung nd WHERE nd.vai_tro = 'hoc_sinh'";
         $params = [];
 
         if (!empty($search)) {
@@ -1398,7 +1416,7 @@ class adminmodel
             $params[':search'] = "%$search%";
         }
 
-        $sql .= " GROUP BY nd.id ORDER BY nd.id DESC LIMIT :limit OFFSET :offset";
+        $sql .= " ORDER BY nd.id DESC LIMIT :limit OFFSET :offset";
 
         $stmt = $this->conn->prepare($sql);
         foreach ($params as $key => $value) {
@@ -1407,15 +1425,7 @@ class adminmodel
         $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         $stmt->execute();
-        $results = $stmt->fetchAll();
-        
-        // Xử lý danh sách quyền thành array
-        foreach ($results as &$row) {
-            $row['quyen'] = !empty($row['danh_sach_quyen']) ? explode(', ', $row['danh_sach_quyen']) : [];
-            unset($row['danh_sach_quyen']);
-        }
-        
-        return $results;
+        return $stmt->fetchAll();
     }
 
     // Đếm tổng số học sinh
@@ -1931,237 +1941,17 @@ class adminmodel
         return $result['total'] > 0;
     }
 
-    // ===========================================
-    //  QUẢN LÝ PHÂN QUYỀN
-    // ===========================================
-
-    // Lấy danh sách phân quyền - hiển thị tất cả người dùng kèm quyền của họ
-    public function getPhanQuyen($page = 1, $limit = 10, $search = '', $id_nguoi_dung = '', $vai_tro = '')
-    {
-        $offset = ($page - 1) * $limit;
-        $limit = (int)$limit;
-        $offset = (int)$offset;
-        
-        // Lấy tất cả người dùng và quyền của họ (kể cả người chưa có quyền)
-        $sql = "SELECT nd.id as id_nguoi_dung, nd.ho_ten, nd.email, nd.vai_tro,
-                       GROUP_CONCAT(pq.id ORDER BY pq.id SEPARATOR '|') as phan_quyen_ids,
-                       GROUP_CONCAT(pq.ten_quyen ORDER BY pq.id SEPARATOR ', ') as danh_sach_quyen
-                FROM nguoi_dung nd
-                LEFT JOIN phan_quyen pq ON nd.id = pq.id_nguoi_dung
-                WHERE 1=1";
-        $params = [];
-
-        if (!empty($search)) {
-            $sql .= " AND (nd.ho_ten LIKE :search OR nd.email LIKE :search)";
-            $params[':search'] = "%$search%";
-        }
-
-        if (!empty($id_nguoi_dung)) {
-            $sql .= " AND nd.id = :id_nguoi_dung";
-            $params[':id_nguoi_dung'] = $id_nguoi_dung;
-        }
-
-        if (!empty($vai_tro)) {
-            $sql .= " AND nd.vai_tro = :vai_tro";
-            $params[':vai_tro'] = $vai_tro;
-        }
-
-        $sql .= " GROUP BY nd.id ORDER BY nd.id DESC LIMIT $limit OFFSET $offset";
-
-        $stmt = $this->conn->prepare($sql);
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
-        $stmt->execute();
-        $results = $stmt->fetchAll();
-        
-        // Xử lý để tạo cấu trúc dữ liệu phù hợp với view
-        $phanQuyenList = [];
-        foreach ($results as $row) {
-            $quyenList = !empty($row['danh_sach_quyen']) ? explode(', ', $row['danh_sach_quyen']) : [];
-            $phanQuyenIds = !empty($row['phan_quyen_ids']) ? explode('|', $row['phan_quyen_ids']) : [];
-            
-            if (empty($quyenList)) {
-                // Người dùng chưa có quyền nào - vẫn hiển thị
-                $phanQuyenList[] = [
-                    'id' => null,
-                    'id_nguoi_dung' => $row['id_nguoi_dung'],
-                    'ho_ten' => $row['ho_ten'],
-                    'email' => $row['email'],
-                    'vai_tro' => $row['vai_tro'],
-                    'ten_quyen' => null,
-                    'danh_sach_quyen' => []
-                ];
-            } else {
-                // Người dùng có quyền - tạo một dòng cho mỗi quyền
-                foreach ($quyenList as $index => $quyen) {
-                    $phanQuyenList[] = [
-                        'id' => isset($phanQuyenIds[$index]) ? $phanQuyenIds[$index] : null,
-                        'id_nguoi_dung' => $row['id_nguoi_dung'],
-                        'ho_ten' => $row['ho_ten'],
-                        'email' => $row['email'],
-                        'vai_tro' => $row['vai_tro'],
-                        'ten_quyen' => $quyen,
-                        'danh_sach_quyen' => $quyenList
-                    ];
-                }
-            }
-        }
-        
-        return $phanQuyenList;
-    }
-
-    // Đếm tổng số người dùng (để phân trang)
-    public function countPhanQuyen($search = '', $id_nguoi_dung = '', $vai_tro = '')
-    {
-        $sql = "SELECT COUNT(DISTINCT nd.id) as total 
-                FROM nguoi_dung nd
-                WHERE 1=1";
-        $params = [];
-
-        if (!empty($search)) {
-            $sql .= " AND (nd.ho_ten LIKE :search OR nd.email LIKE :search)";
-            $params[':search'] = "%$search%";
-        }
-
-        if (!empty($id_nguoi_dung)) {
-            $sql .= " AND nd.id = :id_nguoi_dung";
-            $params[':id_nguoi_dung'] = $id_nguoi_dung;
-        }
-
-        if (!empty($vai_tro)) {
-            $sql .= " AND nd.vai_tro = :vai_tro";
-            $params[':vai_tro'] = $vai_tro;
-        }
-
-        $stmt = $this->conn->prepare($sql);
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
-        $stmt->execute();
-        $result = $stmt->fetch();
-        return $result['total'];
-    }
-
-    // Lấy thông tin một phân quyền theo ID
-    public function getPhanQuyenById($id)
-    {
-        $sql = "SELECT pq.*, nd.ho_ten, nd.email, nd.vai_tro
-                FROM phan_quyen pq 
-                LEFT JOIN nguoi_dung nd ON pq.id_nguoi_dung = nd.id 
-                WHERE pq.id = :id";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetch();
-    }
-
-    // Lấy danh sách quyền của một người dùng
-    public function getQuyenByNguoiDung($id_nguoi_dung)
-    {
-        $sql = "SELECT ten_quyen FROM phan_quyen WHERE id_nguoi_dung = :id_nguoi_dung";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
-        $stmt->execute();
-        $results = $stmt->fetchAll();
-        return array_column($results, 'ten_quyen');
-    }
-
-    // Kiểm tra người dùng có quyền không
+    // Kiểm tra người dùng có quyền không (luôn trả về true vì đã bỏ phân quyền)
     public function hasPermission($id_nguoi_dung, $ten_quyen)
     {
-        // Nếu có quyền 'quan_tri' thì có tất cả quyền
-        $sql = "SELECT COUNT(*) as total FROM phan_quyen 
-                WHERE id_nguoi_dung = :id_nguoi_dung 
-                AND (ten_quyen = :ten_quyen OR ten_quyen = 'quan_tri')";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
-        $stmt->bindValue(':ten_quyen', $ten_quyen);
-        $stmt->execute();
-        $result = $stmt->fetch();
-        return $result['total'] > 0;
-    }
-
-    // Thêm phân quyền
-    public function addPhanQuyen($data)
-    {
-        // Kiểm tra quyền đã tồn tại chưa
-        $sql = "SELECT COUNT(*) as total FROM phan_quyen 
-                WHERE id_nguoi_dung = :id_nguoi_dung AND ten_quyen = :ten_quyen";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id_nguoi_dung', $data['id_nguoi_dung'], PDO::PARAM_INT);
-        $stmt->bindValue(':ten_quyen', $data['ten_quyen']);
-        $stmt->execute();
-        $result = $stmt->fetch();
-        
-        if ($result['total'] > 0) {
-            return false; // Quyền đã tồn tại
-        }
-
-        $sql = "INSERT INTO phan_quyen (id_nguoi_dung, ten_quyen) 
-                VALUES (:id_nguoi_dung, :ten_quyen)";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id_nguoi_dung', $data['id_nguoi_dung'], PDO::PARAM_INT);
-        $stmt->bindValue(':ten_quyen', $data['ten_quyen']);
-        return $stmt->execute();
-    }
-
-    // Cập nhật phân quyền
-    public function updatePhanQuyen($id, $data)
-    {
-        // Kiểm tra quyền đã tồn tại chưa (trừ ID hiện tại)
-        $sql = "SELECT COUNT(*) as total FROM phan_quyen 
-                WHERE id_nguoi_dung = :id_nguoi_dung AND ten_quyen = :ten_quyen AND id != :id";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id_nguoi_dung', $data['id_nguoi_dung'], PDO::PARAM_INT);
-        $stmt->bindValue(':ten_quyen', $data['ten_quyen']);
-        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
-        $result = $stmt->fetch();
-        
-        if ($result['total'] > 0) {
-            return false; // Quyền đã tồn tại
-        }
-
-        $sql = "UPDATE phan_quyen 
-                SET id_nguoi_dung = :id_nguoi_dung, 
-                    ten_quyen = :ten_quyen 
-                WHERE id = :id";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        $stmt->bindValue(':id_nguoi_dung', $data['id_nguoi_dung'], PDO::PARAM_INT);
-        $stmt->bindValue(':ten_quyen', $data['ten_quyen']);
-        return $stmt->execute();
-    }
-
-    // Xóa phân quyền
-    public function deletePhanQuyen($id)
-    {
-        $sql = "DELETE FROM phan_quyen WHERE id = :id";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
-    }
-
-    // Lấy danh sách người dùng để phân quyền (tất cả người dùng)
-    public function getNguoiDungForPhanQuyen()
-    {
-        $sql = "SELECT id, ho_ten, email, vai_tro 
-                FROM nguoi_dung 
-                ORDER BY vai_tro, ho_ten";
-        $stmt = $this->conn->query($sql);
-        return $stmt->fetchAll();
+        return true;
     }
 
     // Lấy danh sách admin (có quyền)
     public function getAdmin($page = 1, $limit = 10, $search = '')
     {
         $offset = ($page - 1) * $limit;
-        $sql = "SELECT nd.*, 
-                       GROUP_CONCAT(pq.ten_quyen SEPARATOR ', ') as danh_sach_quyen
-                FROM nguoi_dung nd
-                LEFT JOIN phan_quyen pq ON nd.id = pq.id_nguoi_dung
-                WHERE nd.vai_tro = 'admin'";
+        $sql = "SELECT nd.* FROM nguoi_dung nd WHERE nd.vai_tro = 'admin'";
         $params = [];
 
         if (!empty($search)) {
@@ -2169,7 +1959,7 @@ class adminmodel
             $params[':search'] = "%$search%";
         }
 
-        $sql .= " GROUP BY nd.id ORDER BY nd.id DESC LIMIT :limit OFFSET :offset";
+        $sql .= " ORDER BY nd.id DESC LIMIT :limit OFFSET :offset";
 
         $stmt = $this->conn->prepare($sql);
         foreach ($params as $key => $value) {
@@ -2178,15 +1968,7 @@ class adminmodel
         $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         $stmt->execute();
-        $results = $stmt->fetchAll();
-        
-        // Xử lý danh sách quyền thành array
-        foreach ($results as &$row) {
-            $row['quyen'] = !empty($row['danh_sach_quyen']) ? explode(', ', $row['danh_sach_quyen']) : [];
-            unset($row['danh_sach_quyen']);
-        }
-        
-        return $results;
+        return $stmt->fetchAll();
     }
 
     // Đếm tổng số admin
@@ -2211,76 +1993,15 @@ class adminmodel
         return $result['total'];
     }
 
-    // Lấy thông tin một người dùng theo ID (có quyền)
+    // Lấy thông tin một người dùng theo ID
     public function getNguoiDungById($id)
     {
-        $sql = "SELECT nd.*, 
-                       GROUP_CONCAT(pq.ten_quyen SEPARATOR ', ') as danh_sach_quyen
-                FROM nguoi_dung nd
-                LEFT JOIN phan_quyen pq ON nd.id = pq.id_nguoi_dung
-                WHERE nd.id = :id
-                GROUP BY nd.id";
+        $sql = "SELECT * FROM nguoi_dung WHERE id = :id";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
-        $result = $stmt->fetch();
-        
-        if ($result) {
-            $result['quyen'] = !empty($result['danh_sach_quyen']) ? explode(', ', $result['danh_sach_quyen']) : [];
-            unset($result['danh_sach_quyen']);
-        }
-        
-        return $result;
+        return $stmt->fetch();
     }
-
-    // Xóa tất cả quyền của một người dùng
-    public function deleteAllQuyenByNguoiDung($id_nguoi_dung)
-    {
-        $sql = "DELETE FROM phan_quyen WHERE id_nguoi_dung = :id_nguoi_dung";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
-        return $stmt->execute();
-    }
-
-    // Thêm nhiều quyền cho một người dùng
-    public function addMultipleQuyen($id_nguoi_dung, $quyenList)
-    {
-        // Xóa tất cả quyền cũ trước
-        $this->deleteAllQuyenByNguoiDung($id_nguoi_dung);
-        
-        // Thêm các quyền mới
-        if (!empty($quyenList) && is_array($quyenList)) {
-            $sql = "INSERT INTO phan_quyen (id_nguoi_dung, ten_quyen) VALUES (:id_nguoi_dung, :ten_quyen)";
-            $stmt = $this->conn->prepare($sql);
-            
-            foreach ($quyenList as $quyen) {
-                if (!empty($quyen)) {
-                    $stmt->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
-                    $stmt->bindValue(':ten_quyen', $quyen);
-                    $stmt->execute();
-                }
-            }
-        }
-        
-        return true;
-    }
-
-    // Đếm số admin có quyền quan_tri
-    public function countAdminWithQuanTri()
-    {
-        $sql = "SELECT COUNT(DISTINCT nd.id) as total 
-                FROM nguoi_dung nd
-                INNER JOIN phan_quyen pq ON nd.id = pq.id_nguoi_dung
-                INNER JOIN nguoi_dung_vai_tro ndvt ON nd.id = ndvt.id_nguoi_dung
-                WHERE ndvt.vai_tro = 'admin' AND pq.ten_quyen = 'quan_tri'";
-        $stmt = $this->conn->query($sql);
-        $result = $stmt->fetch();
-        return $result['total'];
-    }
-
-    // ===========================================
-    //  QUẢN LÝ VAI TRÒ (NHIỀU VAI TRÒ CHO 1 NGƯỜI DÙNG)
-    // ===========================================
 
     // Lấy danh sách vai trò của một người dùng
     public function getVaiTroByNguoiDung($id_nguoi_dung)
@@ -2291,68 +2012,6 @@ class adminmodel
         $stmt->execute();
         $results = $stmt->fetchAll();
         return array_column($results, 'vai_tro');
-    }
-
-    // Thêm vai trò cho người dùng
-    public function addVaiTro($id_nguoi_dung, $vai_tro)
-    {
-        // Kiểm tra vai trò đã tồn tại chưa
-        $sql = "SELECT COUNT(*) as total FROM nguoi_dung_vai_tro 
-                WHERE id_nguoi_dung = :id_nguoi_dung AND vai_tro = :vai_tro";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
-        $stmt->bindValue(':vai_tro', $vai_tro);
-        $stmt->execute();
-        $result = $stmt->fetch();
-        
-        if ($result['total'] > 0) {
-            return false; // Vai trò đã tồn tại
-        }
-
-        $sql = "INSERT INTO nguoi_dung_vai_tro (id_nguoi_dung, vai_tro) 
-                VALUES (:id_nguoi_dung, :vai_tro)";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
-        $stmt->bindValue(':vai_tro', $vai_tro);
-        return $stmt->execute();
-    }
-
-    // Xóa vai trò của người dùng
-    public function deleteVaiTro($id_nguoi_dung, $vai_tro)
-    {
-        $sql = "DELETE FROM nguoi_dung_vai_tro 
-                WHERE id_nguoi_dung = :id_nguoi_dung AND vai_tro = :vai_tro";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
-        $stmt->bindValue(':vai_tro', $vai_tro);
-        return $stmt->execute();
-    }
-
-    // Xóa tất cả vai trò của người dùng
-    public function deleteAllVaiTroByNguoiDung($id_nguoi_dung)
-    {
-        $sql = "DELETE FROM nguoi_dung_vai_tro WHERE id_nguoi_dung = :id_nguoi_dung";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
-        return $stmt->execute();
-    }
-
-    // Cập nhật vai trò (xóa tất cả và thêm lại)
-    public function updateVaiTro($id_nguoi_dung, $vaiTroList)
-    {
-        // Xóa tất cả vai trò cũ
-        $this->deleteAllVaiTroByNguoiDung($id_nguoi_dung);
-        
-        // Thêm các vai trò mới
-        if (!empty($vaiTroList) && is_array($vaiTroList)) {
-            foreach ($vaiTroList as $vai_tro) {
-                if (!empty($vai_tro)) {
-                    $this->addVaiTro($id_nguoi_dung, $vai_tro);
-                }
-            }
-        }
-        
-        return true;
     }
 
     // Kiểm tra người dùng có vai trò không
@@ -2366,30 +2025,6 @@ class adminmodel
         $stmt->execute();
         $result = $stmt->fetch();
         return $result['total'] > 0;
-    }
-
-    // Lấy thông tin người dùng kèm tất cả vai trò
-    public function getNguoiDungWithVaiTro($id_nguoi_dung)
-    {
-        $sql = "SELECT nd.*, 
-                       GROUP_CONCAT(ndvt.vai_tro SEPARATOR ', ') as danh_sach_vai_tro
-                FROM nguoi_dung nd
-                LEFT JOIN nguoi_dung_vai_tro ndvt ON nd.id = ndvt.id_nguoi_dung
-                WHERE nd.id = :id_nguoi_dung
-                GROUP BY nd.id";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
-        $stmt->execute();
-        $result = $stmt->fetch();
-        
-        if ($result) {
-            $result['vai_tro_list'] = !empty($result['danh_sach_vai_tro']) 
-                ? explode(', ', $result['danh_sach_vai_tro']) 
-                : [];
-            unset($result['danh_sach_vai_tro']);
-        }
-        
-        return $result;
     }
 
     // ===========================================

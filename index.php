@@ -113,6 +113,7 @@ match ($act) {
     'giang-vien-lop-hoc' => $giangVienController->myClasses(),
     'giang-vien-list-hoc-sinh' => $giangVienController->listHocSinh(),
     'giang-vien-view-hoc-sinh-detail' => $giangVienController->viewHocSinhDetail(),
+    'giang-vien-view-hoc-sinh-trong-lop' => $giangVienController->viewHocSinhTrongLop(),
     'giang-vien-profile' => $giangVienController->profile(),
     
     // ============================
@@ -250,22 +251,6 @@ match ($act) {
     'admin-edit-phong-hoc' => $adminController->editPhongHoc(),
     'admin-update-phong-hoc' => $adminController->updatePhongHoc(),
     'admin-delete-phong-hoc' => $adminController->deletePhongHoc(),
-    
-    // ============================
-    //  ADMIN - QUẢN LÝ PHÂN QUYỀN
-    // ============================
-    
-    // Quản lý phân quyền
-    'admin-list-phan-quyen' => $adminController->listPhanQuyen(),
-    'admin-add-phan-quyen' => $adminController->addPhanQuyen(),
-    'admin-save-phan-quyen' => $adminController->savePhanQuyen(),
-    'admin-edit-phan-quyen' => $adminController->editPhanQuyen(),
-    'admin-update-phan-quyen' => $adminController->updatePhanQuyen(),
-    'admin-delete-phan-quyen' => $adminController->deletePhanQuyen(),
-    'admin-manage-quyen-nguoi-dung' => $adminController->manageQuyenNguoiDung(),
-    'admin-update-quyen-nguoi-dung' => $adminController->updateQuyenNguoiDung(),
-    'admin-manage-vai-tro-nguoi-dung' => $adminController->manageVaiTroNguoiDung(),
-    'admin-update-vai-tro-nguoi-dung' => $adminController->updateVaiTroNguoiDung(),
     
     // Quản lý tài khoản
     'admin-list-tai-khoan' => $adminController->listTaiKhoan(),

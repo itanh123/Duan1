@@ -1,6 +1,6 @@
 <?php
 // views/giang_vien/dashboard.php
-// Biến có sẵn: $lopHocs (danh sách lớp học mà giảng viên đang dạy), $hocSinhList (danh sách học sinh đã đăng ký)
+// Biến có sẵn: $scheduleItems (danh sách lịch dạy đã tính toán ngày), $hocSinhList (danh sách học sinh đã đăng ký)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -294,7 +294,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     <i class="bi bi-book"></i>
                 </div>
                 <div class="stat-info">
-                    <h3><?= count($lopHocs) ?></h3>
+                    <h3><?= count(array_unique(array_column($scheduleItems ?? [], 'id_lop'))) ?></h3>
                     <p>Lớp học đang dạy</p>
                 </div>
             </div>
@@ -303,8 +303,8 @@ if (session_status() === PHP_SESSION_NONE) {
                     <i class="bi bi-calendar-check"></i>
                 </div>
                 <div class="stat-info">
-                    <h3><?= array_sum(array_map(function($lop) { return count($lop['ca_hoc']); }, $lopHocs)) ?></h3>
-                    <p>Ca học trong tuần</p>
+                    <h3><?= count($scheduleItems ?? []) ?></h3>
+                    <p>Ca học trong lịch</p>
                 </div>
             </div>
         </div>
@@ -315,51 +315,127 @@ if (session_status() === PHP_SESSION_NONE) {
                 <h2><i class="bi bi-calendar3"></i> Lịch dạy của tôi</h2>
             </div>
             <div class="section-body">
-                <?php if (empty($lopHocs)): ?>
+                <!-- Bộ lọc theo khoảng thời gian -->
+                <form method="GET" action="?act=giang-vien-dashboard" class="mb-4">
+                    <input type="hidden" name="act" value="giang-vien-dashboard">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="tu_ngay" class="form-label"><i class="bi bi-calendar"></i> Từ ngày:</label>
+                            <input type="date" class="form-control" id="tu_ngay" name="tu_ngay" 
+                                   value="<?= htmlspecialchars($tuNgay ?? '') ?>">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="den_ngay" class="form-label"><i class="bi bi-calendar-check"></i> Đến ngày:</label>
+                            <input type="date" class="form-control" id="den_ngay" name="den_ngay" 
+                                   value="<?= htmlspecialchars($denNgay ?? '') ?>">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2"><i class="bi bi-search"></i> Lọc</button>
+                            <a href="?act=giang-vien-dashboard" class="btn btn-secondary"><i class="bi bi-x-circle"></i> Xóa bộ lọc</a>
+                        </div>
+                    </div>
+                </form>
+
+                <?php if (empty($scheduleItems)): ?>
                     <div class="empty-state">
                         <i class="bi bi-calendar-x"></i>
-                        <p>Bạn chưa có lịch dạy nào.</p>
+                        <p>
+                            <?php if (!empty($tuNgay) || !empty($denNgay)): ?>
+                                Không tìm thấy lịch dạy trong khoảng thời gian đã chọn.
+                            <?php else: ?>
+                                Bạn chưa có lịch dạy nào. Lịch chỉ hiển thị khi lớp học có thời điểm bắt đầu và kết thúc.
+                            <?php endif; ?>
+                        </p>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($lopHocs as $lop): ?>
-                        <?php if (!empty($lop['ca_hoc'])): ?>
-                            <?php foreach ($lop['ca_hoc'] as $ca): ?>
-                                <div class="schedule-item">
-                                    <div class="schedule-header">
-                                        <h4><?= htmlspecialchars($lop['ten_lop']) ?></h4>
-                                        <span class="badge bg-primary"><?= htmlspecialchars($lop['ten_khoa_hoc']) ?></span>
-                                    </div>
-                                    <div class="schedule-details">
-                                        <div class="schedule-detail-item">
-                                            <strong><i class="bi bi-calendar-week"></i> Thứ:</strong>
-                                            <span><?= htmlspecialchars($ca['thu_trong_tuan']) ?></span>
-                                        </div>
-                                        <div class="schedule-detail-item">
-                                            <strong><i class="bi bi-clock"></i> Ca học:</strong>
-                                            <span><?= htmlspecialchars($ca['ten_ca'] ?? 'Chưa có') ?></span>
-                                        </div>
-                                        <?php if (!empty($ca['gio_bat_dau']) && !empty($ca['gio_ket_thuc'])): ?>
-                                            <div class="schedule-detail-item">
-                                                <strong><i class="bi bi-clock-history"></i> Giờ:</strong>
-                                                <span><?= htmlspecialchars($ca['gio_bat_dau']) ?> - <?= htmlspecialchars($ca['gio_ket_thuc']) ?></span>
-                                            </div>
-                                        <?php endif; ?>
-                                        <?php if (!empty($ca['ten_phong'])): ?>
-                                            <div class="schedule-detail-item">
-                                                <strong><i class="bi bi-door-open"></i> Phòng:</strong>
-                                                <span><?= htmlspecialchars($ca['ten_phong']) ?></span>
-                                            </div>
-                                        <?php endif; ?>
-                                        <?php if (!empty($ca['suc_chua'])): ?>
-                                            <div class="schedule-detail-item">
-                                                <strong><i class="bi bi-people"></i> Sức chứa:</strong>
-                                                <span><?= htmlspecialchars($ca['suc_chua']) ?> người</span>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
+                    <?php foreach ($scheduleItems as $item): 
+                        // Lấy học sinh trong lớp này
+                        $hocSinhTrongLop = array_filter($hocSinhList ?? [], function($hs) use ($item) {
+                            return isset($hs['id_lop']) && $hs['id_lop'] == $item['id_lop'];
+                        });
+                        $hocSinhTrongLop = array_values($hocSinhTrongLop);
+                    ?>
+                        <div class="schedule-item">
+                            <div class="schedule-header">
+                                <h4><?= htmlspecialchars($item['ten_lop']) ?></h4>
+                                <span class="badge bg-primary"><?= htmlspecialchars($item['ten_khoa_hoc']) ?></span>
+                            </div>
+                            <div class="schedule-details">
+                                <div class="schedule-detail-item">
+                                    <strong><i class="bi bi-calendar-week"></i> Thứ:</strong>
+                                    <span><?= htmlspecialchars($item['thu_trong_tuan']) ?></span>
                                 </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                                <?php if (!empty($item['ngay_hoc_formatted'])): ?>
+                                    <div class="schedule-detail-item">
+                                        <strong><i class="bi bi-calendar-date"></i> Ngày học:</strong>
+                                        <span class="text-primary fw-bold"><?= htmlspecialchars($item['ngay_hoc_formatted']) ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <div class="schedule-detail-item">
+                                    <strong><i class="bi bi-clock"></i> Ca học:</strong>
+                                    <span><?= htmlspecialchars($item['ten_ca'] ?? 'Chưa có') ?></span>
+                                </div>
+                                <?php if (!empty($item['gio_bat_dau']) && !empty($item['gio_ket_thuc'])): ?>
+                                    <div class="schedule-detail-item">
+                                        <strong><i class="bi bi-clock-history"></i> Giờ:</strong>
+                                        <span><?= htmlspecialchars($item['gio_bat_dau']) ?> - <?= htmlspecialchars($item['gio_ket_thuc']) ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (!empty($item['ten_phong'])): ?>
+                                    <div class="schedule-detail-item">
+                                        <strong><i class="bi bi-door-open"></i> Phòng:</strong>
+                                        <span><?= htmlspecialchars($item['ten_phong']) ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (!empty($item['suc_chua'])): ?>
+                                    <div class="schedule-detail-item">
+                                        <strong><i class="bi bi-people"></i> Sức chứa:</strong>
+                                        <span><?= htmlspecialchars($item['suc_chua']) ?> người</span>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="mt-3 pt-3 border-top">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0"><i class="bi bi-people-fill"></i> Học sinh trong lớp (<?= count($hocSinhTrongLop) ?>)</h6>
+                                    <a href="?act=giang-vien-view-hoc-sinh-trong-lop&id_lop=<?= $item['id_lop'] ?>" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="bi bi-eye"></i> Xem tất cả
+                                    </a>
+                                </div>
+                                <?php if (!empty($hocSinhTrongLop)): ?>
+                                    <div class="row g-2">
+                                        <?php 
+                                        // Chỉ hiển thị 3 học sinh đầu tiên
+                                        $hocSinhHienThi = array_slice($hocSinhTrongLop, 0, 3);
+                                        foreach ($hocSinhHienThi as $hs): 
+                                        ?>
+                                            <div class="col-md-6">
+                                                <div class="student-item">
+                                                    <div class="student-info">
+                                                        <h6 class="mb-1"><?= htmlspecialchars($hs['ho_ten']) ?></h6>
+                                                        <p class="mb-0 text-muted small">
+                                                            <?php if (!empty($hs['email'])): ?>
+                                                                <i class="bi bi-envelope"></i> <?= htmlspecialchars($hs['email']) ?>
+                                                            <?php endif; ?>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                        <?php if (count($hocSinhTrongLop) > 3): ?>
+                                            <div class="col-12">
+                                                <p class="text-muted small mb-0">
+                                                    <i class="bi bi-three-dots"></i> 
+                                                    Và <?= count($hocSinhTrongLop) - 3 ?> học sinh khác...
+                                                </p>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <p class="text-muted small mb-0">Lớp này chưa có học sinh đăng ký.</p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
