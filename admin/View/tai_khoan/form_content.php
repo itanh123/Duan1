@@ -212,9 +212,6 @@ $pageTitle = 'Sửa Tài khoản: ' . htmlspecialchars($taiKhoan['ho_ten']);
                     <span class="badge badge-secondary">Chưa phân vai trò</span>
                 <?php endif; ?>
             </div>
-            <div class="help-text">
-                <a href="?act=admin-manage-vai-tro-nguoi-dung&id_nguoi_dung=<?= $taiKhoan['id'] ?>">Quản lý vai trò</a>
-            </div>
         </div>
 
         <div class="form-group">

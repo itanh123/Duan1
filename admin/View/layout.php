@@ -268,15 +268,6 @@ $hasXem = $hasQuanTri || $adminModel->hasPermission($adminId, 'xem');
                 <?php endif; ?>
             </div>
             
-            <?php if ($hasQuanTri): ?>
-            <div class="menu-section">
-                <div class="menu-section-title">Quản lý hệ thống</div>
-                <a href="?act=admin-list-phan-quyen" class="menu-item <?= (isset($_GET['act']) && strpos($_GET['act'], 'phan-quyen') !== false) ? 'active' : '' ?>">
-                    <span class="menu-item-icon">🔐</span>
-                    Phân Quyền
-                </a>
-            </div>
-            <?php endif; ?>
             
             <div class="menu-section">
                 <div class="menu-section-title">Quản lý người dùng</div>
