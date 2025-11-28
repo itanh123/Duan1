@@ -1,6 +1,6 @@
 <?php
-// views/khoa_hoc/my_classes.php
-// Biến có sẵn: $lopHocs (danh sách lớp học mà học sinh đã đăng ký)
+// views/giang_vien/hoc_sinh_detail.php
+// Biến có sẵn: $hocSinh, $lopHocs
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -10,7 +10,11 @@ if (session_status() === PHP_SESSION_NONE) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lớp học của tôi - Trang bán khóa học lập trình</title>
+    <title>Chi tiết Học sinh - <?= htmlspecialchars($hocSinh['ho_ten']) ?></title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         :root {
             --primary: #10B981;
@@ -30,7 +34,7 @@ if (session_status() === PHP_SESSION_NONE) {
         body {
             font-family: Inter, Arial, sans-serif;
             color: var(--text);
-            background: #fafafa;
+            background: #f5f5f5;
             line-height: 1.6;
         }
 
@@ -46,6 +50,7 @@ if (session_status() === PHP_SESSION_NONE) {
             position: sticky;
             top: 0;
             z-index: 999;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .header-wrap {
@@ -63,6 +68,7 @@ if (session_status() === PHP_SESSION_NONE) {
             list-style: none;
             display: flex;
             gap: 24px;
+            align-items: center;
         }
 
         nav a {
@@ -78,93 +84,50 @@ if (session_status() === PHP_SESSION_NONE) {
 
         .page-title {
             margin: 30px 0;
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 700;
             color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
+        .info-card {
             background: #fff;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 24px;
+            margin-bottom: 30px;
         }
 
-        .empty-state p {
-            font-size: 16px;
-            color: var(--muted);
+        .info-card h3 {
             margin-bottom: 20px;
+            color: var(--text);
+            font-size: 20px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 10px;
         }
 
-        .btn-primary {
-            display: inline-block;
-            padding: 12px 24px;
-            background: var(--primary);
-            color: #fff;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: .2s;
-        }
-
-        .btn-primary:hover {
-            background: #059669;
-        }
-
-        .class-card {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 24px;
-            overflow: hidden;
-            transition: .2s;
-        }
-
-        .class-card:hover {
-            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-        }
-
-        .class-header {
-            padding: 20px;
-            background: linear-gradient(135deg, var(--primary) 0%, #059669 100%);
-            color: #fff;
-        }
-
-        .class-header h2 {
-            font-size: 22px;
-            margin-bottom: 8px;
-        }
-
-        .class-header .course-name {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .class-body {
-            padding: 20px;
-        }
-
-        .class-info {
+        .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-            margin-bottom: 20px;
         }
 
         .info-item {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            gap: 5px;
         }
 
         .info-item strong {
             color: var(--text);
-            min-width: 100px;
+            font-size: 14px;
         }
 
         .info-item span {
             color: var(--muted);
+            font-size: 14px;
         }
 
         .status-badge {
@@ -173,12 +136,57 @@ if (session_status() === PHP_SESSION_NONE) {
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
-            text-transform: uppercase;
         }
 
-        .status-confirmed {
+        .status-active {
             background: #d4edda;
             color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .class-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .class-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        .class-header h3 {
+            margin: 0 0 5px 0;
+            font-size: 20px;
+        }
+
+        .class-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .class-body {
+            padding: 20px;
+        }
+
+        .class-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
         .schedule-section {
@@ -187,10 +195,10 @@ if (session_status() === PHP_SESSION_NONE) {
             border-top: 1px solid #eee;
         }
 
-        .schedule-section h3 {
-            font-size: 18px;
+        .schedule-section h4 {
             margin-bottom: 15px;
             color: var(--text);
+            font-size: 18px;
         }
 
         .schedule-list {
@@ -202,14 +210,11 @@ if (session_status() === PHP_SESSION_NONE) {
             padding: 15px;
             background: #f8f9fa;
             border-radius: 8px;
-            border-left: 4px solid var(--primary);
+            border-left: 4px solid #667eea;
         }
 
         .schedule-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .schedule-item-header strong {
@@ -225,18 +230,33 @@ if (session_status() === PHP_SESSION_NONE) {
             color: var(--muted);
         }
 
-        .schedule-item-details span {
-            display: flex;
-            align-items: center;
-            gap: 6px;
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
         }
 
-        .no-schedule {
-            padding: 20px;
-            text-align: center;
-            color: var(--muted);
-            background: #f8f9fa;
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .btn-back {
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
             border-radius: 8px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 20px;
+            transition: .2s;
+        }
+
+        .btn-back:hover {
+            background: #059669;
+            color: white;
         }
     </style>
 </head>
@@ -245,25 +265,18 @@ if (session_status() === PHP_SESSION_NONE) {
         <div class="container">
             <div class="header-wrap">
                 <div class="logo">
-                    <a href="?act=client-khoa-hoc">
+                    <a href="?act=giang-vien-dashboard">
                         <img src="./uploads/logo.png" alt="Logo">
                     </a>
                 </div>
                 <nav>
                     <ul>
-                        <li><a href="?act=client-khoa-hoc">Khóa học</a></li>
-                        <li><a href="?act=client-lop-hoc">Lớp học</a></li>
-                        <li><a href="?act=client-danh-muc">Danh mục</a></li>
-                        <li><a href="?act=client-giang-vien">Giảng viên</a></li>
-                        <?php if (isset($_SESSION['client_id']) && (!isset($_SESSION['client_vai_tro']) || $_SESSION['client_vai_tro'] === 'hoc_sinh')): ?>
-                            <li><a href="?act=client-khoa-hoc-da-dang-ky" style="color: var(--primary); font-weight: 600;">📚 Khóa học của tôi</a></li>
-                            <li><a href="?act=client-hoc-sinh-lop-hoc" style="color: var(--primary);">Lớp của tôi</a></li>
-                            <li><a href="?act=client-profile" style="color: var(--primary);">👤 Thông tin cá nhân</a></li>
-                            <li style="color: var(--primary); font-weight: 600;"><?= htmlspecialchars($_SESSION['client_ho_ten'] ?? '') ?></li>
-                            <li><a href="?act=client-logout" style="color: #dc3545;">Đăng xuất</a></li>
-                        <?php else: ?>
-                            <li><a href="?act=client-login">Đăng nhập</a></li>
-                        <?php endif; ?>
+                        <li><a href="?act=giang-vien-dashboard"><i class="bi bi-house-door"></i> Dashboard</a></li>
+                        <li><a href="?act=giang-vien-lop-hoc"><i class="bi bi-book"></i> Lớp học của tôi</a></li>
+                        <li><a href="?act=giang-vien-list-hoc-sinh"><i class="bi bi-people"></i> Danh sách học sinh</a></li>
+                        <li><a href="?act=giang-vien-profile"><i class="bi bi-person-circle"></i> Thông tin cá nhân</a></li>
+                        <li style="color: var(--primary); font-weight: 600;"><i class="bi bi-person-badge"></i> <?= htmlspecialchars($_SESSION['giang_vien_ho_ten'] ?? '') ?></li>
+                        <li><a href="?act=giang-vien-logout" style="color: #dc3545;"><i class="bi bi-box-arrow-right"></i> Đăng xuất</a></li>
                     </ul>
                 </nav>
             </div>
@@ -271,40 +284,101 @@ if (session_status() === PHP_SESSION_NONE) {
     </header>
 
     <div class="container">
-        <h1 class="page-title">Lớp học của tôi</h1>
+        <a href="?act=giang-vien-list-hoc-sinh" class="btn-back">
+            <i class="bi bi-arrow-left"></i> Quay lại
+        </a>
 
+        <h1 class="page-title">
+            <i class="bi bi-person-circle"></i>
+            Chi tiết học sinh: <?= htmlspecialchars($hocSinh['ho_ten']) ?>
+        </h1>
+
+        <!-- Thông tin học sinh -->
+        <div class="info-card">
+            <h3>Thông tin học sinh</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>Họ tên:</strong>
+                    <span><?= htmlspecialchars($hocSinh['ho_ten']) ?></span>
+                </div>
+                <div class="info-item">
+                    <strong>Email:</strong>
+                    <span><?= htmlspecialchars($hocSinh['email']) ?></span>
+                </div>
+                <div class="info-item">
+                    <strong>Số điện thoại:</strong>
+                    <span><?= htmlspecialchars($hocSinh['so_dien_thoai'] ?? 'N/A') ?></span>
+                </div>
+                <div class="info-item">
+                    <strong>Địa chỉ:</strong>
+                    <span><?= htmlspecialchars($hocSinh['dia_chi'] ?? 'N/A') ?></span>
+                </div>
+                <div class="info-item">
+                    <strong>Trạng thái:</strong>
+                    <span class="status-badge <?= $hocSinh['trang_thai'] == 1 ? 'status-active' : 'status-inactive' ?>">
+                        <?= $hocSinh['trang_thai'] == 1 ? 'Hoạt động' : 'Khóa' ?>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danh sách lớp học -->
         <?php if (empty($lopHocs)): ?>
-            <div class="empty-state">
-                <p>Bạn chưa đăng ký lớp học nào.</p>
-                <a href="?act=client-khoa-hoc" class="btn-primary">Xem khóa học</a>
+            <div class="info-card">
+                <div class="empty-state">
+                    <i class="bi bi-book-x"></i>
+                    <p>Học sinh này chưa đăng ký lớp học nào.</p>
+                </div>
             </div>
         <?php else: ?>
+            <h2 style="margin-bottom: 20px; color: var(--text);">Danh sách lớp học đã đăng ký</h2>
+            
             <?php foreach ($lopHocs as $lop): ?>
                 <div class="class-card">
                     <div class="class-header">
-                        <h2><?= htmlspecialchars($lop['ten_lop']) ?></h2>
-                        <div class="course-name">Khóa học: <?= htmlspecialchars($lop['ten_khoa_hoc']) ?></div>
+                        <h3><?= htmlspecialchars($lop['ten_lop']) ?></h3>
+                        <p>Khóa học: <?= htmlspecialchars($lop['ten_khoa_hoc']) ?></p>
                     </div>
                     <div class="class-body">
                         <div class="class-info">
                             <div class="info-item">
-                                <strong>Trạng thái:</strong>
-                                <span class="status-badge status-confirmed"><?= htmlspecialchars($lop['trang_thai_dang_ky']) ?></span>
+                                <strong>Trạng thái đăng ký:</strong>
+                                <?php
+                                $trangThaiClass = 'status-active';
+                                if ($lop['trang_thai_dang_ky'] == 'Đã xác nhận') {
+                                    $trangThaiClass = 'status-active';
+                                } elseif ($lop['trang_thai_dang_ky'] == 'Chờ xác nhận') {
+                                    $trangThaiClass = 'status-warning';
+                                } elseif ($lop['trang_thai_dang_ky'] == 'Đã hủy') {
+                                    $trangThaiClass = 'status-inactive';
+                                }
+                                ?>
+                                <span class="status-badge <?= $trangThaiClass ?>" style="margin-top: 5px; display: inline-block;">
+                                    <?= htmlspecialchars($lop['trang_thai_dang_ky']) ?>
+                                </span>
                             </div>
                             <div class="info-item">
                                 <strong>Ngày đăng ký:</strong>
                                 <span><?= date('d/m/Y', strtotime($lop['ngay_dang_ky'])) ?></span>
                             </div>
-                            <?php if (!empty($lop['mo_ta_lop'])): ?>
-                                <div class="info-item" style="grid-column: 1 / -1;">
-                                    <strong>Mô tả:</strong>
-                                    <span><?= htmlspecialchars($lop['mo_ta_lop']) ?></span>
+                            <?php if (!empty($lop['so_luong_toi_da'])): ?>
+                                <div class="info-item">
+                                    <strong>Số lượng tối đa:</strong>
+                                    <span><?= $lop['so_luong_toi_da'] ?> học sinh</span>
                                 </div>
                             <?php endif; ?>
                         </div>
 
+                        <?php if (!empty($lop['mo_ta_lop'])): ?>
+                            <div style="margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                                <strong>Mô tả lớp học:</strong>
+                                <p style="margin: 5px 0 0 0; color: var(--muted);"><?= htmlspecialchars($lop['mo_ta_lop']) ?></p>
+                            </div>
+                        <?php endif; ?>
+
                         <div class="schedule-section">
-                            <h3>Lịch học</h3>
+                            <h4>Lịch học</h4>
+                            
                             <?php if (!empty($lop['ca_hoc'])): ?>
                                 <div class="schedule-list">
                                     <?php foreach ($lop['ca_hoc'] as $ca): ?>
@@ -351,8 +425,8 @@ if (session_status() === PHP_SESSION_NONE) {
                                     <?php endforeach; ?>
                                 </div>
                             <?php else: ?>
-                                <div class="no-schedule">
-                                    Lớp học này chưa có lịch học được phân công.
+                                <div class="empty-state">
+                                    <p>Lớp học này chưa có lịch học được phân công.</p>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -361,6 +435,9 @@ if (session_status() === PHP_SESSION_NONE) {
             <?php endforeach; ?>
         <?php endif; ?>
     </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 

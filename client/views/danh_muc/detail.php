@@ -294,7 +294,7 @@
     <header>
         <div class="container header-wrap">
             <div class="logo">
-                <img src="https://websitedemos.net/be-bold-beauty-store-04/wp-content/uploads/sites/1117/2022/08/logo-regular.png" alt="Logo">
+                <img src="./uploads/logo.png" alt="Logo">
             </div>
             <nav>
                 <ul>

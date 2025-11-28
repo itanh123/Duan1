@@ -20,15 +20,20 @@ class VNPayController {
         // Kiểm tra và hủy các đăng ký quá hạn trước khi xử lý callback
         $this->khoaHocModel->huyDangKyQuaHan();
         
-        $vnp_SecureHash = $_GET['vnp_SecureHash'] ?? '';
-        $vnp_ResponseCode = $_GET['vnp_ResponseCode'] ?? '';
         $vnp_TxnRef = $_GET['vnp_TxnRef'] ?? '';
+        $vnp_TransactionDate = $_GET['vnp_TransactionDate'] ?? $_GET['vnp_CreateDate'] ?? date('YmdHis');
         
-        // Xác thực dữ liệu từ VNPay
-        $paymentInfo = VNPayHelper::verifyPayment($_GET);
+        if (empty($vnp_TxnRef)) {
+            $_SESSION['error'] = 'Thiếu thông tin giao dịch!';
+            header('Location: index.php?act=client-khoa-hoc');
+            exit;
+        }
         
-        if ($paymentInfo === false || !isset($paymentInfo['verified'])) {
-            $_SESSION['error'] = 'Dữ liệu không hợp lệ!';
+        // Xác thực dữ liệu từ callback URL trước
+        $callbackInfo = VNPayHelper::verifyPayment($_GET);
+        
+        if ($callbackInfo === false || !isset($callbackInfo['verified'])) {
+            $_SESSION['error'] = 'Dữ liệu callback không hợp lệ!';
             header('Location: index.php?act=client-khoa-hoc');
             exit;
         }
@@ -42,15 +47,28 @@ class VNPayController {
             exit;
         }
         
-        // Xử lý theo response code
+        // QUAN TRỌNG: Gọi API VNPay để lấy thông tin chính xác từ server
+        // Ưu tiên dùng API, nhưng nếu fail thì fallback về callback
+        $paymentInfo = VNPayHelper::queryTransaction($vnp_TxnRef, $vnp_TransactionDate);
+        
+        // Nếu API query fail, fallback về callback info (nhưng vẫn ưu tiên API)
+        if ($paymentInfo === false || !isset($paymentInfo['verified'])) {
+            error_log("Không thể query thông tin giao dịch từ VNPay API - TxnRef: $vnp_TxnRef. Sử dụng callback info.");
+            // Fallback: sử dụng thông tin từ callback nếu hợp lệ
+            $paymentInfo = $callbackInfo;
+        }
+        
+        $vnp_ResponseCode = $paymentInfo['vnp_ResponseCode'] ?? '';
+        
+        // Xử lý theo response code từ API
         if ($vnp_ResponseCode === '00') {
-            // Thanh toán thành công
+            // Thanh toán thành công - Lấy số tiền từ API response
             $so_tien = ($paymentInfo['vnp_Amount'] ?? 0) / 100; // Chia 100 để lấy số tiền thực
             
-            // Cập nhật thông tin VNPay vào đăng ký
+            // Cập nhật thông tin VNPay vào đăng ký (từ API response)
             $this->khoaHocModel->updateVNPayInfo(
                 $vnp_TxnRef,
-                $paymentInfo['vnp_TransactionNo'],
+                $paymentInfo['vnp_TransactionNo'] ?? '',
                 $vnp_ResponseCode
             );
             
@@ -60,13 +78,13 @@ class VNPayController {
                 'trang_thai' => 'Đã xác nhận'
             ]);
             
-            // Lưu vào bảng thanh_toan
+            // Lưu vào bảng thanh_toan với số tiền từ API
             $this->saveThanhToan(
                 $dangKy['id_hoc_sinh'],
                 $dangKy['id'],
                 'VNPAY',
                 $so_tien,
-                $paymentInfo['vnp_TransactionNo']
+                $paymentInfo['vnp_TransactionNo'] ?? ''
             );
             
             $_SESSION['success'] = 'Thanh toán thành công! Đăng ký khóa học của bạn đã được xác nhận.';
@@ -147,16 +165,35 @@ class VNPayController {
         require_once __DIR__ . '/../../Commons/vnpay_helper.php';
         require_once __DIR__ . '/../../admin/Model/adminmodel.php';
         
-        // Xác thực dữ liệu từ VNPay
-        $paymentInfo = VNPayHelper::verifyPayment($_GET);
+        $vnp_TxnRef = $_GET['vnp_TxnRef'] ?? '';
+        $vnp_TransactionDate = $_GET['vnp_TransactionDate'] ?? $_GET['vnp_CreateDate'] ?? date('YmdHis');
         
-        if ($paymentInfo === false || !isset($paymentInfo['verified'])) {
+        if (empty($vnp_TxnRef)) {
             http_response_code(400);
             echo "INVALID";
             exit;
         }
         
-        $vnp_TxnRef = $paymentInfo['vnp_TxnRef'] ?? '';
+        // Xác thực dữ liệu từ callback URL trước
+        $callbackInfo = VNPayHelper::verifyPayment($_GET);
+        
+        if ($callbackInfo === false || !isset($callbackInfo['verified'])) {
+            http_response_code(400);
+            echo "INVALID";
+            exit;
+        }
+        
+        // QUAN TRỌNG: Gọi API VNPay để lấy thông tin chính xác từ server
+        // Ưu tiên dùng API, nhưng nếu fail thì fallback về callback
+        $paymentInfo = VNPayHelper::queryTransaction($vnp_TxnRef, $vnp_TransactionDate);
+        
+        // Nếu API query fail, fallback về callback info (nhưng vẫn ưu tiên API)
+        if ($paymentInfo === false || !isset($paymentInfo['verified'])) {
+            error_log("IPN - Không thể query thông tin giao dịch từ VNPay API - TxnRef: $vnp_TxnRef. Sử dụng callback info.");
+            // Fallback: sử dụng thông tin từ callback nếu hợp lệ
+            $paymentInfo = $callbackInfo;
+        }
+        
         $vnp_ResponseCode = $paymentInfo['vnp_ResponseCode'] ?? '';
         
         // Lấy thông tin đăng ký
@@ -168,7 +205,7 @@ class VNPayController {
             exit;
         }
         
-        // Cập nhật thông tin VNPay
+        // Cập nhật thông tin VNPay từ API response
         $this->khoaHocModel->updateVNPayInfo(
             $vnp_TxnRef,
             $paymentInfo['vnp_TransactionNo'] ?? '',
@@ -183,7 +220,7 @@ class VNPayController {
                 'trang_thai' => 'Đã xác nhận'
             ]);
             
-            // Lưu vào bảng thanh_toan (kiểm tra xem đã lưu chưa)
+            // Lưu vào bảng thanh_toan với số tiền từ API
             $so_tien = ($paymentInfo['vnp_Amount'] ?? 0) / 100;
             $this->saveThanhToan(
                 $dangKy['id_hoc_sinh'],

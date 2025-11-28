@@ -102,8 +102,8 @@ match ($act) {
     // ============================
     //  GIẢNG VIÊN - ĐĂNG NHẬP/ĐĂNG XUẤT
     // ============================
-    'giang-vien-login' => $giangVienController->login(),
-    'giang-vien-process-login' => $giangVienController->processLogin(),
+    'giang-vien-login' => $giangVienController->login(), // Redirect về unified login
+    'giang-vien-process-login' => $giangVienController->processLogin(), // Redirect về unified login
     'giang-vien-logout' => $giangVienController->logout(),
     
     // ============================
@@ -111,6 +111,9 @@ match ($act) {
     // ============================
     'giang-vien-dashboard' => $giangVienController->dashboard(),
     'giang-vien-lop-hoc' => $giangVienController->myClasses(),
+    'giang-vien-list-hoc-sinh' => $giangVienController->listHocSinh(),
+    'giang-vien-view-hoc-sinh-detail' => $giangVienController->viewHocSinhDetail(),
+    'giang-vien-profile' => $giangVienController->profile(),
     
     // ============================
     //  CLIENT - XEM DANH SÁCH GIẢNG VIÊN
@@ -122,6 +125,7 @@ match ($act) {
     // ============================
     'client-hoc-sinh-lop-hoc' => $khoaHocController->myClasses(),
     'client-khoa-hoc-da-dang-ky' => $khoaHocController->myCourses(),
+    'client-profile' => $khoaHocController->profile(),
     
     // ============================
     //  VNPAY - THANH TOÁN
@@ -132,7 +136,7 @@ match ($act) {
     //  ADMIN - ĐĂNG NHẬP/ĐĂNG XUẤT
     // ============================
     'admin-login' => $adminController->login(),
-    'admin-process-login' => $adminController->processLogin(),
+    'admin-process-login' => $adminController->processLogin(), // Redirect về unified login
     'admin-logout' => $adminController->logout(),
     
     // ============================

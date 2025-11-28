@@ -358,7 +358,7 @@
     <header>
         <div class="container header-wrap">
             <div class="logo">
-                <img src="https://websitedemos.net/be-bold-beauty-store-04/wp-content/uploads/sites/1117/2022/08/logo-regular.png" alt="Logo">
+                <img src="./uploads/logo.png" alt="Logo">
             </div>
             <nav>
                 <ul>
@@ -378,7 +378,8 @@
                     <?php if (isset($_SESSION['client_id']) && (!isset($_SESSION['client_vai_tro']) || $_SESSION['client_vai_tro'] === 'hoc_sinh')): ?>
                         <li><a href="?act=client-khoa-hoc-da-dang-ky" style="color: var(--primary); font-weight: 600;">📚 Khóa học của tôi</a></li>
                         <li><a href="?act=client-hoc-sinh-lop-hoc" style="color: var(--primary);">Lớp của tôi</a></li>
-                        <li style="color: var(--primary); font-weight: 600;">👤 <?= htmlspecialchars($_SESSION['client_ho_ten'] ?? '') ?></li>
+                        <li><a href="?act=client-profile" style="color: var(--primary);">👤 Thông tin cá nhân</a></li>
+                        <li style="color: var(--primary); font-weight: 600;"><?= htmlspecialchars($_SESSION['client_ho_ten'] ?? '') ?></li>
                         <li><a href="?act=client-logout" style="color: #dc3545;">🚪 Đăng xuất</a></li>
                     <?php else: ?>
                         <li><a href="?act=client-register" style="color: var(--primary); font-weight: 600;">📝 Đăng ký</a></li>

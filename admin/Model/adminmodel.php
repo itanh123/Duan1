@@ -275,7 +275,7 @@ class adminmodel
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (nd.ho_ten LIKE :search OR nd.email LIKE :search OR nd.so_dien_thoai LIKE :search)";
+            $sql .= " AND (nd.ma_nguoi_dung LIKE :search OR nd.ho_ten LIKE :search OR nd.email LIKE :search OR nd.so_dien_thoai LIKE :search)";
             $params[':search'] = "%$search%";
         }
 
@@ -306,7 +306,7 @@ class adminmodel
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR so_dien_thoai LIKE :search)";
+            $sql .= " AND (ma_nguoi_dung LIKE :search OR ho_ten LIKE :search OR email LIKE :search OR so_dien_thoai LIKE :search)";
             $params[':search'] = "%$search%";
         }
 
@@ -1014,7 +1014,6 @@ class adminmodel
                 INNER JOIN lop_hoc lh ON dk.id_lop = lh.id
                 INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
                 WHERE dk.id_hoc_sinh = :id_hoc_sinh
-                AND dk.trang_thai = 'Đã xác nhận'
                 ORDER BY dk.ngay_dang_ky DESC";
         
         $stmt = $this->conn->prepare($sql);
@@ -1395,7 +1394,7 @@ class adminmodel
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (nd.ho_ten LIKE :search OR nd.email LIKE :search OR nd.so_dien_thoai LIKE :search)";
+            $sql .= " AND (nd.ma_nguoi_dung LIKE :search OR nd.ho_ten LIKE :search OR nd.email LIKE :search OR nd.so_dien_thoai LIKE :search)";
             $params[':search'] = "%$search%";
         }
 
@@ -1426,7 +1425,7 @@ class adminmodel
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (ho_ten LIKE :search OR email LIKE :search OR so_dien_thoai LIKE :search)";
+            $sql .= " AND (ma_nguoi_dung LIKE :search OR ho_ten LIKE :search OR email LIKE :search OR so_dien_thoai LIKE :search)";
             $params[':search'] = "%$search%";
         }
 
@@ -1447,6 +1446,121 @@ class adminmodel
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetch();
+    }
+
+    // Lấy danh sách học sinh đã đăng ký các lớp của một giảng viên
+    public function getHocSinhByGiangVien($id_giang_vien, $page = 1, $limit = 10, $search = '')
+    {
+        $offset = ($page - 1) * $limit;
+        $sql = "SELECT DISTINCT nd.id as id_hoc_sinh, nd.ma_nguoi_dung, nd.ho_ten, nd.email, nd.so_dien_thoai, nd.dia_chi, nd.trang_thai, nd.ngay_tao,
+                       GROUP_CONCAT(DISTINCT CONCAT(lh.ten_lop, ' (', kh.ten_khoa_hoc, ')') SEPARATOR '; ') as cac_lop_da_dang_ky
+                FROM nguoi_dung nd
+                INNER JOIN dang_ky dk ON nd.id = dk.id_hoc_sinh
+                INNER JOIN lop_hoc lh ON dk.id_lop = lh.id
+                INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
+                INNER JOIN ca_hoc ch ON lh.id = ch.id_lop
+                WHERE ch.id_giang_vien = :id_giang_vien
+                  AND dk.trang_thai = 'Đã xác nhận'"; // Chỉ lấy học sinh đã xác nhận
+        $params = [':id_giang_vien' => $id_giang_vien];
+
+        if (!empty($search)) {
+            $sql .= " AND (nd.ma_nguoi_dung LIKE :search OR nd.ho_ten LIKE :search OR nd.email LIKE :search OR nd.so_dien_thoai LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        $sql .= " GROUP BY nd.id ORDER BY nd.ho_ten ASC LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Đếm tổng số học sinh đã đăng ký các lớp của một giảng viên
+    public function countHocSinhByGiangVien($id_giang_vien, $search = '')
+    {
+        $sql = "SELECT COUNT(DISTINCT nd.id) as total
+                FROM nguoi_dung nd
+                INNER JOIN dang_ky dk ON nd.id = dk.id_hoc_sinh
+                INNER JOIN lop_hoc lh ON dk.id_lop = lh.id
+                INNER JOIN ca_hoc ch ON lh.id = ch.id_lop
+                WHERE ch.id_giang_vien = :id_giang_vien
+                  AND dk.trang_thai = 'Đã xác nhận'";
+        $params = [':id_giang_vien' => $id_giang_vien];
+
+        if (!empty($search)) {
+            $sql .= " AND (nd.ma_nguoi_dung LIKE :search OR nd.ho_ten LIKE :search OR nd.email LIKE :search OR nd.so_dien_thoai LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return $result['total'];
+    }
+
+    // Lấy thông tin chi tiết lớp học của một học sinh mà giảng viên đang dạy
+    public function getLopHocDetailByHocSinhAndGiangVien($id_hoc_sinh, $id_giang_vien)
+    {
+        $sql = "SELECT dk.id as id_dang_ky,
+                       dk.trang_thai as trang_thai_dang_ky,
+                       dk.ngay_dang_ky,
+                       lh.id as id_lop,
+                       lh.ten_lop,
+                       lh.mo_ta as mo_ta_lop,
+                       lh.so_luong_toi_da,
+                       lh.trang_thai as trang_thai_lop,
+                       kh.id as id_khoa_hoc,
+                       kh.ten_khoa_hoc,
+                       kh.gia,
+                       kh.hinh_anh
+                FROM dang_ky dk
+                INNER JOIN lop_hoc lh ON dk.id_lop = lh.id
+                INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
+                INNER JOIN ca_hoc ch ON lh.id = ch.id_lop
+                WHERE dk.id_hoc_sinh = :id_hoc_sinh
+                  AND ch.id_giang_vien = :id_giang_vien
+                ORDER BY dk.ngay_dang_ky DESC";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id_hoc_sinh', $id_hoc_sinh, PDO::PARAM_INT);
+        $stmt->bindValue(':id_giang_vien', $id_giang_vien, PDO::PARAM_INT);
+        $stmt->execute();
+        $lopHocs = $stmt->fetchAll();
+        
+        // Lấy thông tin ca học và phòng học cho mỗi lớp
+        foreach ($lopHocs as &$lop) {
+            $sqlCaHoc = "SELECT ch.id as id_ca_hoc,
+                                ch.thu_trong_tuan,
+                                cmd.ten_ca,
+                                cmd.gio_bat_dau,
+                                cmd.gio_ket_thuc,
+                                ph.ten_phong,
+                                ph.suc_chua,
+                                nd.ho_ten as ten_giang_vien
+                         FROM ca_hoc ch
+                         LEFT JOIN ca_mac_dinh cmd ON ch.id_ca = cmd.id
+                         LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
+                         LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id
+                         WHERE ch.id_lop = :id_lop
+                           AND ch.id_giang_vien = :id_giang_vien
+                         ORDER BY ch.thu_trong_tuan, cmd.gio_bat_dau";
+            
+            $stmtCaHoc = $this->conn->prepare($sqlCaHoc);
+            $stmtCaHoc->bindValue(':id_lop', $lop['id_lop'], PDO::PARAM_INT);
+            $stmtCaHoc->bindValue(':id_giang_vien', $id_giang_vien, PDO::PARAM_INT);
+            $stmtCaHoc->execute();
+            $lop['ca_hoc'] = $stmtCaHoc->fetchAll();
+        }
+        
+        return $lopHocs;
     }
 
     // Thêm học sinh mới

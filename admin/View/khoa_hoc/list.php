@@ -291,7 +291,6 @@
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Hình ảnh</th>
                         <th>Tên khóa học</th>
                         <th>Danh mục</th>
@@ -304,7 +303,6 @@
                 <tbody>
                     <?php foreach ($khoaHoc as $kh): ?>
                         <tr>
-                            <td><?= $kh['id'] ?></td>
                             <td>
                                 <?php if ($kh['hinh_anh']): ?>
                                     <img src="./uploads/<?= htmlspecialchars($kh['hinh_anh']) ?>" 

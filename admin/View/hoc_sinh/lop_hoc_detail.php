@@ -33,7 +33,7 @@ $pageTitle = 'Lớp học của ' . htmlspecialchars($hocSinh['ho_ten']);
 
     <?php if (empty($lopHocs)): ?>
         <div class="empty-state">
-            <p>Học sinh này chưa đăng ký lớp học nào (hoặc chưa được xác nhận).</p>
+            <p>Học sinh này chưa đăng ký lớp học nào.</p>
         </div>
     <?php else: ?>
         <div style="margin-top: 20px;">
@@ -49,7 +49,17 @@ $pageTitle = 'Lớp học của ' . htmlspecialchars($hocSinh['ho_ten']);
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
                         <div>
                             <strong>Trạng thái đăng ký:</strong>
-                            <span class="status-active" style="display: inline-block; margin-left: 5px;">
+                            <?php
+                            $trangThaiClass = 'status-active';
+                            if ($lop['trang_thai_dang_ky'] == 'Đã xác nhận') {
+                                $trangThaiClass = 'status-active';
+                            } elseif ($lop['trang_thai_dang_ky'] == 'Chờ xác nhận') {
+                                $trangThaiClass = 'status-warning';
+                            } elseif ($lop['trang_thai_dang_ky'] == 'Đã hủy') {
+                                $trangThaiClass = 'status-inactive';
+                            }
+                            ?>
+                            <span class="<?= $trangThaiClass ?>" style="display: inline-block; margin-left: 5px;">
                                 <?= htmlspecialchars($lop['trang_thai_dang_ky']) ?>
                             </span>
                         </div>

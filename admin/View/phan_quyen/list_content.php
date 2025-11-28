@@ -237,7 +237,6 @@ $pageTitle = 'Quản lý Phân quyền';
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Người dùng</th>
                         <th>Email</th>
                         <th>Vai trò</th>
@@ -268,7 +267,6 @@ $pageTitle = 'Quản lý Phân quyền';
                     foreach ($groupedUsers as $user):
                     ?>
                         <tr>
-                            <td><?= $user['id_nguoi_dung'] ?></td>
                             <td><?= htmlspecialchars($user['ho_ten']) ?></td>
                             <td><?= htmlspecialchars($user['email']) ?></td>
                             <td>

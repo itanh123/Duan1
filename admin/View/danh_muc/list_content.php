@@ -37,7 +37,6 @@
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Tên danh mục</th>
                         <th>Mô tả</th>
                         <th>Trạng thái</th>
@@ -48,7 +47,6 @@
                 <tbody>
                     <?php foreach ($danhMuc as $dm): ?>
                         <tr>
-                            <td><?= $dm['id'] ?></td>
                             <td><strong><?= htmlspecialchars($dm['ten_danh_muc']) ?></strong></td>
                             <td><?= htmlspecialchars($dm['mo_ta'] ?? 'N/A') ?></td>
                             <td>

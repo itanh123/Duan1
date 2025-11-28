@@ -264,13 +264,15 @@ if (session_status() === PHP_SESSION_NONE) {
             <div class="header-wrap">
                 <div class="logo">
                     <a href="?act=giang-vien-dashboard">
-                        <img src="https://websitedemos.net/be-bold-beauty-store-04/wp-content/uploads/sites/1117/2022/08/logo-regular.png" alt="Logo">
+                        <img src="./uploads/logo.png" alt="Logo">
                     </a>
                 </div>
                 <nav>
                     <ul>
                         <li><a href="?act=giang-vien-dashboard"><i class="bi bi-house-door"></i> Dashboard</a></li>
                         <li><a href="?act=giang-vien-lop-hoc"><i class="bi bi-book"></i> Lớp học của tôi</a></li>
+                        <li><a href="?act=giang-vien-list-hoc-sinh"><i class="bi bi-people"></i> Danh sách học sinh</a></li>
+                        <li><a href="?act=giang-vien-profile"><i class="bi bi-person-circle"></i> Thông tin cá nhân</a></li>
                         <li style="color: var(--primary); font-weight: 600;"><i class="bi bi-person-badge"></i> <?= htmlspecialchars($_SESSION['giang_vien_ho_ten'] ?? '') ?></li>
                         <li><a href="?act=giang-vien-logout" style="color: #dc3545;"><i class="bi bi-box-arrow-right"></i> Đăng xuất</a></li>
                     </ul>
@@ -294,15 +296,6 @@ if (session_status() === PHP_SESSION_NONE) {
                 <div class="stat-info">
                     <h3><?= count($lopHocs) ?></h3>
                     <p>Lớp học đang dạy</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="bi bi-people"></i>
-                </div>
-                <div class="stat-info">
-                    <h3><?= count($hocSinhList) ?></h3>
-                    <p>Học sinh đã đăng ký</p>
                 </div>
             </div>
             <div class="stat-card">
@@ -372,41 +365,6 @@ if (session_status() === PHP_SESSION_NONE) {
             </div>
         </div>
 
-        <!-- Danh sách học sinh -->
-        <div class="section">
-            <div class="section-header">
-                <h2><i class="bi bi-people"></i> Danh sách học sinh đã đăng ký</h2>
-            </div>
-            <div class="section-body">
-                <?php if (empty($hocSinhList)): ?>
-                    <div class="empty-state">
-                        <i class="bi bi-person-x"></i>
-                        <p>Chưa có học sinh nào đăng ký các lớp của bạn.</p>
-                    </div>
-                <?php else: ?>
-                    <div class="student-list">
-                        <?php foreach ($hocSinhList as $hs): ?>
-                            <div class="student-item">
-                                <div class="student-info">
-                                    <h5><?= htmlspecialchars($hs['ho_ten']) ?></h5>
-                                    <p><i class="bi bi-envelope"></i> <?= htmlspecialchars($hs['email']) ?></p>
-                                    <?php if (!empty($hs['so_dien_thoai'])): ?>
-                                        <p><i class="bi bi-telephone"></i> <?= htmlspecialchars($hs['so_dien_thoai']) ?></p>
-                                    <?php endif; ?>
-                                    <p><i class="bi bi-book"></i> Lớp: <?= htmlspecialchars($hs['ten_lop']) ?> - <?= htmlspecialchars($hs['ten_khoa_hoc']) ?></p>
-                                </div>
-                                <div class="student-meta">
-                                    <span class="badge"><?= htmlspecialchars($hs['trang_thai_dang_ky']) ?></span>
-                                    <p style="margin-top: 8px; font-size: 12px; color: var(--muted);">
-                                        Đăng ký: <?= date('d/m/Y', strtotime($hs['ngay_dang_ky'])) ?>
-                                    </p>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
     </div>
 
     <!-- Bootstrap JS -->

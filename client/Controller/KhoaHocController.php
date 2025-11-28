@@ -272,9 +272,12 @@ class KhoaHocController {
             $_SESSION['success'] = 'Đăng nhập Admin thành công!';
             header('Location: ?act=admin-dashboard');
         } elseif ($vaiTro == 'giang_vien') {
-            // Redirect đến trang đăng nhập giảng viên riêng
-            $_SESSION['info'] = 'Vui lòng đăng nhập qua trang dành cho giảng viên!';
-            header('Location: ?act=giang-vien-login');
+            $_SESSION['giang_vien_id'] = $user['id'];
+            $_SESSION['giang_vien_email'] = $user['email'];
+            $_SESSION['giang_vien_ho_ten'] = $user['ho_ten'];
+            $_SESSION['giang_vien_vai_tro'] = $vaiTro;
+            $_SESSION['success'] = 'Đăng nhập Giảng viên thành công!';
+            header('Location: ?act=giang-vien-dashboard');
         } else {
             $_SESSION['client_id'] = $user['id'];
             $_SESSION['client_email'] = $user['email'];
@@ -315,10 +318,7 @@ class KhoaHocController {
             'ho_ten' => $_SESSION['temp_user_ho_ten']
         ];
         
-        // Thiết lập session theo vai trò
-        $this->setSessionByVaiTro($user, $vaiTro);
-        
-        // Xóa session tạm
+        // Xóa session tạm trước
         unset($_SESSION['temp_user_id']);
         unset($_SESSION['temp_user_email']);
         unset($_SESSION['temp_user_ho_ten']);
@@ -372,6 +372,29 @@ class KhoaHocController {
         $khoaHocs = $this->model->getKhoaHocDaDangKy($id_hoc_sinh);
         
         require __DIR__ . '/../views/khoa_hoc/my_courses.php';
+    }
+
+    // ===========================================
+    //  XEM THÔNG TIN CÁ NHÂN (action = profile)
+    // ===========================================
+    public function profile()
+    {
+        $this->checkClientLogin();
+        
+        $id_hoc_sinh = $_SESSION['client_id'] ?? 0;
+        if (!$id_hoc_sinh) {
+            header('Location: ?act=client-login');
+            exit;
+        }
+        
+        $user = $this->userModel->getNguoiDungById($id_hoc_sinh);
+        if (!$user) {
+            $_SESSION['error'] = 'Không tìm thấy thông tin người dùng!';
+            header('Location: ?act=client-khoa-hoc');
+            exit;
+        }
+        
+        require __DIR__ . '/../views/profile.php';
     }
 
     // ===========================================

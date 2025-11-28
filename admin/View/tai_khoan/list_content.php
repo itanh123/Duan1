@@ -202,7 +202,6 @@ tbody tr:hover {
     <table>
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Họ tên</th>
                 <th>Email</th>
                 <th>Số điện thoại</th>
@@ -215,14 +214,13 @@ tbody tr:hover {
         <tbody>
             <?php if (empty($taiKhoan)): ?>
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 20px;">
+                    <td colspan="7" style="text-align: center; padding: 20px;">
                         Không có dữ liệu
                     </td>
                 </tr>
             <?php else: ?>
                 <?php foreach ($taiKhoan as $tk): ?>
                     <tr>
-                        <td><?= $tk['id'] ?></td>
                         <td><?= htmlspecialchars($tk['ho_ten']) ?></td>
                         <td><?= htmlspecialchars($tk['email']) ?></td>
                         <td><?= htmlspecialchars($tk['so_dien_thoai'] ?? '-') ?></td>

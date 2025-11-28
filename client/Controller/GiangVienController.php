@@ -31,73 +31,27 @@ class GiangVienController {
     }
 
     // ===========================================
-    //  TRANG ĐĂNG NHẬP GIẢNG VIÊN
+    //  TRANG ĐĂNG NHẬP GIẢNG VIÊN - redirect về unified login
     // ===========================================
     public function login()
     {
-        // Ngăn client truy cập form đăng nhập giảng viên
-        if (isset($_SESSION['client_id']) && (!isset($_SESSION['client_vai_tro']) || $_SESSION['client_vai_tro'] === 'hoc_sinh')) {
-            header('Location: ?act=client-khoa-hoc');
-            exit;
-        }
-        
         // Nếu đã đăng nhập giảng viên thì chuyển về dashboard
         if (isset($_SESSION['giang_vien_id'])) {
             header('Location: ?act=giang-vien-dashboard');
             exit;
         }
-        require_once(__DIR__ . '/../views/giang_vien/login.php');
+        // Redirect về form đăng nhập chung
+        header('Location: ?act=client-login');
+        exit;
     }
 
     // ===========================================
-    //  XỬ LÝ ĐĂNG NHẬP GIẢNG VIÊN
+    //  XỬ LÝ ĐĂNG NHẬP GIẢNG VIÊN - redirect về unified login
     // ===========================================
     public function processLogin()
     {
-        // Ngăn client đăng nhập qua form giảng viên
-        if (isset($_SESSION['client_id']) && (!isset($_SESSION['client_vai_tro']) || $_SESSION['client_vai_tro'] === 'hoc_sinh')) {
-            $_SESSION['error'] = 'Bạn đang đăng nhập với tài khoản học sinh. Vui lòng sử dụng form đăng nhập học sinh!';
-            header('Location: ?act=client-khoa-hoc');
-            exit;
-        }
-        
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
-
-        if (empty($email) || empty($password)) {
-            $_SESSION['error'] = 'Vui lòng nhập đầy đủ email và mật khẩu!';
-            header('Location: ?act=giang-vien-login');
-            exit;
-        }
-
-        // Kiểm tra đăng nhập với vai trò giảng viên
-        $user = $this->model->login($email, $password, 'giang_vien');
-        
-        if ($user) {
-            // Kiểm tra tài khoản có bị khóa không
-            if ($user['trang_thai'] != 1) {
-                $_SESSION['error'] = 'Tài khoản của bạn đã bị khóa!';
-                header('Location: ?act=giang-vien-login');
-                exit;
-            }
-
-            // Xóa session client nếu có (để tránh xung đột)
-            unset($_SESSION['client_id']);
-            unset($_SESSION['client_email']);
-            unset($_SESSION['client_ho_ten']);
-            unset($_SESSION['client_vai_tro']);
-
-            // Thiết lập session riêng cho giảng viên
-            $_SESSION['giang_vien_id'] = $user['id'];
-            $_SESSION['giang_vien_email'] = $user['email'];
-            $_SESSION['giang_vien_ho_ten'] = $user['ho_ten'];
-            $_SESSION['giang_vien_vai_tro'] = 'giang_vien';
-            $_SESSION['success'] = 'Đăng nhập thành công!';
-            header('Location: ?act=giang-vien-dashboard');
-        } else {
-            $_SESSION['error'] = 'Email hoặc mật khẩu không đúng!';
-            header('Location: ?act=giang-vien-login');
-        }
+        // Redirect về form đăng nhập chung
+        header('Location: ?act=client-login');
         exit;
     }
 
@@ -180,6 +134,83 @@ class GiangVienController {
         $lopHocs = $this->model->getLopHocByGiangVien($id_giang_vien);
         
         require __DIR__ . '/../views/giang_vien/my_classes.php';
+    }
+
+    // ===========================================
+    //  DANH SÁCH HỌC SINH (action = listHocSinh)
+    // ===========================================
+    public function listHocSinh()
+    {
+        $this->checkGiangVienLogin();
+        $id_giang_vien = $_SESSION['giang_vien_id'];
+        
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $limit = 10;
+        $search = $_GET['search'] ?? '';
+        
+        $total = $this->model->countHocSinhByGiangVien($id_giang_vien, $search);
+        $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+        
+        $hocSinh = $this->model->getHocSinhByGiangVien($id_giang_vien, $page, $limit, $search);
+        
+        require __DIR__ . '/../views/giang_vien/list_hoc_sinh.php';
+    }
+
+    // ===========================================
+    //  XEM CHI TIẾT LỚP HỌC CỦA HỌC SINH
+    // ===========================================
+    public function viewHocSinhDetail()
+    {
+        $this->checkGiangVienLogin();
+        $id_giang_vien = $_SESSION['giang_vien_id'];
+        $id_hoc_sinh = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+        if (!$id_hoc_sinh) {
+            $_SESSION['error'] = 'ID học sinh không hợp lệ!';
+            header('Location: ?act=giang-vien-list-hoc-sinh');
+            exit;
+        }
+
+        $hocSinh = $this->model->getNguoiDungById($id_hoc_sinh);
+        if (!$hocSinh || $hocSinh['vai_tro'] !== 'hoc_sinh') {
+            $_SESSION['error'] = 'Không tìm thấy học sinh hoặc học sinh không tồn tại!';
+            header('Location: ?act=giang-vien-list-hoc-sinh');
+            exit;
+        }
+
+        // Lấy các lớp học mà học sinh này đã đăng ký VÀ giảng viên này đang dạy
+        $lopHocs = $this->model->getLopHocDetailByHocSinhAndGiangVien($id_hoc_sinh, $id_giang_vien);
+
+        $data = [
+            'hocSinh' => $hocSinh,
+            'lopHocs' => $lopHocs
+        ];
+
+        require __DIR__ . '/../views/giang_vien/hoc_sinh_detail.php';
+    }
+
+    // ===========================================
+    //  XEM THÔNG TIN CÁ NHÂN (action = profile)
+    // ===========================================
+    public function profile()
+    {
+        $this->checkGiangVienLogin();
+        
+        $id_giang_vien = $_SESSION['giang_vien_id'] ?? 0;
+        if (!$id_giang_vien) {
+            header('Location: ?act=giang-vien-login');
+            exit;
+        }
+        
+        $user = $this->model->getNguoiDungById($id_giang_vien);
+        if (!$user) {
+            $_SESSION['error'] = 'Không tìm thấy thông tin người dùng!';
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
+        require __DIR__ . '/../views/giang_vien/profile.php';
     }
 }
 
