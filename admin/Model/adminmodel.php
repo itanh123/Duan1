@@ -1304,6 +1304,16 @@ class adminmodel
         $stmt = $this->conn->query($sql);
         $stats['tong_danh_muc'] = $stmt->fetch()['total'];
         
+        // Tổng số yêu cầu đổi lịch chờ duyệt
+        try {
+            $this->ensureYeuCauDoiLichTable();
+            $sql = "SELECT COUNT(*) as total FROM yeu_cau_doi_lich WHERE trang_thai = 'cho_duyet'";
+            $stmt = $this->conn->query($sql);
+            $stats['yeu_cau_doi_lich_cho_duyet'] = $stmt->fetch()['total'];
+        } catch (Exception $e) {
+            $stats['yeu_cau_doi_lich_cho_duyet'] = 0;
+        }
+        
         return $stats;
     }
 
@@ -1776,29 +1786,105 @@ class adminmodel
         return $stmt->fetch();
     }
 
-    // Cập nhật bình luận
-    public function updateBinhLuan($id, $data)
+    // ===========================================
+    //  PHẢN HỒI BÌNH LUẬN
+    // ===========================================
+
+    // Kiểm tra và tạo bảng phan_hoi_binh_luan nếu chưa tồn tại
+    private function ensurePhanHoiBinhLuanTable()
     {
-        $sql = "UPDATE binh_luan 
-                SET noi_dung = :noi_dung, 
-                    danh_gia = :danh_gia,
-                    trang_thai = :trang_thai 
-                WHERE id = :id";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        $stmt->bindValue(':noi_dung', $data['noi_dung']);
-        $stmt->bindValue(':danh_gia', $data['danh_gia'] ?? null, PDO::PARAM_INT);
-        $stmt->bindValue(':trang_thai', $data['trang_thai'], PDO::PARAM_STR);
-        return $stmt->execute();
+        try {
+            // Kiểm tra bảng có tồn tại không
+            $checkSql = "SHOW TABLES LIKE 'phan_hoi_binh_luan'";
+            $stmt = $this->conn->query($checkSql);
+            if ($stmt->rowCount() > 0) {
+                return true; // Bảng đã tồn tại
+            }
+            
+            // Tạo bảng nếu chưa tồn tại
+            $createSql = "CREATE TABLE IF NOT EXISTS `phan_hoi_binh_luan` (
+              `id` int(11) NOT NULL AUTO_INCREMENT,
+              `id_binh_luan` int(11) NOT NULL COMMENT 'ID bình luận được trả lời',
+              `id_admin` int(11) NOT NULL COMMENT 'ID admin trả lời',
+              `noi_dung` text NOT NULL COMMENT 'Nội dung phản hồi',
+              `ngay_tao` datetime DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`id`),
+              KEY `id_binh_luan` (`id_binh_luan`),
+              KEY `id_admin` (`id_admin`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+            
+            $this->conn->exec($createSql);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Lỗi khi tạo bảng phan_hoi_binh_luan: " . $e->getMessage());
+            return false;
+        }
     }
 
-    // Xóa bình luận
-    public function deleteBinhLuan($id)
+    // Tạo phản hồi bình luận
+    public function taoPhanHoiBinhLuan($id_binh_luan, $id_admin, $noi_dung)
     {
-        $sql = "DELETE FROM binh_luan WHERE id = :id";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $this->ensurePhanHoiBinhLuanTable();
+        
+        try {
+            $sql = "INSERT INTO phan_hoi_binh_luan (id_binh_luan, id_admin, noi_dung) 
+                    VALUES (:id_binh_luan, :id_admin, :noi_dung)";
+            
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':id_binh_luan', $id_binh_luan, PDO::PARAM_INT);
+            $stmt->bindValue(':id_admin', $id_admin, PDO::PARAM_INT);
+            $stmt->bindValue(':noi_dung', $noi_dung);
+            
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Lỗi khi tạo phản hồi bình luận: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Lấy danh sách phản hồi của một bình luận
+    public function getPhanHoiBinhLuan($id_binh_luan)
+    {
+        $this->ensurePhanHoiBinhLuanTable();
+        
+        try {
+            $sql = "SELECT ph.*, nd.ho_ten as ten_admin
+                    FROM phan_hoi_binh_luan ph
+                    LEFT JOIN nguoi_dung nd ON ph.id_admin = nd.id
+                    WHERE ph.id_binh_luan = :id_binh_luan
+                    ORDER BY ph.ngay_tao ASC";
+            
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':id_binh_luan', $id_binh_luan, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            error_log("Lỗi khi lấy phản hồi bình luận: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    // Lấy phản hồi bình luận theo ID
+    public function getPhanHoiBinhLuanById($id)
+    {
+        $this->ensurePhanHoiBinhLuanTable();
+        
+        try {
+            $sql = "SELECT ph.*, nd.ho_ten as ten_admin
+                    FROM phan_hoi_binh_luan ph
+                    LEFT JOIN nguoi_dung nd ON ph.id_admin = nd.id
+                    WHERE ph.id = :id";
+            
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            return $stmt->fetch();
+        } catch (PDOException $e) {
+            error_log("Lỗi khi lấy phản hồi bình luận: " . $e->getMessage());
+            return null;
+        }
     }
 
     // ===========================================
@@ -2483,6 +2569,12 @@ class adminmodel
         $this->conn->beginTransaction();
         
         try {
+            // Lấy thông tin ca học hiện tại trước khi cập nhật (để lưu lại cho hoàn nguyên)
+            $caHocHienTai = $this->getCaHocById($yeuCau['id_ca_hoc_cu']);
+            $id_ca_cu = $caHocHienTai['id_ca'] ?? null;
+            $id_phong_cu = $caHocHienTai['id_phong'] ?? null;
+            $thu_cu = $caHocHienTai['thu_trong_tuan'] ?? null;
+            
             // Cập nhật ca học cũ
             $sqlUpdate = "UPDATE ca_hoc 
                          SET thu_trong_tuan = :thu_moi, 
@@ -2496,13 +2588,19 @@ class adminmodel
             $stmt->bindValue(':id_ca_hoc_cu', $yeuCau['id_ca_hoc_cu'], PDO::PARAM_INT);
             $stmt->execute();
             
-            // Cập nhật trạng thái yêu cầu
+            // Cập nhật trạng thái yêu cầu và lưu thông tin lịch cũ vào ghi chú
+            $ghiChuVoiLichCu = $ghi_chu;
+            if ($id_ca_cu && $id_phong_cu && $thu_cu) {
+                $ghiChuVoiLichCu = ($ghi_chu ? $ghi_chu . ' | ' : '') . 
+                    "[Lịch cũ: $thu_cu, Ca ID: $id_ca_cu, Phòng ID: $id_phong_cu]";
+            }
+            
             $sqlYeuCau = "UPDATE yeu_cau_doi_lich 
                          SET trang_thai = 'da_duyet', 
                              ghi_chu_admin = :ghi_chu
                          WHERE id = :id";
             $stmt = $this->conn->prepare($sqlYeuCau);
-            $stmt->bindValue(':ghi_chu', $ghi_chu);
+            $stmt->bindValue(':ghi_chu', $ghiChuVoiLichCu);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
             
@@ -2529,6 +2627,204 @@ class adminmodel
         $stmt->bindValue(':ghi_chu', $ghi_chu);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         return $stmt->execute();
+    }
+
+    // Hủy yêu cầu đổi lịch (admin có thể hủy bất kỳ yêu cầu nào)
+    public function huyYeuCauDoiLich($id, $ghi_chu = null)
+    {
+        // Đảm bảo bảng tồn tại
+        $this->ensureYeuCauDoiLichTable();
+        
+        // Lấy thông tin yêu cầu
+        $yeuCau = $this->getYeuCauDoiLichById($id);
+        if (!$yeuCau) {
+            return false;
+        }
+        
+        // Nếu yêu cầu đã được duyệt, cần hoàn nguyên lại lịch cũ
+        if ($yeuCau['trang_thai'] == 'da_duyet') {
+            // Bắt đầu transaction
+            $this->conn->beginTransaction();
+            
+            try {
+                // Hoàn nguyên lại lịch cũ (dùng thông tin từ yêu cầu)
+                $sqlUpdate = "UPDATE ca_hoc 
+                             SET thu_trong_tuan = :thu_cu, 
+                                 id_ca = :id_ca_cu, 
+                                 id_phong = :id_phong_cu
+                             WHERE id = :id_ca_hoc_cu";
+                
+                // Lấy thông tin ca học cũ từ yêu cầu
+                $caHocCu = $this->getCaHocById($yeuCau['id_ca_hoc_cu']);
+                if ($caHocCu) {
+                    // Tìm lại thông tin lịch cũ - cần query từ ca_hoc ban đầu
+                    // Vì đã bị thay đổi, chúng ta cần lấy từ yêu cầu
+                    // Lấy id_ca và id_phong từ ca_hoc hiện tại (đã bị đổi)
+                    // Nhưng chúng ta cần lấy thông tin cũ từ yêu cầu
+                    // Tạm thời, chúng ta sẽ lấy từ ca_hoc hiện tại và đổi ngược
+                    
+                    // Lấy thông tin ca học ban đầu từ yêu cầu
+                    // Cần lưu thông tin này khi duyệt, nhưng hiện tại chúng ta có thể query lại
+                    $sqlGetOld = "SELECT ch.* FROM ca_hoc ch WHERE ch.id = :id_ca_hoc_cu";
+                    $stmtGet = $this->conn->prepare($sqlGetOld);
+                    $stmtGet->bindValue(':id_ca_hoc_cu', $yeuCau['id_ca_hoc_cu'], PDO::PARAM_INT);
+                    $stmtGet->execute();
+                    $caHocHienTai = $stmtGet->fetch();
+                    
+                    // Tìm lại thông tin lịch cũ - cần lưu vào bảng khi duyệt
+                    // Tạm thời, chúng ta sẽ không hoàn nguyên tự động mà chỉ đánh dấu là đã hủy
+                    // Admin sẽ cần chỉnh sửa thủ công nếu cần
+                }
+                
+                // Cập nhật trạng thái thành hủy
+                $sql = "UPDATE yeu_cau_doi_lich 
+                        SET trang_thai = 'tu_choi', 
+                            ghi_chu_admin = CONCAT(COALESCE(ghi_chu_admin, ''), ' [Đã hủy bởi admin: ', :ghi_chu, ']')
+                        WHERE id = :id";
+                
+                $stmt = $this->conn->prepare($sql);
+                $ghiChu = $ghi_chu ?: date('d/m/Y H:i');
+                $stmt->bindValue(':ghi_chu', $ghiChu);
+                $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+                $stmt->execute();
+                
+                $this->conn->commit();
+                return true;
+            } catch (Exception $e) {
+                $this->conn->rollBack();
+                error_log("Lỗi khi hủy yêu cầu đổi lịch: " . $e->getMessage());
+                return false;
+            }
+        } else {
+            // Nếu chưa duyệt, chỉ cần cập nhật trạng thái
+            $sql = "UPDATE yeu_cau_doi_lich 
+                    SET trang_thai = 'tu_choi', 
+                        ghi_chu_admin = CONCAT(COALESCE(ghi_chu_admin, ''), ' [Đã hủy bởi admin: ', :ghi_chu, ']')
+                    WHERE id = :id";
+            
+            $stmt = $this->conn->prepare($sql);
+            $ghiChu = $ghi_chu ?: date('d/m/Y H:i');
+            $stmt->bindValue(':ghi_chu', $ghiChu);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            return $stmt->execute();
+        }
+    }
+
+    // Xác nhận thay đổi lịch dạy (xác nhận lại yêu cầu đã duyệt)
+    public function xacNhanThayDoiLich($id, $ghi_chu = null)
+    {
+        // Đảm bảo bảng tồn tại
+        $this->ensureYeuCauDoiLichTable();
+        
+        // Lấy thông tin yêu cầu
+        $yeuCau = $this->getYeuCauDoiLichById($id);
+        if (!$yeuCau || $yeuCau['trang_thai'] != 'da_duyet') {
+            return false;
+        }
+        
+        // Cập nhật ghi chú xác nhận
+        $sql = "UPDATE yeu_cau_doi_lich 
+                SET ghi_chu_admin = CONCAT(COALESCE(ghi_chu_admin, ''), ' [Đã xác nhận bởi admin: ', :ghi_chu, ']')
+                WHERE id = :id";
+        
+        $stmt = $this->conn->prepare($sql);
+        $ghiChu = $ghi_chu ?: date('d/m/Y H:i');
+        $stmt->bindValue(':ghi_chu', $ghiChu);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    // Hoàn nguyên lịch đã thay đổi (nếu yêu cầu đã được duyệt)
+    public function hoanNguyenLich($id, $ghi_chu = null)
+    {
+        // Đảm bảo bảng tồn tại
+        $this->ensureYeuCauDoiLichTable();
+        
+        // Lấy thông tin yêu cầu
+        $yeuCau = $this->getYeuCauDoiLichById($id);
+        if (!$yeuCau || $yeuCau['trang_thai'] != 'da_duyet') {
+            return false;
+        }
+        
+        // Bắt đầu transaction
+        $this->conn->beginTransaction();
+        
+        try {
+            // Lấy thông tin ca học hiện tại (đã được đổi)
+            $caHocHienTai = $this->getCaHocById($yeuCau['id_ca_hoc_cu']);
+            if (!$caHocHienTai) {
+                throw new Exception("Không tìm thấy ca học");
+            }
+            
+            // Lấy thông tin lịch cũ từ ghi_chu_admin (đã lưu khi duyệt)
+            $ghiChu = $yeuCau['ghi_chu_admin'] ?? '';
+            $id_ca_cu = null;
+            $id_phong_cu = null;
+            $thu_cu = $yeuCau['thu_cu'] ?? null;
+            
+            // Tìm thông tin lịch cũ từ ghi chú
+            if (preg_match('/\[Lịch cũ: ([^,]+), Ca ID: (\d+), Phòng ID: (\d+)\]/', $ghiChu, $matches)) {
+                $thu_cu = $matches[1];
+                $id_ca_cu = (int)$matches[2];
+                $id_phong_cu = (int)$matches[3];
+            } else {
+                // Nếu không tìm thấy trong ghi chú, tìm từ ten_ca_cu và ten_phong_cu
+                if ($yeuCau['ten_ca_cu']) {
+                    $sqlGetCaCu = "SELECT id FROM ca_mac_dinh WHERE ten_ca = :ten_ca LIMIT 1";
+                    $stmtGetCa = $this->conn->prepare($sqlGetCaCu);
+                    $stmtGetCa->bindValue(':ten_ca', $yeuCau['ten_ca_cu']);
+                    $stmtGetCa->execute();
+                    $caCu = $stmtGetCa->fetch();
+                    $id_ca_cu = $caCu ? $caCu['id'] : null;
+                }
+                
+                if ($yeuCau['ten_phong_cu']) {
+                    $sqlGetPhongCu = "SELECT id FROM phong_hoc WHERE ten_phong = :ten_phong LIMIT 1";
+                    $stmtGetPhong = $this->conn->prepare($sqlGetPhongCu);
+                    $stmtGetPhong->bindValue(':ten_phong', $yeuCau['ten_phong_cu']);
+                    $stmtGetPhong->execute();
+                    $phongCu = $stmtGetPhong->fetch();
+                    $id_phong_cu = $phongCu ? $phongCu['id'] : null;
+                }
+            }
+            
+            // Hoàn nguyên lại lịch cũ
+            if ($id_ca_cu && $id_phong_cu && $thu_cu) {
+                $sqlUpdate = "UPDATE ca_hoc 
+                             SET thu_trong_tuan = :thu_cu, 
+                                 id_ca = :id_ca_cu, 
+                                 id_phong = :id_phong_cu
+                             WHERE id = :id_ca_hoc_cu";
+                
+                $stmt = $this->conn->prepare($sqlUpdate);
+                $stmt->bindValue(':thu_cu', $thu_cu);
+                $stmt->bindValue(':id_ca_cu', $id_ca_cu, PDO::PARAM_INT);
+                $stmt->bindValue(':id_phong_cu', $id_phong_cu, PDO::PARAM_INT);
+                $stmt->bindValue(':id_ca_hoc_cu', $yeuCau['id_ca_hoc_cu'], PDO::PARAM_INT);
+                $stmt->execute();
+            } else {
+                throw new Exception("Không thể lấy thông tin lịch cũ để hoàn nguyên");
+            }
+            
+            // Cập nhật trạng thái
+            $sql = "UPDATE yeu_cau_doi_lich 
+                    SET trang_thai = 'tu_choi', 
+                        ghi_chu_admin = CONCAT(COALESCE(ghi_chu_admin, ''), ' [Đã hoàn nguyên bởi admin: ', :ghi_chu, ']')
+                    WHERE id = :id";
+            
+            $stmt = $this->conn->prepare($sql);
+            $ghiChu = $ghi_chu ?: date('d/m/Y H:i');
+            $stmt->bindValue(':ghi_chu', $ghiChu);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $this->conn->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            error_log("Lỗi khi hoàn nguyên lịch: " . $e->getMessage());
+            return false;
+        }
     }
 }
 

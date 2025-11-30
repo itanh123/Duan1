@@ -112,6 +112,14 @@ $pageTitle = 'Quản lý Yêu cầu đổi lịch';
                             <div class="action-buttons">
                                 <a href="?act=admin-detail-yeu-cau-doi-lich&id=<?= $yc['id'] ?>" 
                                    class="btn btn-primary btn-sm">Chi tiết</a>
+                                <?php if ($yc['trang_thai'] == 'da_duyet'): ?>
+                                    <form method="POST" action="?act=admin-huy-yeu-cau-doi-lich" style="display: inline-block;" 
+                                          onsubmit="return confirm('Bạn có chắc chắn muốn hủy yêu cầu này?')">
+                                        <input type="hidden" name="id" value="<?= $yc['id'] ?>">
+                                        <input type="hidden" name="ghi_chu" value="Hủy từ danh sách">
+                                        <button type="submit" class="btn btn-danger btn-sm">Hủy</button>
+                                    </form>
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>

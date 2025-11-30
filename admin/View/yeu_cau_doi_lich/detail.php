@@ -163,13 +163,74 @@ $pageTitle = 'Chi tiết yêu cầu đổi lịch';
                 </form>
             </div>
         </div>
-    <?php elseif ($yeuCau['ghi_chu_admin']): ?>
+    <?php elseif ($yeuCau['trang_thai'] == 'da_duyet'): ?>
         <div class="card">
             <div class="card-header">
-                <h3>Ghi chú của admin</h3>
+                <h3>Quản lý yêu cầu đã duyệt</h3>
             </div>
             <div class="card-body">
-                <p><?= htmlspecialchars($yeuCau['ghi_chu_admin']) ?></p>
+                <?php if ($yeuCau['ghi_chu_admin']): ?>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>Ghi chú của admin:</label>
+                        <p style="background: #f8f9fa; padding: 10px; border-radius: 5px;"><?= htmlspecialchars($yeuCau['ghi_chu_admin']) ?></p>
+                    </div>
+                <?php endif; ?>
+                
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <form method="POST" action="?act=admin-xac-nhan-thay-doi-lich" style="flex: 1; min-width: 200px;">
+                        <input type="hidden" name="id" value="<?= $yeuCau['id'] ?>">
+                        <div class="form-group">
+                            <label>Ghi chú xác nhận (tùy chọn)</label>
+                            <textarea name="ghi_chu" class="form-control" rows="2" placeholder="Nhập ghi chú xác nhận..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success" style="width: 100%;">
+                            ✓ Xác nhận thay đổi
+                        </button>
+                    </form>
+                    
+                    <form method="POST" action="?act=admin-hoan-nguyen-lich" style="flex: 1; min-width: 200px;">
+                        <input type="hidden" name="id" value="<?= $yeuCau['id'] ?>">
+                        <div class="form-group">
+                            <label>Ghi chú hoàn nguyên (tùy chọn)</label>
+                            <textarea name="ghi_chu" class="form-control" rows="2" placeholder="Nhập ghi chú hoàn nguyên..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-warning" style="width: 100%;"
+                                onclick="return confirm('Bạn có chắc chắn muốn hoàn nguyên lịch về trạng thái cũ?')">
+                            ↺ Hoàn nguyên lịch
+                        </button>
+                    </form>
+                    
+                    <form method="POST" action="?act=admin-huy-yeu-cau-doi-lich" style="flex: 1; min-width: 200px;">
+                        <input type="hidden" name="id" value="<?= $yeuCau['id'] ?>">
+                        <div class="form-group">
+                            <label>Lý do hủy</label>
+                            <textarea name="ghi_chu" class="form-control" rows="2" placeholder="Nhập lý do hủy..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-danger" style="width: 100%;"
+                                onclick="return confirm('Bạn có chắc chắn muốn hủy yêu cầu này?')">
+                            ✗ Hủy yêu cầu
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    <?php elseif ($yeuCau['trang_thai'] == 'tu_choi'): ?>
+        <div class="card">
+            <div class="card-header">
+                <h3>Yêu cầu đã bị từ chối/hủy</h3>
+            </div>
+            <div class="card-body">
+                <?php if ($yeuCau['ghi_chu_admin']): ?>
+                    <div class="form-group">
+                        <label>Ghi chú:</label>
+                        <p style="background: #f8f9fa; padding: 10px; border-radius: 5px;"><?= htmlspecialchars($yeuCau['ghi_chu_admin']) ?></p>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (strpos($yeuCau['ghi_chu_admin'] ?? '', '[Đã hủy bởi admin]') !== false || 
+                          strpos($yeuCau['ghi_chu_admin'] ?? '', '[Đã hoàn nguyên bởi admin]') !== false): ?>
+                    <p class="text-muted">Yêu cầu này đã bị hủy hoặc hoàn nguyên bởi admin.</p>
+                <?php endif; ?>
             </div>
         </div>
     <?php endif; ?>

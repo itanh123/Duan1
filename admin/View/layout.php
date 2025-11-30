@@ -265,6 +265,10 @@ $hasXem = $hasQuanTri || $adminModel->hasPermission($adminId, 'xem');
                     <span class="menu-item-icon">🏢</span>
                     Phòng Học
                 </a>
+                <a href="?act=admin-list-yeu-cau-doi-lich" class="menu-item <?= (isset($_GET['act']) && strpos($_GET['act'], 'yeu-cau-doi-lich') !== false) ? 'active' : '' ?>">
+                    <span class="menu-item-icon">📅</span>
+                    Yêu Cầu Đổi Lịch
+                </a>
                 <?php endif; ?>
             </div>
             

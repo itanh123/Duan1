@@ -204,12 +204,60 @@
         <div class="stat-card-title">Tổng Danh Mục</div>
         <div class="stat-card-value"><?= number_format($thongKe['tong_danh_muc'] ?? 0) ?></div>
     </div>
+    
+    <a href="?act=admin-list-yeu-cau-doi-lich" class="stat-card orange" style="text-decoration: none; color: inherit;">
+        <div class="stat-card-icon">📅</div>
+        <div class="stat-card-title">Yêu Cầu Đổi Lịch Chờ Duyệt</div>
+        <div class="stat-card-value"><?= number_format($thongKe['yeu_cau_doi_lich_cho_duyet'] ?? 0) ?></div>
+    </a>
 </div>
 
-<!-- Danh sách mới nhất -->
-<div class="content-grid">
-    <!-- Đăng ký mới nhất -->
-    <div class="card">
+    <!-- Danh sách mới nhất -->
+    <div class="content-grid">
+        <!-- Yêu cầu đổi lịch chờ duyệt -->
+        <?php if (!empty($yeuCauDoiLichMoiNhat)): ?>
+        <div class="card">
+            <div class="card-header">
+                <h2>📅 Yêu Cầu Đổi Lịch Chờ Duyệt</h2>
+                <a href="?act=admin-list-yeu-cau-doi-lich" style="float: right; font-size: 14px; color: #007bff; text-decoration: none;">Xem tất cả →</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Giảng viên</th>
+                                <th>Lớp học</th>
+                                <th>Ngày tạo</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($yeuCauDoiLichMoiNhat as $yc): ?>
+                                <tr>
+                                    <td>
+                                        <div><strong><?= htmlspecialchars($yc['ten_giang_vien'] ?? 'N/A') ?></strong></div>
+                                    </td>
+                                    <td>
+                                        <div><?= htmlspecialchars($yc['ten_lop'] ?? 'N/A') ?></div>
+                                        <div style="font-size: 12px; color: #6c757d;"><?= htmlspecialchars($yc['ten_khoa_hoc'] ?? '') ?></div>
+                                    </td>
+                                    <td><?= date('d/m/Y H:i', strtotime($yc['ngay_tao'])) ?></td>
+                                    <td>
+                                        <a href="?act=admin-detail-yeu-cau-doi-lich&id=<?= $yc['id'] ?>" 
+                                           class="btn btn-primary btn-sm" style="padding: 5px 10px; font-size: 12px; text-decoration: none; background: #007bff; color: white; border-radius: 3px;">Xem</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+        
+        <!-- Đăng ký mới nhất -->
+        <div class="card">
         <div class="card-header">
             <h2>📋 Đăng Ký Mới Nhất</h2>
         </div>
