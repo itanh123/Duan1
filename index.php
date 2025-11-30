@@ -115,6 +115,9 @@ match ($act) {
     'giang-vien-view-hoc-sinh-detail' => $giangVienController->viewHocSinhDetail(),
     'giang-vien-view-hoc-sinh-trong-lop' => $giangVienController->viewHocSinhTrongLop(),
     'giang-vien-profile' => $giangVienController->profile(),
+    'giang-vien-yeu-cau-doi-lich' => $giangVienController->yeuCauDoiLich(),
+    'giang-vien-process-yeu-cau-doi-lich' => $giangVienController->processYeuCauDoiLich(),
+    'giang-vien-danh-sach-yeu-cau-doi-lich' => $giangVienController->danhSachYeuCauDoiLich(),
     
     // ============================
     //  CLIENT - XEM DANH SÁCH GIẢNG VIÊN
@@ -257,6 +260,14 @@ match ($act) {
     'admin-edit-tai-khoan' => $adminController->editTaiKhoan(),
     'admin-update-tai-khoan' => $adminController->updateTaiKhoan(),
     'admin-toggle-tai-khoan-status' => $adminController->toggleTaiKhoanStatus(),
+    
+    // ============================
+    //  ADMIN - QUẢN LÝ YÊU CẦU ĐỔI LỊCH
+    // ============================
+    'admin-list-yeu-cau-doi-lich' => $adminController->listYeuCauDoiLich(),
+    'admin-detail-yeu-cau-doi-lich' => $adminController->detailYeuCauDoiLich(),
+    'admin-duyet-yeu-cau-doi-lich' => $adminController->duyetYeuCauDoiLich(),
+    'admin-tu-choi-yeu-cau-doi-lich' => $adminController->tuChoiYeuCauDoiLich(),
     
     // ============================
     //  MẶC ĐỊNH – KHÔNG TÌM THẤY

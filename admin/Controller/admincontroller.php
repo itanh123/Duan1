@@ -1900,6 +1900,131 @@ class admincontroller{
         header('Location: ?act=admin-list-tai-khoan');
         exit;
     }
+
+    // ===========================================
+    //  QUẢN LÝ YÊU CẦU ĐỔI LỊCH
+    // ===========================================
+    
+    // Danh sách yêu cầu đổi lịch
+    public function listYeuCauDoiLich()
+    {
+        $this->checkAdminLogin();
+        
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $limit = 10;
+        $trang_thai = $_GET['trang_thai'] ?? '';
+        
+        $yeuCauList = $this->model->getYeuCauDoiLich($page, $limit, $trang_thai);
+        $total = $this->model->countYeuCauDoiLich($trang_thai);
+        $totalPages = ceil($total / $limit);
+        
+        $data = [
+            'yeuCauList' => $yeuCauList,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'total' => $total,
+            'trang_thai' => $trang_thai
+        ];
+        
+        $this->renderView('./admin/View/yeu_cau_doi_lich/list.php', 'Quản lý yêu cầu đổi lịch', $data);
+    }
+    
+    // Chi tiết yêu cầu đổi lịch
+    public function detailYeuCauDoiLich()
+    {
+        $this->checkAdminLogin();
+        
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID yêu cầu không hợp lệ!';
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        $yeuCau = $this->model->getYeuCauDoiLichById($id);
+        if (!$yeuCau) {
+            $_SESSION['error'] = 'Không tìm thấy yêu cầu!';
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        // Kiểm tra trùng lịch
+        $trungLich = $this->model->kiemTraTrungLich(
+            $yeuCau['id_giang_vien'],
+            $yeuCau['thu_trong_tuan_moi'],
+            $yeuCau['id_ca_moi'],
+            $yeuCau['id_phong_moi'],
+            $yeuCau['ngay_doi'],
+            $yeuCau['id_ca_hoc_cu']
+        );
+        
+        $data = [
+            'yeuCau' => $yeuCau,
+            'trungLich' => $trungLich
+        ];
+        
+        $this->renderView('./admin/View/yeu_cau_doi_lich/detail.php', 'Chi tiết yêu cầu đổi lịch', $data);
+    }
+    
+    // Duyệt yêu cầu đổi lịch
+    public function duyetYeuCauDoiLich()
+    {
+        $this->checkAdminLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $ghi_chu = $_POST['ghi_chu'] ?? '';
+        
+        if (!$id) {
+            $_SESSION['error'] = 'ID yêu cầu không hợp lệ!';
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        $result = $this->model->duyetYeuCauDoiLich($id, $ghi_chu);
+        
+        if ($result === true) {
+            $_SESSION['success'] = 'Duyệt yêu cầu đổi lịch thành công!';
+        } else {
+            $_SESSION['error'] = $result['error'] ?? 'Có lỗi xảy ra khi duyệt yêu cầu!';
+        }
+        
+        header('Location: ?act=admin-list-yeu-cau-doi-lich');
+        exit;
+    }
+    
+    // Từ chối yêu cầu đổi lịch
+    public function tuChoiYeuCauDoiLich()
+    {
+        $this->checkAdminLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $ghi_chu = $_POST['ghi_chu'] ?? '';
+        
+        if (!$id) {
+            $_SESSION['error'] = 'ID yêu cầu không hợp lệ!';
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        if ($this->model->tuChoiYeuCauDoiLich($id, $ghi_chu)) {
+            $_SESSION['success'] = 'Từ chối yêu cầu đổi lịch thành công!';
+        } else {
+            $_SESSION['error'] = 'Có lỗi xảy ra khi từ chối yêu cầu!';
+        }
+        
+        header('Location: ?act=admin-list-yeu-cau-doi-lich');
+        exit;
+    }
 }
 
 ?>
