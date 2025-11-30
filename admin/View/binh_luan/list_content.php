@@ -94,11 +94,8 @@
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="?act=admin-edit-binh-luan&id=<?= $bl['id'] ?>" 
-                                       class="btn btn-warning btn-sm">Sửa</a>
-                                    <a href="?act=admin-delete-binh-luan&id=<?= $bl['id'] ?>" 
-                                       class="btn btn-danger btn-sm" 
-                                       onclick="return confirm('Bạn có chắc chắn muốn xóa bình luận này?')">Xóa</a>
+                                    <a href="?act=admin-tra-loi-binh-luan&id=<?= $bl['id'] ?>" 
+                                       class="btn btn-primary btn-sm">💬 Trả lời</a>
                                 </div>
                             </td>
                         </tr>

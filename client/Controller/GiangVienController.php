@@ -199,51 +199,59 @@ class GiangVienController {
                     continue;
                 }
                 
-                // Nếu không có filter, chỉ hiển thị ca học một lần (giống admin)
+                // Tính toán ngày học cụ thể
+                $dayOfWeekNumber = $thuMap[$thu]; // 1 = Monday, 7 = Sunday
+                
+                // Tìm ngày đầu tiên có thứ tương ứng
+                $firstOccurrence = clone $ngayBatDau;
+                $currentDayOfWeek = (int)$firstOccurrence->format('N'); // 1 = Monday, 7 = Sunday
+                
+                // Tính số ngày cần cộng để đến thứ cần tìm
+                if ($currentDayOfWeek <= $dayOfWeekNumber) {
+                    $daysToAdd = $dayOfWeekNumber - $currentDayOfWeek;
+                } else {
+                    $daysToAdd = 7 - ($currentDayOfWeek - $dayOfWeekNumber);
+                }
+                
+                $firstOccurrence->modify("+{$daysToAdd} days");
+                
+                // Nếu ngày đầu tiên vượt quá ngày kết thúc, bỏ qua
+                if ($firstOccurrence > $ngayKetThuc) {
+                    continue;
+                }
+                
+                // Nếu không có filter, hiển thị tất cả các ngày học trong khoảng thời gian
                 if (!$hasFilter) {
-                    $scheduleItem = [
-                        'id_lop' => $lop['id_lop'],
-                        'ten_lop' => $lop['ten_lop'],
-                        'ten_khoa_hoc' => $lop['ten_khoa_hoc'],
-                        'mo_ta_lop' => $lop['mo_ta_lop'] ?? '',
-                        'so_luong_toi_da' => $lop['so_luong_toi_da'] ?? 0,
-                        'ngay_bat_dau_lop' => $lop['ngay_bat_dau'],
-                        'ngay_ket_thuc_lop' => $lop['ngay_ket_thuc'],
-                        'ngay_bat_dau_formatted' => date('d/m/Y', strtotime($lop['ngay_bat_dau'])),
-                        'ngay_ket_thuc_formatted' => date('d/m/Y', strtotime($lop['ngay_ket_thuc'])),
-                        'ngay_hoc' => '', // Không có ngày cụ thể
-                        'ngay_hoc_formatted' => '', // Không có ngày cụ thể
-                        'thu_trong_tuan' => $ca['thu_trong_tuan'],
-                        'ten_ca' => $ca['ten_ca'] ?? '',
-                        'gio_bat_dau' => $ca['gio_bat_dau'] ?? '',
-                        'gio_ket_thuc' => $ca['gio_ket_thuc'] ?? '',
-                        'ten_phong' => $ca['ten_phong'] ?? '',
-                        'suc_chua' => $ca['suc_chua'] ?? 0,
-                        'id_ca_hoc' => $ca['id_ca_hoc'] ?? 0
-                    ];
-                    $allScheduleItems[] = $scheduleItem;
+                    // Duyệt qua tất cả các ngày có thứ này trong khoảng thời gian
+                    $ngayHoc = clone $firstOccurrence;
+                    while ($ngayHoc <= $ngayKetThuc) {
+                        $scheduleItem = [
+                            'id_lop' => $lop['id_lop'],
+                            'ten_lop' => $lop['ten_lop'],
+                            'ten_khoa_hoc' => $lop['ten_khoa_hoc'],
+                            'mo_ta_lop' => $lop['mo_ta_lop'] ?? '',
+                            'so_luong_toi_da' => $lop['so_luong_toi_da'] ?? 0,
+                            'ngay_bat_dau_lop' => $lop['ngay_bat_dau'],
+                            'ngay_ket_thuc_lop' => $lop['ngay_ket_thuc'],
+                            'ngay_bat_dau_formatted' => date('d/m/Y', strtotime($lop['ngay_bat_dau'])),
+                            'ngay_ket_thuc_formatted' => date('d/m/Y', strtotime($lop['ngay_ket_thuc'])),
+                            'ngay_hoc' => $ngayHoc->format('Y-m-d'),
+                            'ngay_hoc_formatted' => $ngayHoc->format('d/m/Y'),
+                            'thu_trong_tuan' => $ca['thu_trong_tuan'],
+                            'ten_ca' => $ca['ten_ca'] ?? '',
+                            'gio_bat_dau' => $ca['gio_bat_dau'] ?? '',
+                            'gio_ket_thuc' => $ca['gio_ket_thuc'] ?? '',
+                            'ten_phong' => $ca['ten_phong'] ?? '',
+                            'suc_chua' => $ca['suc_chua'] ?? 0,
+                            'id_ca_hoc' => $ca['id_ca_hoc'] ?? 0
+                        ];
+                        $allScheduleItems[] = $scheduleItem;
+                        
+                        // Chuyển sang tuần tiếp theo (cùng thứ)
+                        $ngayHoc->modify('+7 days');
+                    }
                 } else {
                     // Nếu có filter, tính toán các ngày cụ thể trong khoảng thời gian
-                    $dayOfWeekNumber = $thuMap[$thu]; // 1 = Monday, 7 = Sunday
-                    
-                    // Tìm ngày đầu tiên có thứ tương ứng
-                    $firstOccurrence = clone $ngayBatDau;
-                    $currentDayOfWeek = (int)$firstOccurrence->format('N'); // 1 = Monday, 7 = Sunday
-                    
-                    // Tính số ngày cần cộng để đến thứ cần tìm
-                    if ($currentDayOfWeek <= $dayOfWeekNumber) {
-                        $daysToAdd = $dayOfWeekNumber - $currentDayOfWeek;
-                    } else {
-                        $daysToAdd = 7 - ($currentDayOfWeek - $dayOfWeekNumber);
-                    }
-                    
-                    $firstOccurrence->modify("+{$daysToAdd} days");
-                    
-                    // Nếu ngày đầu tiên vượt quá ngày kết thúc, bỏ qua
-                    if ($firstOccurrence > $ngayKetThuc) {
-                        continue;
-                    }
-                    
                     // Duyệt qua tất cả các ngày có thứ này trong khoảng thời gian
                     $ngayHoc = clone $firstOccurrence;
                     while ($ngayHoc <= $ngayKetThuc) {
@@ -437,6 +445,118 @@ class GiangVienController {
         }
         
         require __DIR__ . '/../views/giang_vien/profile.php';
+    }
+
+    // ===========================================
+    //  YÊU CẦU ĐỔI LỊCH
+    // ===========================================
+    
+    // Form yêu cầu đổi lịch
+    public function yeuCauDoiLich()
+    {
+        $this->checkGiangVienLogin();
+        
+        $id_giang_vien = $_SESSION['giang_vien_id'];
+        $id_ca_hoc = isset($_GET['id_ca_hoc']) ? (int)$_GET['id_ca_hoc'] : 0;
+        
+        if (!$id_ca_hoc) {
+            $_SESSION['error'] = 'ID ca học không hợp lệ!';
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
+        // Lấy thông tin ca học
+        $caHoc = $this->model->getCaHocById($id_ca_hoc);
+        if (!$caHoc || $caHoc['id_giang_vien'] != $id_giang_vien) {
+            $_SESSION['error'] = 'Bạn không có quyền đổi lịch này!';
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
+        // Lấy danh sách ca mặc định và phòng học
+        $caMacDinhList = $this->model->getCaMacDinhList();
+        $phongHocList = $this->model->getPhongHocList();
+        
+        $data = [
+            'caHoc' => $caHoc,
+            'caMacDinhList' => $caMacDinhList,
+            'phongHocList' => $phongHocList
+        ];
+        extract($data);
+        
+        require __DIR__ . '/../views/giang_vien/yeu_cau_doi_lich.php';
+    }
+    
+    // Xử lý yêu cầu đổi lịch
+    public function processYeuCauDoiLich()
+    {
+        $this->checkGiangVienLogin();
+        
+        $id_giang_vien = $_SESSION['giang_vien_id'];
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
+        $id_ca_hoc_cu = isset($_POST['id_ca_hoc_cu']) ? (int)$_POST['id_ca_hoc_cu'] : 0;
+        $id_lop = isset($_POST['id_lop']) ? (int)$_POST['id_lop'] : 0;
+        $thu_trong_tuan_moi = $_POST['thu_trong_tuan_moi'] ?? '';
+        $id_ca_moi = isset($_POST['id_ca_moi']) ? (int)$_POST['id_ca_moi'] : 0;
+        $id_phong_moi = isset($_POST['id_phong_moi']) ? (int)$_POST['id_phong_moi'] : 0;
+        $ngay_doi = $_POST['ngay_doi'] ?? null;
+        $ly_do = $_POST['ly_do'] ?? '';
+        
+        // Validation
+        if (!$id_ca_hoc_cu || !$id_lop || !$thu_trong_tuan_moi || !$id_ca_moi || !$id_phong_moi) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin!';
+            header('Location: ?act=giang-vien-yeu-cau-doi-lich&id_ca_hoc=' . $id_ca_hoc_cu);
+            exit;
+        }
+        
+        // Kiểm tra ca học có thuộc giảng viên không
+        $caHoc = $this->model->getCaHocById($id_ca_hoc_cu);
+        if (!$caHoc || $caHoc['id_giang_vien'] != $id_giang_vien) {
+            $_SESSION['error'] = 'Bạn không có quyền đổi lịch này!';
+            header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
+        // Tạo yêu cầu
+        $data = [
+            'id_giang_vien' => $id_giang_vien,
+            'id_ca_hoc_cu' => $id_ca_hoc_cu,
+            'id_lop' => $id_lop,
+            'thu_trong_tuan_moi' => $thu_trong_tuan_moi,
+            'id_ca_moi' => $id_ca_moi,
+            'id_phong_moi' => $id_phong_moi,
+            'ngay_doi' => !empty($ngay_doi) ? $ngay_doi : null,
+            'ly_do' => $ly_do
+        ];
+        
+        if ($this->model->taoYeuCauDoiLich($data)) {
+            $_SESSION['success'] = 'Yêu cầu đổi lịch đã được gửi thành công! Vui lòng chờ admin duyệt.';
+        } else {
+            $_SESSION['error'] = 'Có lỗi xảy ra khi gửi yêu cầu!';
+        }
+        
+        header('Location: ?act=giang-vien-danh-sach-yeu-cau-doi-lich');
+        exit;
+    }
+    
+    // Danh sách yêu cầu đổi lịch của giảng viên
+    public function danhSachYeuCauDoiLich()
+    {
+        $this->checkGiangVienLogin();
+        
+        $id_giang_vien = $_SESSION['giang_vien_id'];
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $limit = 10;
+        
+        $yeuCauList = $this->model->getYeuCauDoiLichByGiangVien($id_giang_vien, $page, $limit);
+        $total = $this->model->countYeuCauDoiLich();
+        
+        require __DIR__ . '/../views/giang_vien/danh_sach_yeu_cau_doi_lich.php';
     }
 }
 

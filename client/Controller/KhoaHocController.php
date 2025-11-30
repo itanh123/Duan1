@@ -514,6 +514,12 @@ class KhoaHocController {
         }
 
         $binh_luan = $this->model->getBinhLuan($id);
+        
+        // Lấy phản hồi của admin cho mỗi bình luận
+        $phanHoiList = [];
+        foreach ($binh_luan as $bl) {
+            $phanHoiList[$bl['id']] = $this->userModel->getPhanHoiBinhLuan($bl['id']);
+        }
 
         // Kiểm tra xem học sinh đã đăng ký khóa học chưa (chỉ hiển thị form bình luận nếu đã đăng ký)
         $daDangKy = false;

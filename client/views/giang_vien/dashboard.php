@@ -358,19 +358,29 @@ if (session_status() === PHP_SESSION_NONE) {
                         <div class="schedule-item">
                             <div class="schedule-header">
                                 <h4><?= htmlspecialchars($item['ten_lop']) ?></h4>
-                                <span class="badge bg-primary"><?= htmlspecialchars($item['ten_khoa_hoc']) ?></span>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <span class="badge bg-primary"><?= htmlspecialchars($item['ten_khoa_hoc']) ?></span>
+                                    <a href="?act=giang-vien-yeu-cau-doi-lich&id_ca_hoc=<?= $item['id_ca_hoc'] ?>" 
+                                       class="btn btn-sm btn-warning">
+                                        <i class="bi bi-calendar-event"></i> Yêu cầu đổi lịch
+                                    </a>
+                                </div>
                             </div>
                             <div class="schedule-details">
+                                <?php if (!empty($item['ngay_hoc_formatted'])): ?>
+                                    <div class="schedule-detail-item">
+                                        <strong><i class="bi bi-calendar-date"></i> Ngày học:</strong>
+                                        <span class="text-primary fw-bold" style="font-size: 16px;"><?= htmlspecialchars($item['ngay_hoc_formatted']) ?></span>
+                                    </div>
+                                <?php endif; ?>
                                 <div class="schedule-detail-item">
                                     <strong><i class="bi bi-calendar-week"></i> Thứ:</strong>
                                     <span><?= htmlspecialchars($item['thu_trong_tuan']) ?></span>
                                 </div>
-                                <?php if (!empty($item['ngay_hoc_formatted'])): ?>
-                                    <div class="schedule-detail-item">
-                                        <strong><i class="bi bi-calendar-date"></i> Ngày học:</strong>
-                                        <span class="text-primary fw-bold"><?= htmlspecialchars($item['ngay_hoc_formatted']) ?></span>
-                                    </div>
-                                <?php endif; ?>
+                                <div class="schedule-detail-item">
+                                    <strong><i class="bi bi-calendar-range"></i> Khoảng thời gian:</strong>
+                                    <span><?= htmlspecialchars($item['ngay_bat_dau_formatted']) ?> - <?= htmlspecialchars($item['ngay_ket_thuc_formatted']) ?></span>
+                                </div>
                                 <div class="schedule-detail-item">
                                     <strong><i class="bi bi-clock"></i> Ca học:</strong>
                                     <span><?= htmlspecialchars($item['ten_ca'] ?? 'Chưa có') ?></span>

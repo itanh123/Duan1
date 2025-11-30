@@ -104,6 +104,7 @@ class admincontroller{
         $thongKe = $this->model->getThongKe();
         $dangKyMoiNhat = $this->model->getDangKyMoiNhat(5);
         $thanhToanMoiNhat = $this->model->getThanhToanMoiNhat(5);
+        $yeuCauDoiLichMoiNhat = $this->model->getYeuCauDoiLich(1, 5, 'cho_duyet');
         
         // Load content
         ob_start();
@@ -1493,11 +1494,12 @@ class admincontroller{
         exit;
     }
 
-    // Form sửa bình luận
-    public function editBinhLuan(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+    // Form trả lời bình luận
+    public function traLoiBinhLuan(){
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
+            $_SESSION['error'] = 'ID bình luận không hợp lệ!';
             header('Location: ?act=admin-list-binh-luan');
             exit;
         }
@@ -1509,79 +1511,52 @@ class admincontroller{
             exit;
         }
         
-        require_once('./admin/View/binh_luan/form.php');
-    }
-
-    // Xử lý cập nhật bình luận
-    public function updateBinhLuan(){
-        $this->checkPermission('sua'); // Cần quyền sửa
-        $id = $_POST['id'] ?? 0;
-        if (!$id) {
-            header('Location: ?act=admin-list-binh-luan');
-            exit;
-        }
-
-        $binhLuan = $this->model->getBinhLuanById($id);
-        if (!$binhLuan) {
-            $_SESSION['error'] = 'Không tìm thấy bình luận!';
-            header('Location: ?act=admin-list-binh-luan');
-            exit;
-        }
-
+        // Lấy danh sách phản hồi của bình luận này
+        $phanHoiList = $this->model->getPhanHoiBinhLuan($id);
+        
         $data = [
-            'noi_dung' => $_POST['noi_dung'] ?? '',
-            'danh_gia' => !empty($_POST['danh_gia']) ? (int)$_POST['danh_gia'] : null,
-            'trang_thai' => $_POST['trang_thai'] ?? 'Hiển thị'
+            'binhLuan' => $binhLuan,
+            'phanHoiList' => $phanHoiList
         ];
-
-        // Validation
-        if (empty($data['noi_dung'])) {
-            $_SESSION['error'] = 'Nội dung bình luận không được để trống!';
-            header('Location: ?act=admin-edit-binh-luan&id=' . $id);
-            exit;
-        }
-
-        // Kiểm tra giá trị ENUM hợp lệ
-        $validTrangThai = ['Hiển thị', 'Ẩn', 'Đã xóa'];
-        if (!in_array($data['trang_thai'], $validTrangThai)) {
-            $_SESSION['error'] = 'Trạng thái không hợp lệ!';
-            header('Location: ?act=admin-edit-binh-luan&id=' . $id);
-            exit;
-        }
-
-        // Kiểm tra đánh giá hợp lệ (1-5 hoặc null)
-        if ($data['danh_gia'] !== null && ($data['danh_gia'] < 1 || $data['danh_gia'] > 5)) {
-            $_SESSION['error'] = 'Đánh giá phải từ 1 đến 5 sao!';
-            header('Location: ?act=admin-edit-binh-luan&id=' . $id);
-            exit;
-        }
-
-        if ($this->model->updateBinhLuan($id, $data)) {
-            $_SESSION['success'] = 'Cập nhật bình luận thành công!';
-            header('Location: ?act=admin-list-binh-luan');
-        } else {
-            $_SESSION['error'] = 'Cập nhật bình luận thất bại!';
-            header('Location: ?act=admin-edit-binh-luan&id=' . $id);
-        }
-        exit;
+        extract($data);
+        
+        require_once('./admin/View/binh_luan/tra_loi.php');
     }
 
-    // Xóa bình luận
-    public function deleteBinhLuan(){
-        $this->checkPermission('xoa'); // Cần quyền xóa
-        $id = $_GET['id'] ?? 0;
-        if (!$id) {
-            $_SESSION['error'] = 'ID không hợp lệ!';
+    // Xử lý trả lời bình luận
+    public function processTraLoiBinhLuan(){
+        $this->checkAdminLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ?act=admin-list-binh-luan');
             exit;
         }
-
-        if ($this->model->deleteBinhLuan($id)) {
-            $_SESSION['success'] = 'Xóa bình luận thành công!';
-        } else {
-            $_SESSION['error'] = 'Xóa bình luận thất bại!';
+        
+        $id_binh_luan = isset($_POST['id_binh_luan']) ? (int)$_POST['id_binh_luan'] : 0;
+        $noi_dung = $_POST['noi_dung'] ?? '';
+        $id_admin = $_SESSION['admin_id'] ?? $_SESSION['client_id'] ?? 0;
+        
+        if (!$id_binh_luan || empty($noi_dung) || !$id_admin) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin!';
+            header('Location: ?act=admin-tra-loi-binh-luan&id=' . $id_binh_luan);
+            exit;
         }
-        header('Location: ?act=admin-list-binh-luan');
+        
+        // Kiểm tra bình luận có tồn tại không
+        $binhLuan = $this->model->getBinhLuanById($id_binh_luan);
+        if (!$binhLuan) {
+            $_SESSION['error'] = 'Không tìm thấy bình luận!';
+            header('Location: ?act=admin-list-binh-luan');
+            exit;
+        }
+        
+        if ($this->model->taoPhanHoiBinhLuan($id_binh_luan, $id_admin, $noi_dung)) {
+            $_SESSION['success'] = 'Trả lời bình luận thành công!';
+        } else {
+            $_SESSION['error'] = 'Có lỗi xảy ra khi trả lời bình luận!';
+        }
+        
+        header('Location: ?act=admin-tra-loi-binh-luan&id=' . $id_binh_luan);
         exit;
     }
 
@@ -1898,6 +1873,218 @@ class admincontroller{
             $_SESSION['error'] = 'Thao tác thất bại!';
         }
         header('Location: ?act=admin-list-tai-khoan');
+        exit;
+    }
+
+    // ===========================================
+    //  QUẢN LÝ YÊU CẦU ĐỔI LỊCH
+    // ===========================================
+    
+    // Danh sách yêu cầu đổi lịch
+    public function listYeuCauDoiLich()
+    {
+        $this->checkAdminLogin();
+        
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $limit = 10;
+        $trang_thai = $_GET['trang_thai'] ?? '';
+        
+        $yeuCauList = $this->model->getYeuCauDoiLich($page, $limit, $trang_thai);
+        $total = $this->model->countYeuCauDoiLich($trang_thai);
+        $totalPages = ceil($total / $limit);
+        
+        $data = [
+            'yeuCauList' => $yeuCauList,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'total' => $total,
+            'trang_thai' => $trang_thai
+        ];
+        
+        $this->renderView('./admin/View/yeu_cau_doi_lich/list.php', 'Quản lý yêu cầu đổi lịch', $data);
+    }
+    
+    // Chi tiết yêu cầu đổi lịch
+    public function detailYeuCauDoiLich()
+    {
+        $this->checkAdminLogin();
+        
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID yêu cầu không hợp lệ!';
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        $yeuCau = $this->model->getYeuCauDoiLichById($id);
+        if (!$yeuCau) {
+            $_SESSION['error'] = 'Không tìm thấy yêu cầu!';
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        // Kiểm tra trùng lịch
+        $trungLich = $this->model->kiemTraTrungLich(
+            $yeuCau['id_giang_vien'],
+            $yeuCau['thu_trong_tuan_moi'],
+            $yeuCau['id_ca_moi'],
+            $yeuCau['id_phong_moi'],
+            $yeuCau['ngay_doi'],
+            $yeuCau['id_ca_hoc_cu']
+        );
+        
+        $data = [
+            'yeuCau' => $yeuCau,
+            'trungLich' => $trungLich
+        ];
+        
+        $this->renderView('./admin/View/yeu_cau_doi_lich/detail.php', 'Chi tiết yêu cầu đổi lịch', $data);
+    }
+    
+    // Duyệt yêu cầu đổi lịch
+    public function duyetYeuCauDoiLich()
+    {
+        $this->checkAdminLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $ghi_chu = $_POST['ghi_chu'] ?? '';
+        
+        if (!$id) {
+            $_SESSION['error'] = 'ID yêu cầu không hợp lệ!';
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        $result = $this->model->duyetYeuCauDoiLich($id, $ghi_chu);
+        
+        if ($result === true) {
+            $_SESSION['success'] = 'Duyệt yêu cầu đổi lịch thành công!';
+        } else {
+            $_SESSION['error'] = $result['error'] ?? 'Có lỗi xảy ra khi duyệt yêu cầu!';
+        }
+        
+        header('Location: ?act=admin-list-yeu-cau-doi-lich');
+        exit;
+    }
+    
+    // Từ chối yêu cầu đổi lịch
+    public function tuChoiYeuCauDoiLich()
+    {
+        $this->checkAdminLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $ghi_chu = $_POST['ghi_chu'] ?? '';
+        
+        if (!$id) {
+            $_SESSION['error'] = 'ID yêu cầu không hợp lệ!';
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        if ($this->model->tuChoiYeuCauDoiLich($id, $ghi_chu)) {
+            $_SESSION['success'] = 'Từ chối yêu cầu đổi lịch thành công!';
+        } else {
+            $_SESSION['error'] = 'Có lỗi xảy ra khi từ chối yêu cầu!';
+        }
+        
+        header('Location: ?act=admin-list-yeu-cau-doi-lich');
+        exit;
+    }
+    
+    // Hủy yêu cầu đổi lịch
+    public function huyYeuCauDoiLich()
+    {
+        $this->checkAdminLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $ghi_chu = $_POST['ghi_chu'] ?? '';
+        
+        if (!$id) {
+            $_SESSION['error'] = 'ID yêu cầu không hợp lệ!';
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        if ($this->model->huyYeuCauDoiLich($id, $ghi_chu)) {
+            $_SESSION['success'] = 'Hủy yêu cầu đổi lịch thành công!';
+        } else {
+            $_SESSION['error'] = 'Có lỗi xảy ra khi hủy yêu cầu!';
+        }
+        
+        header('Location: ?act=admin-list-yeu-cau-doi-lich');
+        exit;
+    }
+    
+    // Xác nhận thay đổi lịch dạy
+    public function xacNhanThayDoiLich()
+    {
+        $this->checkAdminLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $ghi_chu = $_POST['ghi_chu'] ?? '';
+        
+        if (!$id) {
+            $_SESSION['error'] = 'ID yêu cầu không hợp lệ!';
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        if ($this->model->xacNhanThayDoiLich($id, $ghi_chu)) {
+            $_SESSION['success'] = 'Xác nhận thay đổi lịch dạy thành công!';
+        } else {
+            $_SESSION['error'] = 'Có lỗi xảy ra khi xác nhận! Yêu cầu phải ở trạng thái "Đã duyệt".';
+        }
+        
+        header('Location: ?act=admin-detail-yeu-cau-doi-lich&id=' . $id);
+        exit;
+    }
+    
+    // Hoàn nguyên lịch đã thay đổi
+    public function hoanNguyenLich()
+    {
+        $this->checkAdminLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $ghi_chu = $_POST['ghi_chu'] ?? '';
+        
+        if (!$id) {
+            $_SESSION['error'] = 'ID yêu cầu không hợp lệ!';
+            header('Location: ?act=admin-list-yeu-cau-doi-lich');
+            exit;
+        }
+        
+        if ($this->model->hoanNguyenLich($id, $ghi_chu)) {
+            $_SESSION['success'] = 'Hoàn nguyên lịch thành công!';
+        } else {
+            $_SESSION['error'] = 'Có lỗi xảy ra khi hoàn nguyên lịch! Yêu cầu phải ở trạng thái "Đã duyệt".';
+        }
+        
+        header('Location: ?act=admin-detail-yeu-cau-doi-lich&id=' . $id);
         exit;
     }
 }

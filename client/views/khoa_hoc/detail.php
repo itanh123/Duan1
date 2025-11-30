@@ -847,6 +847,23 @@ unset($_SESSION['dang_ky_info']);
                             <?php endif; ?>
                         </div>
                         <div class="comment-content"><?= nl2br(htmlspecialchars($b['noi_dung'])) ?></div>
+                        
+                        <!-- Phản hồi của admin -->
+                        <?php if (!empty($phanHoiList[$b['id']])): ?>
+                            <div class="admin-replies" style="margin-top: 15px; padding-left: 20px; border-left: 3px solid #007bff;">
+                                <?php foreach ($phanHoiList[$b['id']] as $ph): ?>
+                                    <div class="admin-reply" style="margin-bottom: 10px; padding: 10px; background: #e7f3ff; border-radius: 5px;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                                            <strong style="color: #007bff; margin-right: 10px;">👨‍💼 Admin:</strong>
+                                            <span style="color: #666; font-size: 12px;">
+                                                <?= date('d/m/Y H:i', strtotime($ph['ngay_tao'])) ?>
+                                            </span>
+                                        </div>
+                                        <div style="color: #333;"><?= nl2br(htmlspecialchars($ph['noi_dung'])) ?></div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>

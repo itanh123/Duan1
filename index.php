@@ -115,6 +115,9 @@ match ($act) {
     'giang-vien-view-hoc-sinh-detail' => $giangVienController->viewHocSinhDetail(),
     'giang-vien-view-hoc-sinh-trong-lop' => $giangVienController->viewHocSinhTrongLop(),
     'giang-vien-profile' => $giangVienController->profile(),
+    'giang-vien-yeu-cau-doi-lich' => $giangVienController->yeuCauDoiLich(),
+    'giang-vien-process-yeu-cau-doi-lich' => $giangVienController->processYeuCauDoiLich(),
+    'giang-vien-danh-sach-yeu-cau-doi-lich' => $giangVienController->danhSachYeuCauDoiLich(),
     
     // ============================
     //  CLIENT - XEM DANH SÁCH GIẢNG VIÊN
@@ -236,9 +239,8 @@ match ($act) {
     
     // Quản lý bình luận
     'admin-list-binh-luan' => $adminController->listBinhLuan(),
-    'admin-edit-binh-luan' => $adminController->editBinhLuan(),
-    'admin-update-binh-luan' => $adminController->updateBinhLuan(),
-    'admin-delete-binh-luan' => $adminController->deleteBinhLuan(),
+    'admin-tra-loi-binh-luan' => $adminController->traLoiBinhLuan(),
+    'admin-process-tra-loi-binh-luan' => $adminController->processTraLoiBinhLuan(),
     
     // ============================
     //  ADMIN - QUẢN LÝ PHÒNG HỌC
@@ -257,6 +259,17 @@ match ($act) {
     'admin-edit-tai-khoan' => $adminController->editTaiKhoan(),
     'admin-update-tai-khoan' => $adminController->updateTaiKhoan(),
     'admin-toggle-tai-khoan-status' => $adminController->toggleTaiKhoanStatus(),
+    
+    // ============================
+    //  ADMIN - QUẢN LÝ YÊU CẦU ĐỔI LỊCH
+    // ============================
+    'admin-list-yeu-cau-doi-lich' => $adminController->listYeuCauDoiLich(),
+    'admin-detail-yeu-cau-doi-lich' => $adminController->detailYeuCauDoiLich(),
+    'admin-duyet-yeu-cau-doi-lich' => $adminController->duyetYeuCauDoiLich(),
+    'admin-tu-choi-yeu-cau-doi-lich' => $adminController->tuChoiYeuCauDoiLich(),
+    'admin-huy-yeu-cau-doi-lich' => $adminController->huyYeuCauDoiLich(),
+    'admin-xac-nhan-thay-doi-lich' => $adminController->xacNhanThayDoiLich(),
+    'admin-hoan-nguyen-lich' => $adminController->hoanNguyenLich(),
     
     // ============================
     //  MẶC ĐỊNH – KHÔNG TÌM THẤY
