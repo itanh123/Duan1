@@ -103,7 +103,15 @@ class GiangVienController {
     {
         $this->checkGiangVienLogin();
         
-        $id_giang_vien = $_SESSION['giang_vien_id'];
+        // Đảm bảo lấy đúng ID giảng viên từ session
+        $id_giang_vien = isset($_SESSION['giang_vien_id']) ? (int)$_SESSION['giang_vien_id'] : 0;
+        
+        // Kiểm tra ID hợp lệ
+        if (!$id_giang_vien || $id_giang_vien <= 0) {
+            $_SESSION['error'] = 'ID giảng viên không hợp lệ!';
+            header('Location: ?act=giang-vien-login');
+            exit;
+        }
         
         // Lấy filter khoảng thời gian (nếu có)
         $tuNgay = $_GET['tu_ngay'] ?? '';
@@ -180,112 +188,175 @@ class GiangVienController {
         $allScheduleItems = [];
         
         foreach ($lopHocs as $lop) {
-            // Chỉ xử lý nếu lớp có ngày bắt đầu và kết thúc
-            if (empty($lop['ngay_bat_dau']) || empty($lop['ngay_ket_thuc'])) {
-                continue;
-            }
-            
-            $ngayBatDau = new DateTime($lop['ngay_bat_dau']);
-            $ngayKetThuc = new DateTime($lop['ngay_ket_thuc']);
-            
             // Kiểm tra có ca học không
             if (empty($lop['ca_hoc'])) {
                 continue;
             }
             
+            // Kiểm tra lớp có ngày bắt đầu và kết thúc không
+            $hasDateRange = !empty($lop['ngay_bat_dau']) && !empty($lop['ngay_ket_thuc']);
+            
             foreach ($lop['ca_hoc'] as $ca) {
+                // Ưu tiên sử dụng ngay_hoc từ database nếu có
+                $ngayHocFromDB = $ca['ngay_hoc'] ?? null;
+                
+                // Nếu có ngay_hoc trong database, sử dụng trực tiếp
+                if (!empty($ngayHocFromDB)) {
+                    $ngayHocObj = new DateTime($ngayHocFromDB);
+                    
+                    // Kiểm tra filter nếu có
+                    if ($hasFilter) {
+                        if ($ngayHocObj < $filterStartDate || $ngayHocObj > $filterEndDate) {
+                            continue; // Bỏ qua nếu không nằm trong khoảng lọc
+                        }
+                    }
+                    
+                    $scheduleItem = [
+                        'id_lop' => $lop['id_lop'],
+                        'ten_lop' => $lop['ten_lop'],
+                        'ten_khoa_hoc' => $lop['ten_khoa_hoc'],
+                        'mo_ta_lop' => $lop['mo_ta_lop'] ?? '',
+                        'so_luong_toi_da' => $lop['so_luong_toi_da'] ?? 0,
+                        'ngay_bat_dau_lop' => $lop['ngay_bat_dau'] ?? null,
+                        'ngay_ket_thuc_lop' => $lop['ngay_ket_thuc'] ?? null,
+                        'ngay_bat_dau_formatted' => !empty($lop['ngay_bat_dau']) ? date('d/m/Y', strtotime($lop['ngay_bat_dau'])) : 'Chưa có',
+                        'ngay_ket_thuc_formatted' => !empty($lop['ngay_ket_thuc']) ? date('d/m/Y', strtotime($lop['ngay_ket_thuc'])) : 'Chưa có',
+                        'ngay_hoc' => $ngayHocFromDB,
+                        'ngay_hoc_formatted' => $ngayHocObj->format('d/m/Y'),
+                        'thu_trong_tuan' => $ca['thu_trong_tuan'] ?? '',
+                        'ten_ca' => $ca['ten_ca'] ?? '',
+                        'gio_bat_dau' => $ca['gio_bat_dau'] ?? '',
+                        'gio_ket_thuc' => $ca['gio_ket_thuc'] ?? '',
+                        'ten_phong' => $ca['ten_phong'] ?? '',
+                        'suc_chua' => $ca['suc_chua'] ?? 0,
+                        'id_ca_hoc' => $ca['id_ca_hoc'] ?? 0
+                    ];
+                    $allScheduleItems[] = $scheduleItem;
+                    continue; // Bỏ qua phần tính toán từ thứ
+                }
+                
+                // Nếu không có ngay_hoc, tính toán từ thứ trong tuần (logic cũ)
                 $thu = $ca['thu_trong_tuan'] ?? '';
                 if (!isset($thuMap[$thu])) {
                     continue;
                 }
                 
-                // Tính toán ngày học cụ thể
-                $dayOfWeekNumber = $thuMap[$thu]; // 1 = Monday, 7 = Sunday
-                
-                // Tìm ngày đầu tiên có thứ tương ứng
-                $firstOccurrence = clone $ngayBatDau;
-                $currentDayOfWeek = (int)$firstOccurrence->format('N'); // 1 = Monday, 7 = Sunday
-                
-                // Tính số ngày cần cộng để đến thứ cần tìm
-                if ($currentDayOfWeek <= $dayOfWeekNumber) {
-                    $daysToAdd = $dayOfWeekNumber - $currentDayOfWeek;
-                } else {
-                    $daysToAdd = 7 - ($currentDayOfWeek - $dayOfWeekNumber);
-                }
-                
-                $firstOccurrence->modify("+{$daysToAdd} days");
-                
-                // Nếu ngày đầu tiên vượt quá ngày kết thúc, bỏ qua
-                if ($firstOccurrence > $ngayKetThuc) {
-                    continue;
-                }
-                
-                // Nếu không có filter, hiển thị tất cả các ngày học trong khoảng thời gian
-                if (!$hasFilter) {
-                    // Duyệt qua tất cả các ngày có thứ này trong khoảng thời gian
-                    $ngayHoc = clone $firstOccurrence;
-                    while ($ngayHoc <= $ngayKetThuc) {
-                        $scheduleItem = [
-                            'id_lop' => $lop['id_lop'],
-                            'ten_lop' => $lop['ten_lop'],
-                            'ten_khoa_hoc' => $lop['ten_khoa_hoc'],
-                            'mo_ta_lop' => $lop['mo_ta_lop'] ?? '',
-                            'so_luong_toi_da' => $lop['so_luong_toi_da'] ?? 0,
-                            'ngay_bat_dau_lop' => $lop['ngay_bat_dau'],
-                            'ngay_ket_thuc_lop' => $lop['ngay_ket_thuc'],
-                            'ngay_bat_dau_formatted' => date('d/m/Y', strtotime($lop['ngay_bat_dau'])),
-                            'ngay_ket_thuc_formatted' => date('d/m/Y', strtotime($lop['ngay_ket_thuc'])),
-                            'ngay_hoc' => $ngayHoc->format('Y-m-d'),
-                            'ngay_hoc_formatted' => $ngayHoc->format('d/m/Y'),
-                            'thu_trong_tuan' => $ca['thu_trong_tuan'],
-                            'ten_ca' => $ca['ten_ca'] ?? '',
-                            'gio_bat_dau' => $ca['gio_bat_dau'] ?? '',
-                            'gio_ket_thuc' => $ca['gio_ket_thuc'] ?? '',
-                            'ten_phong' => $ca['ten_phong'] ?? '',
-                            'suc_chua' => $ca['suc_chua'] ?? 0,
-                            'id_ca_hoc' => $ca['id_ca_hoc'] ?? 0
-                        ];
-                        $allScheduleItems[] = $scheduleItem;
-                        
-                        // Chuyển sang tuần tiếp theo (cùng thứ)
-                        $ngayHoc->modify('+7 days');
+                // Nếu lớp có ngày bắt đầu/kết thúc, tính toán ngày cụ thể
+                if ($hasDateRange) {
+                    $ngayBatDau = new DateTime($lop['ngay_bat_dau']);
+                    $ngayKetThuc = new DateTime($lop['ngay_ket_thuc']);
+                    
+                    // Tính toán ngày học cụ thể
+                    $dayOfWeekNumber = $thuMap[$thu]; // 1 = Monday, 7 = Sunday
+                    
+                    // Tìm ngày đầu tiên có thứ tương ứng
+                    $firstOccurrence = clone $ngayBatDau;
+                    $currentDayOfWeek = (int)$firstOccurrence->format('N'); // 1 = Monday, 7 = Sunday
+                    
+                    // Tính số ngày cần cộng để đến thứ cần tìm
+                    if ($currentDayOfWeek <= $dayOfWeekNumber) {
+                        $daysToAdd = $dayOfWeekNumber - $currentDayOfWeek;
+                    } else {
+                        $daysToAdd = 7 - ($currentDayOfWeek - $dayOfWeekNumber);
                     }
-                } else {
-                    // Nếu có filter, tính toán các ngày cụ thể trong khoảng thời gian
-                    // Duyệt qua tất cả các ngày có thứ này trong khoảng thời gian
-                    $ngayHoc = clone $firstOccurrence;
-                    while ($ngayHoc <= $ngayKetThuc) {
-                        // Kiểm tra ngày có nằm trong khoảng lọc không
-                        if ($ngayHoc < $filterStartDate || $ngayHoc > $filterEndDate) {
+                    
+                    $firstOccurrence->modify("+{$daysToAdd} days");
+                    
+                    // Nếu ngày đầu tiên vượt quá ngày kết thúc, bỏ qua
+                    if ($firstOccurrence > $ngayKetThuc) {
+                        continue;
+                    }
+                    
+                    // Nếu không có filter, hiển thị tất cả các ngày học trong khoảng thời gian
+                    if (!$hasFilter) {
+                        // Duyệt qua tất cả các ngày có thứ này trong khoảng thời gian
+                        $ngayHoc = clone $firstOccurrence;
+                        while ($ngayHoc <= $ngayKetThuc) {
+                            $scheduleItem = [
+                                'id_lop' => $lop['id_lop'],
+                                'ten_lop' => $lop['ten_lop'],
+                                'ten_khoa_hoc' => $lop['ten_khoa_hoc'],
+                                'mo_ta_lop' => $lop['mo_ta_lop'] ?? '',
+                                'so_luong_toi_da' => $lop['so_luong_toi_da'] ?? 0,
+                                'ngay_bat_dau_lop' => $lop['ngay_bat_dau'],
+                                'ngay_ket_thuc_lop' => $lop['ngay_ket_thuc'],
+                                'ngay_bat_dau_formatted' => date('d/m/Y', strtotime($lop['ngay_bat_dau'])),
+                                'ngay_ket_thuc_formatted' => date('d/m/Y', strtotime($lop['ngay_ket_thuc'])),
+                                'ngay_hoc' => $ngayHoc->format('Y-m-d'),
+                                'ngay_hoc_formatted' => $ngayHoc->format('d/m/Y'),
+                                'thu_trong_tuan' => $ca['thu_trong_tuan'],
+                                'ten_ca' => $ca['ten_ca'] ?? '',
+                                'gio_bat_dau' => $ca['gio_bat_dau'] ?? '',
+                                'gio_ket_thuc' => $ca['gio_ket_thuc'] ?? '',
+                                'ten_phong' => $ca['ten_phong'] ?? '',
+                                'suc_chua' => $ca['suc_chua'] ?? 0,
+                                'id_ca_hoc' => $ca['id_ca_hoc'] ?? 0
+                            ];
+                            $allScheduleItems[] = $scheduleItem;
+                            
+                            // Chuyển sang tuần tiếp theo (cùng thứ)
                             $ngayHoc->modify('+7 days');
-                            continue; // Bỏ qua nếu không nằm trong khoảng lọc
                         }
-                        
-                        $scheduleItem = [
-                            'id_lop' => $lop['id_lop'],
-                            'ten_lop' => $lop['ten_lop'],
-                            'ten_khoa_hoc' => $lop['ten_khoa_hoc'],
-                            'mo_ta_lop' => $lop['mo_ta_lop'] ?? '',
-                            'so_luong_toi_da' => $lop['so_luong_toi_da'] ?? 0,
-                            'ngay_bat_dau_lop' => $lop['ngay_bat_dau'],
-                            'ngay_ket_thuc_lop' => $lop['ngay_ket_thuc'],
-                            'ngay_bat_dau_formatted' => date('d/m/Y', strtotime($lop['ngay_bat_dau'])),
-                            'ngay_ket_thuc_formatted' => date('d/m/Y', strtotime($lop['ngay_ket_thuc'])),
-                            'ngay_hoc' => $ngayHoc->format('Y-m-d'),
-                            'ngay_hoc_formatted' => $ngayHoc->format('d/m/Y'),
-                            'thu_trong_tuan' => $ca['thu_trong_tuan'],
-                            'ten_ca' => $ca['ten_ca'] ?? '',
-                            'gio_bat_dau' => $ca['gio_bat_dau'] ?? '',
-                            'gio_ket_thuc' => $ca['gio_ket_thuc'] ?? '',
-                            'ten_phong' => $ca['ten_phong'] ?? '',
-                            'suc_chua' => $ca['suc_chua'] ?? 0,
-                            'id_ca_hoc' => $ca['id_ca_hoc'] ?? 0
-                        ];
-                        $allScheduleItems[] = $scheduleItem;
-                        
-                        // Chuyển sang tuần tiếp theo (cùng thứ)
-                        $ngayHoc->modify('+7 days');
+                    } else {
+                        // Nếu có filter, tính toán các ngày cụ thể trong khoảng thời gian
+                        // Duyệt qua tất cả các ngày có thứ này trong khoảng thời gian
+                        $ngayHoc = clone $firstOccurrence;
+                        while ($ngayHoc <= $ngayKetThuc) {
+                            // Kiểm tra ngày có nằm trong khoảng lọc không
+                            if ($ngayHoc < $filterStartDate || $ngayHoc > $filterEndDate) {
+                                $ngayHoc->modify('+7 days');
+                                continue; // Bỏ qua nếu không nằm trong khoảng lọc
+                            }
+                            
+                            $scheduleItem = [
+                                'id_lop' => $lop['id_lop'],
+                                'ten_lop' => $lop['ten_lop'],
+                                'ten_khoa_hoc' => $lop['ten_khoa_hoc'],
+                                'mo_ta_lop' => $lop['mo_ta_lop'] ?? '',
+                                'so_luong_toi_da' => $lop['so_luong_toi_da'] ?? 0,
+                                'ngay_bat_dau_lop' => $lop['ngay_bat_dau'],
+                                'ngay_ket_thuc_lop' => $lop['ngay_ket_thuc'],
+                                'ngay_bat_dau_formatted' => date('d/m/Y', strtotime($lop['ngay_bat_dau'])),
+                                'ngay_ket_thuc_formatted' => date('d/m/Y', strtotime($lop['ngay_ket_thuc'])),
+                                'ngay_hoc' => $ngayHoc->format('Y-m-d'),
+                                'ngay_hoc_formatted' => $ngayHoc->format('d/m/Y'),
+                                'thu_trong_tuan' => $ca['thu_trong_tuan'],
+                                'ten_ca' => $ca['ten_ca'] ?? '',
+                                'gio_bat_dau' => $ca['gio_bat_dau'] ?? '',
+                                'gio_ket_thuc' => $ca['gio_ket_thuc'] ?? '',
+                                'ten_phong' => $ca['ten_phong'] ?? '',
+                                'suc_chua' => $ca['suc_chua'] ?? 0,
+                                'id_ca_hoc' => $ca['id_ca_hoc'] ?? 0
+                            ];
+                            $allScheduleItems[] = $scheduleItem;
+                            
+                            // Chuyển sang tuần tiếp theo (cùng thứ)
+                            $ngayHoc->modify('+7 days');
+                        }
                     }
+                } else {
+                    // Nếu lớp không có ngày bắt đầu/kết thúc, vẫn hiển thị ca học nhưng không có ngày cụ thể
+                    $scheduleItem = [
+                        'id_lop' => $lop['id_lop'],
+                        'ten_lop' => $lop['ten_lop'],
+                        'ten_khoa_hoc' => $lop['ten_khoa_hoc'],
+                        'mo_ta_lop' => $lop['mo_ta_lop'] ?? '',
+                        'so_luong_toi_da' => $lop['so_luong_toi_da'] ?? 0,
+                        'ngay_bat_dau_lop' => null,
+                        'ngay_ket_thuc_lop' => null,
+                        'ngay_bat_dau_formatted' => 'Chưa có',
+                        'ngay_ket_thuc_formatted' => 'Chưa có',
+                        'ngay_hoc' => null,
+                        'ngay_hoc_formatted' => null,
+                        'thu_trong_tuan' => $ca['thu_trong_tuan'],
+                        'ten_ca' => $ca['ten_ca'] ?? '',
+                        'gio_bat_dau' => $ca['gio_bat_dau'] ?? '',
+                        'gio_ket_thuc' => $ca['gio_ket_thuc'] ?? '',
+                        'ten_phong' => $ca['ten_phong'] ?? '',
+                        'suc_chua' => $ca['suc_chua'] ?? 0,
+                        'id_ca_hoc' => $ca['id_ca_hoc'] ?? 0
+                    ];
+                    $allScheduleItems[] = $scheduleItem;
                 }
             }
         }

@@ -480,8 +480,7 @@ class adminmodel
         $offset = ($page - 1) * $limit;
         $sql = "SELECT nd.id, nd.ho_ten, nd.email, nd.so_dien_thoai, nd.dia_chi
                 FROM nguoi_dung nd
-                INNER JOIN nguoi_dung_vai_tro ndvt ON nd.id = ndvt.id_nguoi_dung
-                WHERE ndvt.vai_tro = 'giang_vien' AND nd.trang_thai = 1";
+                WHERE nd.vai_tro = 'giang_vien' AND nd.trang_thai = 1";
         $params = [];
 
         if (!empty($search)) {
@@ -504,10 +503,9 @@ class adminmodel
     // Đếm tổng số giảng viên cho client
     public function countGiangVienForClient($search = '')
     {
-        $sql = "SELECT COUNT(DISTINCT nd.id) as total
+        $sql = "SELECT COUNT(*) as total
                 FROM nguoi_dung nd
-                INNER JOIN nguoi_dung_vai_tro ndvt ON nd.id = ndvt.id_nguoi_dung
-                WHERE ndvt.vai_tro = 'giang_vien' AND nd.trang_thai = 1";
+                WHERE nd.vai_tro = 'giang_vien' AND nd.trang_thai = 1";
         $params = [];
 
         if (!empty($search)) {
@@ -597,7 +595,8 @@ class adminmodel
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (ph.ten_phong LIKE :search OR ch.ghi_chu LIKE :search)";
+            // Tìm kiếm theo phòng, ghi chú, hoặc ngày học (format: YYYY-MM-DD hoặc DD/MM/YYYY)
+            $sql .= " AND (ph.ten_phong LIKE :search OR ch.ghi_chu LIKE :search OR DATE_FORMAT(ch.ngay_hoc, '%d/%m/%Y') LIKE :search OR ch.ngay_hoc LIKE :search)";
             $params[':search'] = "%$search%";
         }
 
@@ -606,7 +605,7 @@ class adminmodel
             $params[':id_lop'] = $id_lop;
         }
 
-        $sql .= " ORDER BY ch.id_lop, ch.thu_trong_tuan, cmd.gio_bat_dau LIMIT $limit OFFSET $offset";
+        $sql .= " ORDER BY ch.ngay_hoc ASC, ch.id_lop, ch.thu_trong_tuan, cmd.gio_bat_dau LIMIT $limit OFFSET $offset";
 
         $stmt = $this->conn->prepare($sql);
         foreach ($params as $key => $value) {
@@ -690,8 +689,8 @@ class adminmodel
         return $stmt->fetchAll();
     }
 
-    // Kiểm tra trùng ca học (cùng ca, cùng thứ thì phải khác giảng viên và khác phòng)
-    public function checkTrungCaHoc($id_ca, $thu_trong_tuan, $id_giang_vien, $id_phong, $excludeId = null)
+    // Kiểm tra trùng ca học (cùng ca, cùng thứ/ngày thì phải khác giảng viên và khác phòng)
+    public function checkTrungCaHoc($id_ca, $thu_trong_tuan, $id_giang_vien, $id_phong, $excludeId = null, $ngay_hoc = null)
     {
         // Kiểm tra trùng giảng viên (nếu có chọn giảng viên)
         if (!empty($id_giang_vien)) {
@@ -701,14 +700,21 @@ class adminmodel
                     LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id
                     LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
                     WHERE ch.id_ca = :id_ca 
-                    AND ch.thu_trong_tuan = :thu_trong_tuan
                     AND ch.id_giang_vien = :id_giang_vien";
             
             $params = [
                 ':id_ca' => $id_ca,
-                ':thu_trong_tuan' => $thu_trong_tuan,
                 ':id_giang_vien' => $id_giang_vien
             ];
+            
+            // Nếu có ngày học, kiểm tra theo ngày học, nếu không thì kiểm tra theo thứ
+            if (!empty($ngay_hoc)) {
+                $sql .= " AND ch.ngay_hoc = :ngay_hoc";
+                $params[':ngay_hoc'] = $ngay_hoc;
+            } else {
+                $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND (ch.ngay_hoc IS NULL OR ch.ngay_hoc = '')";
+                $params[':thu_trong_tuan'] = $thu_trong_tuan;
+            }
             
             if ($excludeId) {
                 $sql .= " AND ch.id != :exclude_id";
@@ -739,14 +745,21 @@ class adminmodel
                     LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id
                     LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
                     WHERE ch.id_ca = :id_ca 
-                    AND ch.thu_trong_tuan = :thu_trong_tuan
                     AND ch.id_phong = :id_phong";
             
             $params = [
                 ':id_ca' => $id_ca,
-                ':thu_trong_tuan' => $thu_trong_tuan,
                 ':id_phong' => $id_phong
             ];
+            
+            // Nếu có ngày học, kiểm tra theo ngày học, nếu không thì kiểm tra theo thứ
+            if (!empty($ngay_hoc)) {
+                $sql .= " AND ch.ngay_hoc = :ngay_hoc";
+                $params[':ngay_hoc'] = $ngay_hoc;
+            } else {
+                $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND (ch.ngay_hoc IS NULL OR ch.ngay_hoc = '')";
+                $params[':thu_trong_tuan'] = $thu_trong_tuan;
+            }
             
             if ($excludeId) {
                 $sql .= " AND ch.id != :exclude_id";
@@ -772,11 +785,79 @@ class adminmodel
         return ['trung' => false];
     }
 
+    // Lấy danh sách giảng viên bị trùng ca học (dùng cho AJAX)
+    public function getGiangVienTrung($id_ca, $thu_trong_tuan, $ngay_hoc = null, $excludeId = null)
+    {
+        $sql = "SELECT DISTINCT ch.id_giang_vien
+                FROM ca_hoc ch
+                WHERE ch.id_ca = :id_ca";
+        
+        $params = [':id_ca' => $id_ca];
+        
+        // Nếu có ngày học, kiểm tra theo ngày học, nếu không thì kiểm tra theo thứ
+        if (!empty($ngay_hoc)) {
+            $sql .= " AND ch.ngay_hoc = :ngay_hoc";
+            $params[':ngay_hoc'] = $ngay_hoc;
+        } else {
+            $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND (ch.ngay_hoc IS NULL OR ch.ngay_hoc = '')";
+            $params[':thu_trong_tuan'] = $thu_trong_tuan;
+        }
+        
+        if ($excludeId) {
+            $sql .= " AND ch.id != :exclude_id";
+            $params[':exclude_id'] = $excludeId;
+        }
+        
+        $sql .= " AND ch.id_giang_vien IS NOT NULL";
+        
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $results = $stmt->fetchAll();
+        return array_column($results, 'id_giang_vien');
+    }
+
+    // Lấy danh sách phòng học bị trùng ca học (dùng cho AJAX)
+    public function getPhongHocTrung($id_ca, $thu_trong_tuan, $ngay_hoc = null, $excludeId = null)
+    {
+        $sql = "SELECT DISTINCT ch.id_phong
+                FROM ca_hoc ch
+                WHERE ch.id_ca = :id_ca";
+        
+        $params = [':id_ca' => $id_ca];
+        
+        // Nếu có ngày học, kiểm tra theo ngày học, nếu không thì kiểm tra theo thứ
+        if (!empty($ngay_hoc)) {
+            $sql .= " AND ch.ngay_hoc = :ngay_hoc";
+            $params[':ngay_hoc'] = $ngay_hoc;
+        } else {
+            $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND (ch.ngay_hoc IS NULL OR ch.ngay_hoc = '')";
+            $params[':thu_trong_tuan'] = $thu_trong_tuan;
+        }
+        
+        if ($excludeId) {
+            $sql .= " AND ch.id != :exclude_id";
+            $params[':exclude_id'] = $excludeId;
+        }
+        
+        $sql .= " AND ch.id_phong IS NOT NULL";
+        
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $results = $stmt->fetchAll();
+        return array_column($results, 'id_phong');
+    }
+
     // Thêm ca học mới
     public function addCaHoc($data)
     {
-        $sql = "INSERT INTO ca_hoc (id_lop, id_giang_vien, id_ca, thu_trong_tuan, id_phong, ghi_chu) 
-                VALUES (:id_lop, :id_giang_vien, :id_ca, :thu_trong_tuan, :id_phong, :ghi_chu)";
+        $sql = "INSERT INTO ca_hoc (id_lop, id_giang_vien, id_ca, thu_trong_tuan, id_phong, ghi_chu, ngay_hoc) 
+                VALUES (:id_lop, :id_giang_vien, :id_ca, :thu_trong_tuan, :id_phong, :ghi_chu, :ngay_hoc)";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id_lop', $data['id_lop'], PDO::PARAM_INT);
         $stmt->bindValue(':id_giang_vien', !empty($data['id_giang_vien']) ? $data['id_giang_vien'] : null, PDO::PARAM_INT);
@@ -784,6 +865,7 @@ class adminmodel
         $stmt->bindValue(':thu_trong_tuan', $data['thu_trong_tuan'], PDO::PARAM_STR);
         $stmt->bindValue(':id_phong', $data['id_phong'] ?? null, PDO::PARAM_INT);
         $stmt->bindValue(':ghi_chu', $data['ghi_chu'] ?? null);
+        $stmt->bindValue(':ngay_hoc', !empty($data['ngay_hoc']) ? $data['ngay_hoc'] : null);
         return $stmt->execute();
     }
 
@@ -796,7 +878,8 @@ class adminmodel
                     id_ca = :id_ca,
                     thu_trong_tuan = :thu_trong_tuan, 
                     id_phong = :id_phong, 
-                    ghi_chu = :ghi_chu 
+                    ghi_chu = :ghi_chu,
+                    ngay_hoc = :ngay_hoc
                 WHERE id = :id";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -806,6 +889,7 @@ class adminmodel
         $stmt->bindValue(':thu_trong_tuan', $data['thu_trong_tuan'], PDO::PARAM_STR);
         $stmt->bindValue(':id_phong', $data['id_phong'] ?? null, PDO::PARAM_INT);
         $stmt->bindValue(':ghi_chu', $data['ghi_chu'] ?? null);
+        $stmt->bindValue(':ngay_hoc', !empty($data['ngay_hoc']) ? $data['ngay_hoc'] : null);
         return $stmt->execute();
     }
 
@@ -936,6 +1020,12 @@ class adminmodel
     // Lấy danh sách lớp học mà giảng viên đang dạy (với thông tin ca học)
     public function getLopHocByGiangVien($id_giang_vien, $filterDate = '')
     {
+        // Validate ID giảng viên
+        $id_giang_vien = (int)$id_giang_vien;
+        if ($id_giang_vien <= 0) {
+            return []; // Trả về mảng rỗng nếu ID không hợp lệ
+        }
+        
         // Map thứ trong tuần
         $thuMap = [
             1 => 'Thứ 2',
@@ -957,6 +1047,8 @@ class adminmodel
             }
         }
         
+        // Query chính: Lấy lớp học của giảng viên (CHỈ lấy của giảng viên này)
+        // Lấy TẤT CẢ lớp học có ca học của giảng viên, không cần ngày bắt đầu/kết thúc
         $sql = "SELECT DISTINCT
                        lh.id as id_lop,
                        lh.ten_lop,
@@ -973,8 +1065,6 @@ class adminmodel
                 INNER JOIN lop_hoc lh ON ch.id_lop = lh.id
                 INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
                 WHERE ch.id_giang_vien = :id_giang_vien
-                AND lh.ngay_bat_dau IS NOT NULL
-                AND lh.ngay_ket_thuc IS NOT NULL
                 ORDER BY lh.ten_lop";
         
         $stmt = $this->conn->prepare($sql);
@@ -982,10 +1072,11 @@ class adminmodel
         $stmt->execute();
         $lopHocs = $stmt->fetchAll();
         
-        // Lấy thông tin ca học cho mỗi lớp
+        // Lấy thông tin ca học cho mỗi lớp (CHỈ lấy ca học của giảng viên này)
         foreach ($lopHocs as &$lop) {
-            $sqlCaHoc = "SELECT ch.id as id_ca_hoc,
+            $sqlCaHoc = "                         SELECT ch.id as id_ca_hoc,
                                 ch.thu_trong_tuan,
+                                ch.ngay_hoc,
                                 cmd.ten_ca,
                                 cmd.gio_bat_dau,
                                 cmd.gio_ket_thuc,
@@ -997,12 +1088,12 @@ class adminmodel
                          WHERE ch.id_lop = :id_lop
                          AND ch.id_giang_vien = :id_giang_vien";
             
-            // Nếu có filter ngày, chỉ lấy ca học của thứ tương ứng
+            // Nếu có filter ngày, tìm theo ngày học hoặc thứ trong tuần
             if ($filterThu) {
-                $sqlCaHoc .= " AND ch.thu_trong_tuan = :thu_trong_tuan";
+                $sqlCaHoc .= " AND (ch.ngay_hoc IS NULL AND ch.thu_trong_tuan = :thu_trong_tuan)";
             }
             
-            $sqlCaHoc .= " ORDER BY ch.thu_trong_tuan, cmd.gio_bat_dau";
+            $sqlCaHoc .= " ORDER BY COALESCE(ch.ngay_hoc, '9999-12-31'), ch.thu_trong_tuan, cmd.gio_bat_dau";
             
             $stmtCaHoc = $this->conn->prepare($sqlCaHoc);
             $stmtCaHoc->bindValue(':id_lop', $lop['id_lop'], PDO::PARAM_INT);
@@ -1072,6 +1163,14 @@ class adminmodel
     // Lấy thông tin chi tiết lớp học của một giảng viên cụ thể (dùng trong admin)
     public function getLopHocDetailByGiangVien($id_giang_vien)
     {
+        // Validate ID giảng viên
+        $id_giang_vien = (int)$id_giang_vien;
+        if ($id_giang_vien <= 0) {
+            return [];
+        }
+        
+        // Lấy danh sách lớp học mà giảng viên đang dạy (lấy TẤT CẢ các lớp có ca học của giảng viên này)
+        // Sử dụng DISTINCT để tránh trùng lặp khi một lớp có nhiều ca học
         $sql = "SELECT DISTINCT
                        lh.id as id_lop,
                        lh.ten_lop,
@@ -1086,17 +1185,18 @@ class adminmodel
                 INNER JOIN lop_hoc lh ON ch.id_lop = lh.id
                 INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
                 WHERE ch.id_giang_vien = :id_giang_vien
-                ORDER BY lh.ten_lop";
+                ORDER BY kh.ten_khoa_hoc, lh.ten_lop";
         
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id_giang_vien', $id_giang_vien, PDO::PARAM_INT);
         $stmt->execute();
         $lopHocs = $stmt->fetchAll();
         
-        // Lấy thông tin ca học cho mỗi lớp
+        // Lấy thông tin ca học cho mỗi lớp (CHỈ lấy ca học của giảng viên này)
         foreach ($lopHocs as &$lop) {
             $sqlCaHoc = "SELECT ch.id as id_ca_hoc,
                                 ch.thu_trong_tuan,
+                                ch.ngay_hoc,
                                 cmd.ten_ca,
                                 cmd.gio_bat_dau,
                                 cmd.gio_ket_thuc,
@@ -1107,7 +1207,7 @@ class adminmodel
                          LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
                          WHERE ch.id_lop = :id_lop
                          AND ch.id_giang_vien = :id_giang_vien
-                         ORDER BY ch.thu_trong_tuan, cmd.gio_bat_dau";
+                         ORDER BY COALESCE(ch.ngay_hoc, '9999-12-31'), ch.thu_trong_tuan, cmd.gio_bat_dau";
             
             $stmtCaHoc = $this->conn->prepare($sqlCaHoc);
             $stmtCaHoc->bindValue(':id_lop', $lop['id_lop'], PDO::PARAM_INT);
@@ -1598,17 +1698,6 @@ class adminmodel
             $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 1, PDO::PARAM_INT);
             
             if ($stmt->execute()) {
-                // Lấy ID vừa tạo và thêm vào bảng nguoi_dung_vai_tro
-                $id_nguoi_dung = $this->conn->lastInsertId();
-                
-                // Thêm vai trò vào bảng nguoi_dung_vai_tro
-                $sql_vai_tro = "INSERT INTO nguoi_dung_vai_tro (id_nguoi_dung, vai_tro) 
-                                VALUES (:id_nguoi_dung, 'hoc_sinh') 
-                                ON DUPLICATE KEY UPDATE vai_tro = 'hoc_sinh'";
-                $stmt_vai_tro = $this->conn->prepare($sql_vai_tro);
-                $stmt_vai_tro->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
-                $stmt_vai_tro->execute();
-                
                 return true;
             }
             return false;
@@ -1887,6 +1976,27 @@ class adminmodel
         }
     }
 
+    // Cập nhật phản hồi bình luận
+    public function updatePhanHoiBinhLuan($id, $noi_dung)
+    {
+        $this->ensurePhanHoiBinhLuanTable();
+        
+        try {
+            $sql = "UPDATE phan_hoi_binh_luan 
+                    SET noi_dung = :noi_dung 
+                    WHERE id = :id";
+            
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->bindValue(':noi_dung', $noi_dung);
+            
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Lỗi khi cập nhật phản hồi bình luận: " . $e->getMessage());
+            return false;
+        }
+    }
+
     // ===========================================
     //  QUẢN LÝ PHÒNG HỌC
     // ===========================================
@@ -2028,10 +2138,6 @@ class adminmodel
     }
 
     // Kiểm tra người dùng có quyền không (luôn trả về true vì đã bỏ phân quyền)
-    public function hasPermission($id_nguoi_dung, $ten_quyen)
-    {
-        return true;
-    }
 
     // Lấy danh sách admin (có quyền)
     public function getAdmin($page = 1, $limit = 10, $search = '')
@@ -2089,42 +2195,29 @@ class adminmodel
         return $stmt->fetch();
     }
 
-    // Lấy danh sách vai trò của một người dùng
+    // Lấy vai trò của một người dùng (lấy trực tiếp từ cột vai_tro)
     public function getVaiTroByNguoiDung($id_nguoi_dung)
     {
-        $sql = "SELECT vai_tro FROM nguoi_dung_vai_tro WHERE id_nguoi_dung = :id_nguoi_dung";
+        $sql = "SELECT vai_tro FROM nguoi_dung WHERE id = :id_nguoi_dung";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
-        $stmt->execute();
-        $results = $stmt->fetchAll();
-        return array_column($results, 'vai_tro');
-    }
-
-    // Kiểm tra người dùng có vai trò không
-    public function hasVaiTro($id_nguoi_dung, $vai_tro)
-    {
-        $sql = "SELECT COUNT(*) as total FROM nguoi_dung_vai_tro 
-                WHERE id_nguoi_dung = :id_nguoi_dung AND vai_tro = :vai_tro";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':id_nguoi_dung', $id_nguoi_dung, PDO::PARAM_INT);
-        $stmt->bindValue(':vai_tro', $vai_tro);
         $stmt->execute();
         $result = $stmt->fetch();
-        return $result['total'] > 0;
+        // Trả về mảng với vai trò từ cột vai_tro
+        return $result && !empty($result['vai_tro']) ? [$result['vai_tro']] : [];
     }
+
 
     // ===========================================
     //  QUẢN LÝ TÀI KHOẢN NGƯỜI DÙNG
     // ===========================================
 
-    // Lấy danh sách tất cả tài khoản
+    // Lấy danh sách tất cả tài khoản (lấy vai trò trực tiếp từ cột vai_tro)
     public function getAllTaiKhoan($page = 1, $limit = 10, $search = '', $trang_thai = '')
     {
         $offset = ($page - 1) * $limit;
-        $sql = "SELECT nd.*, 
-                       GROUP_CONCAT(DISTINCT ndvt.vai_tro SEPARATOR ', ') as danh_sach_vai_tro
+        $sql = "SELECT nd.* 
                 FROM nguoi_dung nd
-                LEFT JOIN nguoi_dung_vai_tro ndvt ON nd.id = ndvt.id_nguoi_dung
                 WHERE 1=1";
         $params = [];
 
@@ -2138,7 +2231,7 @@ class adminmodel
             $params[':trang_thai'] = (int)$trang_thai;
         }
 
-        $sql .= " GROUP BY nd.id ORDER BY nd.id DESC LIMIT :limit OFFSET :offset";
+        $sql .= " ORDER BY nd.id DESC LIMIT :limit OFFSET :offset";
 
         $stmt = $this->conn->prepare($sql);
         foreach ($params as $key => $value) {
@@ -2149,10 +2242,9 @@ class adminmodel
         $stmt->execute();
         $results = $stmt->fetchAll();
         
+        // Tạo vai_tro_list từ cột vai_tro
         foreach ($results as &$result) {
-            $result['vai_tro_list'] = !empty($result['danh_sach_vai_tro']) 
-                ? explode(', ', $result['danh_sach_vai_tro']) 
-                : [];
+            $result['vai_tro_list'] = !empty($result['vai_tro']) ? [$result['vai_tro']] : [];
         }
         
         return $results;
@@ -2185,24 +2277,20 @@ class adminmodel
         return $result['total'];
     }
 
-    // Lấy thông tin tài khoản theo ID (đầy đủ)
+    // Lấy thông tin tài khoản theo ID (lấy vai trò trực tiếp từ cột vai_tro)
     public function getTaiKhoanById($id)
     {
-        $sql = "SELECT nd.*, 
-                       GROUP_CONCAT(DISTINCT ndvt.vai_tro SEPARATOR ', ') as danh_sach_vai_tro
+        $sql = "SELECT nd.* 
                 FROM nguoi_dung nd
-                LEFT JOIN nguoi_dung_vai_tro ndvt ON nd.id = ndvt.id_nguoi_dung
-                WHERE nd.id = :id
-                GROUP BY nd.id";
+                WHERE nd.id = :id";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         $result = $stmt->fetch();
         
         if ($result) {
-            $result['vai_tro_list'] = !empty($result['danh_sach_vai_tro']) 
-                ? explode(', ', $result['danh_sach_vai_tro']) 
-                : [];
+            // Tạo vai_tro_list từ cột vai_tro
+            $result['vai_tro_list'] = !empty($result['vai_tro']) ? [$result['vai_tro']] : [];
         }
         
         return $result;

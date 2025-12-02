@@ -77,20 +77,46 @@ $pageTitle = 'Lớp học của ' . htmlspecialchars($giangVien['ho_ten']);
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                             <strong style="font-size: 16px; color: #333;">
                                                 <?php
-                                                $thuMap = [
-                                                    'Thứ 2' => 'Thứ Hai',
-                                                    'Thứ 3' => 'Thứ Ba',
-                                                    'Thứ 4' => 'Thứ Tư',
-                                                    'Thứ 5' => 'Thứ Năm',
-                                                    'Thứ 6' => 'Thứ Sáu',
-                                                    'Thứ 7' => 'Thứ Bảy',
-                                                    'Chủ nhật' => 'Chủ Nhật'
-                                                ];
-                                                echo $thuMap[$ca['thu_trong_tuan']] ?? $ca['thu_trong_tuan'];
+                                                // Ưu tiên hiển thị ngày học nếu có
+                                                if (!empty($ca['ngay_hoc'])) {
+                                                    echo date('d/m/Y', strtotime($ca['ngay_hoc']));
+                                                } else {
+                                                    $thuMap = [
+                                                        'Thứ 2' => 'Thứ Hai',
+                                                        'Thứ 3' => 'Thứ Ba',
+                                                        'Thứ 4' => 'Thứ Tư',
+                                                        'Thứ 5' => 'Thứ Năm',
+                                                        'Thứ 6' => 'Thứ Sáu',
+                                                        'Thứ 7' => 'Thứ Bảy',
+                                                        'Chủ nhật' => 'Chủ Nhật'
+                                                    ];
+                                                    echo $thuMap[$ca['thu_trong_tuan']] ?? $ca['thu_trong_tuan'];
+                                                }
                                                 ?>
                                             </strong>
                                         </div>
                                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 14px; color: #666;">
+                                            <?php if (!empty($ca['ngay_hoc'])): ?>
+                                                <div>
+                                                    <strong>Ngày học:</strong> <?= date('d/m/Y', strtotime($ca['ngay_hoc'])) ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <div>
+                                                    <strong>Thứ:</strong> 
+                                                    <?php
+                                                    $thuMap = [
+                                                        'Thứ 2' => 'Thứ Hai',
+                                                        'Thứ 3' => 'Thứ Ba',
+                                                        'Thứ 4' => 'Thứ Tư',
+                                                        'Thứ 5' => 'Thứ Năm',
+                                                        'Thứ 6' => 'Thứ Sáu',
+                                                        'Thứ 7' => 'Thứ Bảy',
+                                                        'Chủ nhật' => 'Chủ Nhật'
+                                                    ];
+                                                    echo $thuMap[$ca['thu_trong_tuan']] ?? $ca['thu_trong_tuan'];
+                                                    ?>
+                                                </div>
+                                            <?php endif; ?>
                                             <div>
                                                 <strong>Ca học:</strong> 
                                                 <?= htmlspecialchars($ca['ten_ca'] ?? 'Chưa có') ?>

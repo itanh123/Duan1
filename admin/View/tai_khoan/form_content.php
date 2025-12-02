@@ -202,13 +202,12 @@ $pageTitle = 'Sửa Tài khoản: ' . htmlspecialchars($taiKhoan['ho_ten']);
             <label>Vai trò hiện tại</label>
             <div class="vai-tro-list">
                 <?php 
-                $vaiTroList = $taiKhoan['vai_tro_list'] ?? [];
-                foreach ($vaiTroList as $vt): 
-                    $badgeClass = $vt == 'admin' ? 'badge-danger' : ($vt == 'giang_vien' ? 'badge-primary' : 'badge-secondary');
+                $vaiTro = $taiKhoan['vai_tro'] ?? '';
+                if (!empty($vaiTro)): 
+                    $badgeClass = $vaiTro == 'admin' ? 'badge-danger' : ($vaiTro == 'giang_vien' ? 'badge-primary' : 'badge-secondary');
                 ?>
-                    <span class="badge <?= $badgeClass ?>"><?= ucfirst(str_replace('_', ' ', $vt)) ?></span>
-                <?php endforeach; ?>
-                <?php if (empty($vaiTroList)): ?>
+                    <span class="badge <?= $badgeClass ?>"><?= ucfirst(str_replace('_', ' ', $vaiTro)) ?></span>
+                <?php else: ?>
                     <span class="badge badge-secondary">Chưa phân vai trò</span>
                 <?php endif; ?>
             </div>

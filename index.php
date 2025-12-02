@@ -40,7 +40,7 @@ if ($timeSinceLastCheck >= 300 || (rand(1, 10) === 1 && $timeSinceLastCheck >= 6
 }
 
 // route
-$act = $_GET['act'] ?? '/';
+$act = $_GET['act'] ?? '';
 
 // Khởi tạo controllers
 $adminController = new admincontroller();
@@ -220,6 +220,7 @@ match ($act) {
     'admin-add-ca-hoc' => $adminController->addCaHoc(),
     'admin-save-ca-hoc' => $adminController->saveCaHoc(),
     'admin-edit-ca-hoc' => $adminController->editCaHoc(),
+    'admin-check-ca-hoc-trung' => $adminController->checkCaHocTrung(),
     'admin-update-ca-hoc' => $adminController->updateCaHoc(),
     'admin-delete-ca-hoc' => $adminController->deleteCaHoc(),
     
@@ -241,6 +242,8 @@ match ($act) {
     'admin-list-binh-luan' => $adminController->listBinhLuan(),
     'admin-tra-loi-binh-luan' => $adminController->traLoiBinhLuan(),
     'admin-process-tra-loi-binh-luan' => $adminController->processTraLoiBinhLuan(),
+    'admin-edit-phan-hoi-binh-luan' => $adminController->editPhanHoiBinhLuan(),
+    'admin-update-phan-hoi-binh-luan' => $adminController->updatePhanHoiBinhLuan(),
     
     // ============================
     //  ADMIN - QUẢN LÝ PHÒNG HỌC
