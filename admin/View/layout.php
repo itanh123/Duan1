@@ -1,10 +1,4 @@
 <?php
-// Kiểm tra quyền để hiển thị menu
-require_once('./admin/Model/adminmodel.php');
-$adminModel = new adminmodel();
-$adminId = $_SESSION['admin_id'] ?? 0;
-$hasQuanTri = $adminModel->hasPermission($adminId, 'quan_tri');
-$hasXem = $hasQuanTri || $adminModel->hasPermission($adminId, 'xem');
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -223,7 +217,6 @@ $hasXem = $hasQuanTri || $adminModel->hasPermission($adminId, 'xem');
         </div>
         
         <nav class="sidebar-menu">
-            <?php if ($hasXem): ?>
             <div class="menu-section">
                 <div class="menu-section-title">Tổng quan</div>
                 <a href="?act=admin-dashboard" class="menu-item <?= (isset($_GET['act']) && $_GET['act'] == 'admin-dashboard') ? 'active' : '' ?>">
@@ -234,7 +227,6 @@ $hasXem = $hasQuanTri || $adminModel->hasPermission($adminId, 'xem');
             
             <div class="menu-section">
                 <div class="menu-section-title">Quản lý nội dung</div>
-                <?php if ($hasXem): ?>
                 <a href="?act=admin-list-khoa-hoc" class="menu-item <?= (isset($_GET['act']) && strpos($_GET['act'], 'khoa-hoc') !== false) ? 'active' : '' ?>">
                     <span class="menu-item-icon">📚</span>
                     Khóa Học
@@ -247,12 +239,10 @@ $hasXem = $hasQuanTri || $adminModel->hasPermission($adminId, 'xem');
                     <span class="menu-item-icon">💬</span>
                     Bình Luận
                 </a>
-                <?php endif; ?>
             </div>
             
             <div class="menu-section">
                 <div class="menu-section-title">Quản lý lớp học</div>
-                <?php if ($hasXem): ?>
                 <a href="?act=admin-list-lop-hoc" class="menu-item <?= (isset($_GET['act']) && strpos($_GET['act'], 'lop-hoc') !== false) ? 'active' : '' ?>">
                     <span class="menu-item-icon">🏫</span>
                     Lớp Học
@@ -269,13 +259,11 @@ $hasXem = $hasQuanTri || $adminModel->hasPermission($adminId, 'xem');
                     <span class="menu-item-icon">📅</span>
                     Yêu Cầu Đổi Lịch
                 </a>
-                <?php endif; ?>
             </div>
             
             
             <div class="menu-section">
                 <div class="menu-section-title">Quản lý người dùng</div>
-                <?php if ($hasXem): ?>
                 <a href="?act=admin-list-tai-khoan" class="menu-item <?= (isset($_GET['act']) && strpos($_GET['act'], 'tai-khoan') !== false) ? 'active' : '' ?>">
                     <span class="menu-item-icon">👤</span>
                     Tài Khoản
@@ -288,19 +276,15 @@ $hasXem = $hasQuanTri || $adminModel->hasPermission($adminId, 'xem');
                     <span class="menu-item-icon">👨‍🏫</span>
                     Giảng Viên
                 </a>
-                <?php endif; ?>
             </div>
             
             <div class="menu-section">
                 <div class="menu-section-title">Đăng ký & Thanh toán</div>
-                <?php if ($hasXem): ?>
                 <a href="?act=admin-list-dang-ky" class="menu-item <?= (isset($_GET['act']) && strpos($_GET['act'], 'dang-ky') !== false) ? 'active' : '' ?>">
                     <span class="menu-item-icon">📝</span>
                     Đăng Ký
                 </a>
-                <?php endif; ?>
             </div>
-            <?php endif; ?>
         </nav>
     </aside>
     

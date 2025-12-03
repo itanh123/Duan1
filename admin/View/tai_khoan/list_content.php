@@ -1,13 +1,5 @@
 <?php
 $pageTitle = 'Quản lý Tài khoản';
-// Kiểm tra quyền
-require_once('./admin/Model/adminmodel.php');
-$adminModel = new adminmodel();
-$adminId = $_SESSION['admin_id'] ?? 0;
-$hasQuanTri = $adminModel->hasPermission($adminId, 'quan_tri');
-$hasXem = $hasQuanTri || $adminModel->hasPermission($adminId, 'xem');
-$hasSua = $hasQuanTri || $adminModel->hasPermission($adminId, 'sua');
-$hasXoa = $hasQuanTri || $adminModel->hasPermission($adminId, 'xoa');
 ?>
 
 <style>
@@ -227,13 +219,12 @@ tbody tr:hover {
                         <td><?= htmlspecialchars($tk['dia_chi'] ?? '-') ?></td>
                         <td>
                             <?php 
-                            $vaiTroList = $tk['vai_tro_list'] ?? [];
-                            foreach ($vaiTroList as $vt): 
-                                $badgeClass = $vt == 'admin' ? 'badge-danger' : ($vt == 'giang_vien' ? 'badge-primary' : 'badge-secondary');
+                            $vaiTro = $tk['vai_tro'] ?? '';
+                            if (!empty($vaiTro)): 
+                                $badgeClass = $vaiTro == 'admin' ? 'badge-danger' : ($vaiTro == 'giang_vien' ? 'badge-primary' : 'badge-secondary');
                             ?>
-                                <span class="badge <?= $badgeClass ?>"><?= ucfirst(str_replace('_', ' ', $vt)) ?></span>
-                            <?php endforeach; ?>
-                            <?php if (empty($vaiTroList)): ?>
+                                <span class="badge <?= $badgeClass ?>"><?= ucfirst(str_replace('_', ' ', $vaiTro)) ?></span>
+                            <?php else: ?>
                                 <span class="badge badge-secondary">Chưa phân vai trò</span>
                             <?php endif; ?>
                         </td>
@@ -245,22 +236,15 @@ tbody tr:hover {
                             <?php endif; ?>
                         </td>
                         <td>
-                            <?php if ($hasSua): ?>
-                                <a href="?act=admin-edit-tai-khoan&id=<?= $tk['id'] ?>" class="btn btn-primary btn-sm">Sửa</a>
-                            <?php endif; ?>
-                            <?php if ($hasXoa): ?>
-                                <?php if ($tk['trang_thai'] == 1): ?>
-                                    <a href="?act=admin-toggle-tai-khoan-status&id=<?= $tk['id'] ?>" 
-                                       class="btn btn-danger btn-sm"
-                                       onclick="return confirm('Bạn có chắc muốn tạm khóa tài khoản này?')">Ban</a>
-                                <?php else: ?>
-                                    <a href="?act=admin-toggle-tai-khoan-status&id=<?= $tk['id'] ?>" 
-                                       class="btn btn-success btn-sm"
-                                       onclick="return confirm('Bạn có chắc muốn mở ban tài khoản này?')">Mở ban</a>
-                                <?php endif; ?>
-                            <?php endif; ?>
-                            <?php if (!$hasSua && !$hasXoa): ?>
-                                <span style="color: #999;">Không có quyền</span>
+                            <a href="?act=admin-edit-tai-khoan&id=<?= $tk['id'] ?>" class="btn btn-primary btn-sm">Sửa</a>
+                            <?php if ($tk['trang_thai'] == 1): ?>
+                                <a href="?act=admin-toggle-tai-khoan-status&id=<?= $tk['id'] ?>" 
+                                   class="btn btn-danger btn-sm"
+                                   onclick="return confirm('Bạn có chắc muốn tạm khóa tài khoản này?')">Ban</a>
+                            <?php else: ?>
+                                <a href="?act=admin-toggle-tai-khoan-status&id=<?= $tk['id'] ?>" 
+                                   class="btn btn-success btn-sm"
+                                   onclick="return confirm('Bạn có chắc muốn mở ban tài khoản này?')">Mở ban</a>
                             <?php endif; ?>
                         </td>
                     </tr>

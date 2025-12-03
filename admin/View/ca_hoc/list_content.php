@@ -15,10 +15,10 @@ $pageTitle = 'Quản lý Ca học';
             <input type="hidden" name="act" value="admin-list-ca-hoc">
             <div class="filter-group">
                 <div class="form-group">
-                    <label>Tìm kiếm (Phòng học/Ghi chú)</label>
+                    <label>Tìm kiếm (Phòng học/Ghi chú/Ngày học)</label>
                     <input type="text" name="search" class="form-control" 
                            value="<?= htmlspecialchars($search ?? '') ?>" 
-                           placeholder="Nhập từ khóa...">
+                           placeholder="Nhập từ khóa hoặc ngày (DD/MM/YYYY)...">
                 </div>
                 <div class="form-group">
                     <label>Lọc theo lớp học</label>
@@ -57,6 +57,7 @@ $pageTitle = 'Quản lý Ca học';
                         <th>Khóa học</th>
                         <th>Ca học</th>
                         <th>Thứ</th>
+                        <th>Ngày học</th>
                         <th>Giờ học</th>
                         <th>Phòng học</th>
                         <th>Giảng viên</th>
@@ -71,6 +72,7 @@ $pageTitle = 'Quản lý Ca học';
                             <td><?= htmlspecialchars($ch['ten_khoa_hoc'] ?? 'N/A') ?></td>
                             <td><?= htmlspecialchars($ch['ten_ca'] ?? 'N/A') ?></td>
                             <td><?= htmlspecialchars($ch['thu_trong_tuan']) ?></td>
+                            <td><?= !empty($ch['ngay_hoc']) ? date('d/m/Y', strtotime($ch['ngay_hoc'])) : '<span style="color: #999;">Chưa có</span>' ?></td>
                             <td><?= isset($ch['gio_bat_dau']) && isset($ch['gio_ket_thuc']) ? date('H:i', strtotime($ch['gio_bat_dau'])) . ' - ' . date('H:i', strtotime($ch['gio_ket_thuc'])) : 'N/A' ?></td>
                             <td><?= htmlspecialchars($ch['ten_phong'] ?? 'Chưa có') ?></td>
                             <td><?= htmlspecialchars($ch['ten_giang_vien'] ?? 'Chưa phân công') ?></td>

@@ -1,12 +1,12 @@
 <?php
-$pageTitle = 'Trả lời bình luận';
+$pageTitle = 'Chỉnh sửa phản hồi bình luận';
 ?>
 
 <div class="page-container">
     <div class="page-header">
-        <h2>Trả lời bình luận</h2>
+        <h2>Chỉnh sửa phản hồi bình luận</h2>
         <div class="page-actions">
-            <a href="?act=admin-list-binh-luan" class="btn btn-secondary">← Quay lại</a>
+            <a href="?act=admin-tra-loi-binh-luan&id=<?= $phanHoi['id_binh_luan'] ?>" class="btn btn-secondary">← Quay lại</a>
         </div>
     </div>
 
@@ -22,10 +22,10 @@ $pageTitle = 'Trả lời bình luận';
         </div>
     <?php endif; ?>
 
-    <!-- Thông tin bình luận -->
+    <!-- Thông tin bình luận gốc -->
     <div class="card" style="margin-bottom: 20px;">
         <div class="card-header">
-            <h3>Bình luận của học sinh</h3>
+            <h3>Bình luận gốc</h3>
         </div>
         <div class="card-body">
             <div class="info-grid">
@@ -41,19 +41,6 @@ $pageTitle = 'Trả lời bình luận';
                     <label>Ngày tạo:</label>
                     <span><?= isset($binhLuan['ngay_tao']) ? date('d/m/Y H:i', strtotime($binhLuan['ngay_tao'])) : 'N/A' ?></span>
                 </div>
-                <div class="info-item">
-                    <label>Đánh giá:</label>
-                    <span>
-                        <?php if ($binhLuan['danh_gia']): ?>
-                            <span style="color: #ffc107;">
-                                <?= str_repeat('★', $binhLuan['danh_gia']) ?><?= str_repeat('☆', 5 - $binhLuan['danh_gia']) ?>
-                            </span>
-                            (<?= $binhLuan['danh_gia'] ?>/5)
-                        <?php else: ?>
-                            <span style="color: #999;">Chưa đánh giá</span>
-                        <?php endif; ?>
-                    </span>
-                </div>
             </div>
             <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #007bff;">
                 <strong>Nội dung:</strong>
@@ -62,50 +49,14 @@ $pageTitle = 'Trả lời bình luận';
         </div>
     </div>
 
-    <!-- Danh sách phản hồi đã có -->
-    <?php if (!empty($phanHoiList)): ?>
-        <div class="card" style="margin-bottom: 20px;">
-            <div class="card-header">
-                <h3>Phản hồi đã có</h3>
-            </div>
-            <div class="card-body">
-                <?php 
-                $currentAdminId = $_SESSION['admin_id'] ?? $_SESSION['client_id'] ?? 0;
-                foreach ($phanHoiList as $ph): 
-                ?>
-                    <div style="padding: 15px; margin-bottom: 15px; background: #e7f3ff; border-radius: 5px; border-left: 4px solid #007bff;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                            <div>
-                                <strong style="color: #007bff;"><?= htmlspecialchars($ph['ten_admin'] ?? 'Admin') ?></strong>
-                                <span style="color: #666; font-size: 12px; margin-left: 10px;">
-                                    <?= date('d/m/Y H:i', strtotime($ph['ngay_tao'])) ?>
-                                </span>
-                            </div>
-                            <?php if ($ph['id_admin'] == $currentAdminId): ?>
-                                <div>
-                                    <a href="?act=admin-edit-phan-hoi-binh-luan&id=<?= $ph['id'] ?>" 
-                                       class="btn btn-sm btn-warning" 
-                                       style="padding: 5px 12px; font-size: 12px; background: #ffc107; color: #000; text-decoration: none; border-radius: 3px;">
-                                        ✏️ Sửa
-                                    </a>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <p style="margin: 0; color: #333;"><?= nl2br(htmlspecialchars($ph['noi_dung'])) ?></p>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    <?php endif; ?>
-
-    <!-- Form trả lời -->
+    <!-- Form chỉnh sửa phản hồi -->
     <div class="card">
         <div class="card-header">
-            <h3>Trả lời bình luận</h3>
+            <h3>Chỉnh sửa phản hồi</h3>
         </div>
         <div class="card-body">
-            <form method="POST" action="?act=admin-process-tra-loi-binh-luan">
-                <input type="hidden" name="id_binh_luan" value="<?= $binhLuan['id'] ?>">
+            <form method="POST" action="?act=admin-update-phan-hoi-binh-luan">
+                <input type="hidden" name="id" value="<?= $phanHoi['id'] ?>">
                 
                 <div class="form-group">
                     <label for="noi_dung" class="required">Nội dung phản hồi</label>
@@ -114,12 +65,12 @@ $pageTitle = 'Trả lời bình luận';
                               class="form-control" 
                               rows="5" 
                               placeholder="Nhập nội dung phản hồi..." 
-                              required></textarea>
+                              required><?= htmlspecialchars($phanHoi['noi_dung']) ?></textarea>
                 </div>
                 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Gửi phản hồi</button>
-                    <a href="?act=admin-list-binh-luan" class="btn btn-secondary">Hủy</a>
+                    <button type="submit" class="btn btn-primary">Cập nhật phản hồi</button>
+                    <a href="?act=admin-tra-loi-binh-luan&id=<?= $phanHoi['id_binh_luan'] ?>" class="btn btn-secondary">Hủy</a>
                 </div>
             </form>
         </div>
@@ -237,6 +188,20 @@ $pageTitle = 'Trả lời bình luận';
 
 .btn-secondary:hover {
     background: #5a6268;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #000;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+}
+
+.btn-sm {
+    padding: 5px 12px;
+    font-size: 12px;
 }
 </style>
 

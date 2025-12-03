@@ -45,27 +45,13 @@ class admincontroller{
             exit;
         }
         
-        // Kiểm tra có vai trò admin không
-        $hasAdminRole = $this->model->hasVaiTro($userId, 'admin');
-        
-        if (!$hasAdminRole) {
-            header('Location: ?act=client-login');
-            exit;
-        }
-        
-        // Nếu đang dùng client session nhưng có vai trò admin, chuyển sang admin session
+        // Nếu đang dùng client session, chuyển sang admin session
         if (isset($_SESSION['client_id']) && !isset($_SESSION['admin_id'])) {
             $_SESSION['admin_id'] = $_SESSION['client_id'];
             $_SESSION['admin_email'] = $_SESSION['client_email'];
             $_SESSION['admin_ho_ten'] = $_SESSION['client_ho_ten'];
             $_SESSION['admin_vai_tro'] = 'admin';
         }
-    }
-
-    // Kiểm tra đăng nhập admin (đã bỏ phân quyền)
-    private function checkPermission($ten_quyen){
-        $this->checkAdminLogin();
-        // Không kiểm tra phân quyền nữa, chỉ cần đăng nhập
     }
 
     // Trang đăng nhập admin - redirect về form đăng nhập chung
@@ -100,7 +86,7 @@ class admincontroller{
 
     // Trang chủ admin (Dashboard)
     public function dashboard(){
-        $this->checkPermission('xem'); // Cần quyền xem để vào dashboard
+        $this->checkAdminLogin();
         $thongKe = $this->model->getThongKe();
         $dangKyMoiNhat = $this->model->getDangKyMoiNhat(5);
         $thanhToanMoiNhat = $this->model->getThanhToanMoiNhat(5);
@@ -119,7 +105,7 @@ class admincontroller{
 
     // Danh sách khóa học
     public function listKhoaHoc(){
-        $this->checkPermission('xem'); // Cần quyền xem
+        $this->checkAdminLogin();
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
@@ -153,14 +139,14 @@ class admincontroller{
 
     // Form thêm khóa học
     public function addKhoaHoc(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         $danhMuc = $this->model->getDanhMuc();
         require_once('./admin/View/khoa_hoc/form.php');
     }
 
     // Xử lý thêm khóa học
     public function saveKhoaHoc(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         $data = [
             'id_danh_muc' => $_POST['id_danh_muc'] ?? '',
             'ten_khoa_hoc' => $_POST['ten_khoa_hoc'] ?? '',
@@ -188,7 +174,7 @@ class admincontroller{
 
     // Form sửa khóa học
     public function editKhoaHoc(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-khoa-hoc');
@@ -208,7 +194,7 @@ class admincontroller{
 
     // Xử lý cập nhật khóa học
     public function updateKhoaHoc(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_POST['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-khoa-hoc');
@@ -259,7 +245,7 @@ class admincontroller{
 
     // Xóa khóa học
     public function deleteKhoaHoc(){
-        $this->checkPermission('xoa'); // Cần quyền xóa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             $_SESSION['error'] = 'ID không hợp lệ!';
@@ -326,7 +312,7 @@ class admincontroller{
 
     // Danh sách học sinh
     public function listHocSinh(){
-        $this->checkPermission('xem'); // Cần quyền xem
+        $this->checkAdminLogin();
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
@@ -349,13 +335,13 @@ class admincontroller{
 
     // Form thêm học sinh
     public function addHocSinh(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         require_once('./admin/View/hoc_sinh/form.php');
     }
 
     // Xử lý thêm học sinh
     public function saveHocSinh(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         $data = [
             'ho_ten' => $_POST['ho_ten'] ?? '',
             'email' => $_POST['email'] ?? '',
@@ -398,7 +384,7 @@ class admincontroller{
 
     // Form sửa học sinh
     public function editHocSinh(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-hoc-sinh');
@@ -417,7 +403,7 @@ class admincontroller{
 
     // Xử lý cập nhật học sinh
     public function updateHocSinh(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_POST['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-hoc-sinh');
@@ -477,7 +463,7 @@ class admincontroller{
 
     // Xóa học sinh
     public function deleteHocSinh(){
-        $this->checkPermission('xoa'); // Cần quyền xóa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             $_SESSION['error'] = 'ID không hợp lệ!';
@@ -496,7 +482,7 @@ class admincontroller{
 
     // Xem lớp học của học sinh
     public function viewLopHocHocSinh(){
-        $this->checkPermission('xem'); // Cần quyền xem
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             $_SESSION['error'] = 'ID không hợp lệ!';
@@ -528,7 +514,7 @@ class admincontroller{
 
     // Danh sách danh mục
     public function listDanhMuc(){
-        $this->checkPermission('xem'); // Cần quyền xem
+        $this->checkAdminLogin();
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
@@ -558,13 +544,13 @@ class admincontroller{
 
     // Form thêm danh mục
     public function addDanhMuc(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         require_once('./admin/View/danh_muc/form.php');
     }
 
     // Xử lý thêm danh mục
     public function saveDanhMuc(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         $data = [
             'ten_danh_muc' => $_POST['ten_danh_muc'] ?? '',
             'mo_ta' => $_POST['mo_ta'] ?? '',
@@ -597,7 +583,7 @@ class admincontroller{
 
     // Form sửa danh mục
     public function editDanhMuc(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-danh-muc');
@@ -616,7 +602,7 @@ class admincontroller{
 
     // Xử lý cập nhật danh mục
     public function updateDanhMuc(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_POST['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-danh-muc');
@@ -662,7 +648,7 @@ class admincontroller{
 
     // Xóa danh mục
     public function deleteDanhMuc(){
-        $this->checkPermission('xoa'); // Cần quyền xóa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             $_SESSION['error'] = 'ID không hợp lệ!';
@@ -686,7 +672,7 @@ class admincontroller{
 
     // Danh sách giảng viên
     public function listGiangVien(){
-        $this->checkPermission('xem'); // Cần quyền xem
+        $this->checkAdminLogin();
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
@@ -709,13 +695,13 @@ class admincontroller{
 
     // Form thêm giảng viên
     public function addGiangVien(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         require_once('./admin/View/giang_vien/form.php');
     }
 
     // Xử lý thêm giảng viên
     public function saveGiangVien(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         $data = [
             'ho_ten' => $_POST['ho_ten'] ?? '',
             'email' => $_POST['email'] ?? '',
@@ -758,7 +744,7 @@ class admincontroller{
 
     // Form sửa giảng viên
     public function editGiangVien(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-giang-vien');
@@ -777,7 +763,7 @@ class admincontroller{
 
     // Xử lý cập nhật giảng viên
     public function updateGiangVien(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_POST['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-giang-vien');
@@ -837,7 +823,7 @@ class admincontroller{
 
     // Xóa giảng viên
     public function deleteGiangVien(){
-        $this->checkPermission('xoa'); // Cần quyền xóa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             $_SESSION['error'] = 'ID không hợp lệ!';
@@ -856,7 +842,7 @@ class admincontroller{
 
     // Xem lớp học của giảng viên
     public function viewLopHocGiangVien(){
-        $this->checkPermission('xem'); // Cần quyền xem
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             $_SESSION['error'] = 'ID không hợp lệ!';
@@ -887,7 +873,7 @@ class admincontroller{
 
     // Danh sách lớp học
     public function listLopHoc(){
-        $this->checkPermission('xem'); // Cần quyền xem
+        $this->checkAdminLogin();
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
@@ -912,32 +898,46 @@ class admincontroller{
         $this->renderView('./admin/View/lop_hoc/list_content.php', 'Quản lý Lớp học', $data);
     }
 
-    // Form thêm lớp học
-    public function addLopHoc(){
-        $this->checkPermission('them'); // Cần quyền thêm
-        $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
-        
-        $data = [
-            'khoaHocList' => $khoaHocList
-        ];
-
-        $this->renderView('./admin/View/lop_hoc/form_content.php', 'Thêm Lớp học', $data);
-    }
-
     // Xử lý thêm lớp học
     public function saveLopHoc(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         $trang_thai = $_POST['trang_thai'] ?? 'Chưa khai giảng';
         // Đảm bảo trang_thai là một trong các giá trị ENUM hợp lệ
         $validTrangThai = ['Chưa khai giảng', 'Đang học', 'Kết thúc'];
         if (!in_array($trang_thai, $validTrangThai)) {
             $trang_thai = 'Chưa khai giảng'; // Mặc định
         }
+        
+        $id_phong_hoc = isset($_POST['id_phong_hoc']) ? (int)$_POST['id_phong_hoc'] : 0;
+        $so_luong_toi_da = !empty($_POST['so_luong_toi_da']) ? (int)$_POST['so_luong_toi_da'] : null;
+        
+        // Validation: Phải chọn phòng học
+        if (!$id_phong_hoc) {
+            $_SESSION['error'] = 'Vui lòng chọn phòng học!';
+            header('Location: ?act=admin-add-lop-hoc');
+            exit;
+        }
+        
+        // Lấy thông tin phòng học để kiểm tra sức chứa
+        $phongHoc = $this->model->getPhongHocById($id_phong_hoc);
+        if (!$phongHoc) {
+            $_SESSION['error'] = 'Phòng học không tồn tại!';
+            header('Location: ?act=admin-add-lop-hoc');
+            exit;
+        }
+        
+        // Validation: Số lượng tối đa không được vượt quá sức chứa phòng học
+        if ($so_luong_toi_da && $so_luong_toi_da > $phongHoc['suc_chua']) {
+            $_SESSION['error'] = "Số lượng tối đa ({$so_luong_toi_da}) không được vượt quá sức chứa phòng học ({$phongHoc['suc_chua']})!";
+            header('Location: ?act=admin-add-lop-hoc');
+            exit;
+        }
+        
         $data = [
             'id_khoa_hoc' => $_POST['id_khoa_hoc'] ?? '',
             'ten_lop' => $_POST['ten_lop'] ?? '',
             'mo_ta' => $_POST['mo_ta'] ?? '',
-            'so_luong_toi_da' => !empty($_POST['so_luong_toi_da']) ? (int)$_POST['so_luong_toi_da'] : null,
+            'so_luong_toi_da' => $so_luong_toi_da,
             'trang_thai' => $trang_thai
         ];
 
@@ -960,7 +960,7 @@ class admincontroller{
 
     // Form sửa lớp học
     public function editLopHoc(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-lop-hoc');
@@ -977,20 +977,35 @@ class admincontroller{
         $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
         $soLuongDangKy = $this->model->countDangKyByLop($id); // Đếm số lượng đăng ký hiện tại
         $phongHocInfo = $this->model->getSucChuaPhongHocNhoNhatByLop($id); // Lấy thông tin sức chứa phòng học
+        $phongHocList = $this->model->getPhongHocList(); // Lấy danh sách phòng học
         
         $data = [
             'lopHoc' => $lopHoc,
             'khoaHocList' => $khoaHocList,
             'soLuongDangKy' => $soLuongDangKy,
-            'phongHocInfo' => $phongHocInfo
+            'phongHocInfo' => $phongHocInfo,
+            'phongHocList' => $phongHocList
         ];
 
         $this->renderView('./admin/View/lop_hoc/form_content.php', 'Sửa Lớp học', $data);
     }
+    
+    public function addLopHoc(){
+        $this->checkAdminLogin();
+        $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
+        $phongHocList = $this->model->getPhongHocList(); // Lấy danh sách phòng học
+        
+        $data = [
+            'khoaHocList' => $khoaHocList,
+            'phongHocList' => $phongHocList
+        ];
+
+        $this->renderView('./admin/View/lop_hoc/form_content.php', 'Thêm Lớp học', $data);
+    }
 
     // Xử lý cập nhật lớp học
     public function updateLopHoc(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_POST['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-lop-hoc');
@@ -1025,6 +1040,22 @@ class admincontroller{
             exit;
         }
 
+        // Validation: Phải chọn phòng học
+        $id_phong_hoc = isset($_POST['id_phong_hoc']) ? (int)$_POST['id_phong_hoc'] : 0;
+        if (!$id_phong_hoc) {
+            $_SESSION['error'] = 'Vui lòng chọn phòng học!';
+            header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
+            exit;
+        }
+        
+        // Lấy thông tin phòng học để kiểm tra sức chứa
+        $phongHoc = $this->model->getPhongHocById($id_phong_hoc);
+        if (!$phongHoc) {
+            $_SESSION['error'] = 'Phòng học không tồn tại!';
+            header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
+            exit;
+        }
+        
         // Kiểm tra số lượng tối đa không được nhỏ hơn số lượng đăng ký hiện tại
         $soLuongDangKy = $this->model->countDangKyByLop($id);
         $soLuongToiDaCu = $lopHoc['so_luong_toi_da'] ?? null;
@@ -1037,10 +1068,9 @@ class admincontroller{
                 exit;
             }
             
-            // Kiểm tra 2: Số lượng tối đa không được lớn hơn sức chứa của phòng học
-            $phongHocInfo = $this->model->getSucChuaPhongHocNhoNhatByLop($id);
-            if ($phongHocInfo && $data['so_luong_toi_da'] > $phongHocInfo['suc_chua']) {
-                $_SESSION['error'] = "Không thể đặt số lượng tối đa là {$data['so_luong_toi_da']}! Lớp học này đang sử dụng phòng học có sức chứa tối đa là {$phongHocInfo['suc_chua']} người (Phòng: {$phongHocInfo['danh_sach_phong']}). Số lượng tối đa phải <= {$phongHocInfo['suc_chua']}.";
+            // Kiểm tra 2: Số lượng tối đa không được lớn hơn sức chứa của phòng học đã chọn
+            if ($data['so_luong_toi_da'] > $phongHoc['suc_chua']) {
+                $_SESSION['error'] = "Số lượng tối đa ({$data['so_luong_toi_da']}) không được vượt quá sức chứa phòng học ({$phongHoc['suc_chua']})! Phòng: {$phongHoc['ten_phong']}.";
                 header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
                 exit;
             }
@@ -1095,7 +1125,7 @@ class admincontroller{
 
     // Danh sách ca học
     public function listCaHoc(){
-        $this->checkPermission('xem'); // Cần quyền xem
+        $this->checkAdminLogin();
         $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
@@ -1122,17 +1152,27 @@ class admincontroller{
 
     // Form thêm ca học
     public function addCaHoc(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         $lopHocList = $this->model->getLopHocList(); // Lấy danh sách lớp học
         $giangVienList = $this->model->getGiangVienList(); // Lấy danh sách giảng viên
         $caMacDinhList = $this->model->getCaMacDinhList(); // Lấy danh sách ca mặc định
         $phongHocList = $this->model->getPhongHocList(); // Lấy danh sách phòng học
         
+        // Lấy dữ liệu form từ session nếu có (khi có lỗi validation)
+        $formData = $_SESSION['form_data'] ?? null;
+        $errorField = $_SESSION['error_field'] ?? null;
+        
+        // Xóa session sau khi lấy
+        unset($_SESSION['form_data']);
+        unset($_SESSION['error_field']);
+        
         $data = [
             'lopHocList' => $lopHocList,
             'giangVienList' => $giangVienList,
             'caMacDinhList' => $caMacDinhList,
-            'phongHocList' => $phongHocList
+            'phongHocList' => $phongHocList,
+            'formData' => $formData,
+            'errorField' => $errorField
         ];
 
         $this->renderView('./admin/View/ca_hoc/form_content.php', 'Thêm Ca học', $data);
@@ -1140,7 +1180,7 @@ class admincontroller{
 
     // Xử lý thêm ca học
     public function saveCaHoc(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         $id_giang_vien = $_POST['id_giang_vien'] ?? '';
         $data = [
             'id_lop' => $_POST['id_lop'] ?? '',
@@ -1148,7 +1188,8 @@ class admincontroller{
             'id_ca' => $_POST['id_ca'] ?? '',
             'thu_trong_tuan' => $_POST['thu_trong_tuan'] ?? '',
             'id_phong' => $_POST['id_phong'] ?? '',
-            'ghi_chu' => $_POST['ghi_chu'] ?? ''
+            'ghi_chu' => $_POST['ghi_chu'] ?? '',
+            'ngay_hoc' => $_POST['ngay_hoc'] ?? ''
         ];
 
         // Validation
@@ -1166,23 +1207,32 @@ class admincontroller{
             exit;
         }
 
-        // Kiểm tra trùng ca học (cùng ca, cùng thứ thì phải khác giảng viên và khác phòng)
+        // Kiểm tra trùng ca học (cùng ca, cùng thứ/ngày thì phải khác giảng viên và khác phòng)
         $checkTrung = $this->model->checkTrungCaHoc(
             $data['id_ca'], 
             $data['thu_trong_tuan'], 
             $data['id_giang_vien'] ?? null, 
-            $data['id_phong'] ?? null
+            $data['id_phong'] ?? null,
+            null,
+            $data['ngay_hoc'] ?? null
         );
         
         if ($checkTrung['trung']) {
+            // Lưu lại dữ liệu đã nhập để giữ lại form
+            $_SESSION['form_data'] = $data;
+            
             if ($checkTrung['loi'] == 'giang_vien') {
                 $lopTrung = $checkTrung['thong_tin']['ten_lop'] ?? 'N/A';
                 $giangVienTrung = $checkTrung['thong_tin']['ten_giang_vien'] ?? 'N/A';
-                $_SESSION['error'] = "Giảng viên này đã có lớp khác học cùng ca {$data['id_ca']} vào {$data['thu_trong_tuan']}! (Lớp: {$lopTrung}, Giảng viên: {$giangVienTrung})";
+                $thoiGian = !empty($data['ngay_hoc']) ? date('d/m/Y', strtotime($data['ngay_hoc'])) : $data['thu_trong_tuan'];
+                $_SESSION['error'] = "Giảng viên này đã có lớp khác học cùng ca vào {$thoiGian}! (Lớp: {$lopTrung}, Giảng viên: {$giangVienTrung})";
+                $_SESSION['error_field'] = 'id_giang_vien';
             } elseif ($checkTrung['loi'] == 'phong') {
                 $lopTrung = $checkTrung['thong_tin']['ten_lop'] ?? 'N/A';
                 $phongTrung = $checkTrung['thong_tin']['ten_phong'] ?? 'N/A';
-                $_SESSION['error'] = "Phòng học này đã được sử dụng bởi lớp khác cùng ca {$data['id_ca']} vào {$data['thu_trong_tuan']}! (Lớp: {$lopTrung}, Phòng: {$phongTrung})";
+                $thoiGian = !empty($data['ngay_hoc']) ? date('d/m/Y', strtotime($data['ngay_hoc'])) : $data['thu_trong_tuan'];
+                $_SESSION['error'] = "Phòng học này đã được sử dụng bởi lớp khác cùng ca vào {$thoiGian}! (Lớp: {$lopTrung}, Phòng: {$phongTrung})";
+                $_SESSION['error_field'] = 'id_phong';
             }
             header('Location: ?act=admin-add-ca-hoc');
             exit;
@@ -1198,9 +1248,35 @@ class admincontroller{
         exit;
     }
 
+    // API kiểm tra trùng ca học (AJAX)
+    public function checkCaHocTrung(){
+        $this->checkAdminLogin();
+        header('Content-Type: application/json');
+        
+        $id_ca = $_GET['id_ca'] ?? '';
+        $thu_trong_tuan = $_GET['thu_trong_tuan'] ?? '';
+        $ngay_hoc = $_GET['ngay_hoc'] ?? '';
+        $exclude_id = $_GET['exclude_id'] ?? null;
+        
+        if (empty($id_ca) || (empty($thu_trong_tuan) && empty($ngay_hoc))) {
+            echo json_encode(['error' => 'Thiếu thông tin']);
+            exit;
+        }
+        
+        // Lấy danh sách giảng viên và phòng học bị trùng
+        $giangVienTrung = $this->model->getGiangVienTrung($id_ca, $thu_trong_tuan, !empty($ngay_hoc) ? $ngay_hoc : null, $exclude_id);
+        $phongHocTrung = $this->model->getPhongHocTrung($id_ca, $thu_trong_tuan, !empty($ngay_hoc) ? $ngay_hoc : null, $exclude_id);
+        
+        echo json_encode([
+            'giang_vien_trung' => $giangVienTrung,
+            'phong_hoc_trung' => $phongHocTrung
+        ]);
+        exit;
+    }
+
     // Form sửa ca học
     public function editCaHoc(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-ca-hoc');
@@ -1219,12 +1295,27 @@ class admincontroller{
         $caMacDinhList = $this->model->getCaMacDinhList(); // Lấy danh sách ca mặc định
         $phongHocList = $this->model->getPhongHocList(); // Lấy danh sách phòng học
         
+        // Lấy dữ liệu form từ session nếu có (khi có lỗi validation)
+        $formData = $_SESSION['form_data'] ?? null;
+        $errorField = $_SESSION['error_field'] ?? null;
+        
+        // Nếu có formData từ session, ưu tiên dùng nó thay vì caHoc
+        if ($formData) {
+            $caHoc = array_merge($caHoc, $formData);
+        }
+        
+        // Xóa session sau khi lấy
+        unset($_SESSION['form_data']);
+        unset($_SESSION['error_field']);
+        
         $data = [
             'caHoc' => $caHoc,
             'lopHocList' => $lopHocList,
             'giangVienList' => $giangVienList,
             'caMacDinhList' => $caMacDinhList,
-            'phongHocList' => $phongHocList
+            'phongHocList' => $phongHocList,
+            'formData' => $formData,
+            'errorField' => $errorField
         ];
 
         $this->renderView('./admin/View/ca_hoc/form_content.php', 'Sửa Ca học', $data);
@@ -1232,7 +1323,7 @@ class admincontroller{
 
     // Xử lý cập nhật ca học
     public function updateCaHoc(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_POST['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-ca-hoc');
@@ -1253,7 +1344,8 @@ class admincontroller{
             'id_ca' => $_POST['id_ca'] ?? '',
             'thu_trong_tuan' => $_POST['thu_trong_tuan'] ?? '',
             'id_phong' => $_POST['id_phong'] ?? '',
-            'ghi_chu' => $_POST['ghi_chu'] ?? ''
+            'ghi_chu' => $_POST['ghi_chu'] ?? '',
+            'ngay_hoc' => $_POST['ngay_hoc'] ?? ''
         ];
 
         // Validation
@@ -1271,24 +1363,32 @@ class admincontroller{
             exit;
         }
 
-        // Kiểm tra trùng ca học (cùng ca, cùng thứ thì phải khác giảng viên và khác phòng)
+        // Kiểm tra trùng ca học (cùng ca, cùng thứ/ngày thì phải khác giảng viên và khác phòng)
         $checkTrung = $this->model->checkTrungCaHoc(
             $data['id_ca'], 
             $data['thu_trong_tuan'], 
             $data['id_giang_vien'] ?? null, 
             $data['id_phong'] ?? null,
-            $id // Loại trừ ca học hiện tại
+            $id, // Loại trừ ca học hiện tại
+            $data['ngay_hoc'] ?? null
         );
         
         if ($checkTrung['trung']) {
+            // Lưu lại dữ liệu đã nhập để giữ lại form
+            $_SESSION['form_data'] = $data;
+            
             if ($checkTrung['loi'] == 'giang_vien') {
                 $lopTrung = $checkTrung['thong_tin']['ten_lop'] ?? 'N/A';
                 $giangVienTrung = $checkTrung['thong_tin']['ten_giang_vien'] ?? 'N/A';
-                $_SESSION['error'] = "Giảng viên này đã có lớp khác học cùng ca {$data['id_ca']} vào {$data['thu_trong_tuan']}! (Lớp: {$lopTrung}, Giảng viên: {$giangVienTrung})";
+                $thoiGian = !empty($data['ngay_hoc']) ? date('d/m/Y', strtotime($data['ngay_hoc'])) : $data['thu_trong_tuan'];
+                $_SESSION['error'] = "Giảng viên này đã có lớp khác học cùng ca vào {$thoiGian}! (Lớp: {$lopTrung}, Giảng viên: {$giangVienTrung})";
+                $_SESSION['error_field'] = 'id_giang_vien';
             } elseif ($checkTrung['loi'] == 'phong') {
                 $lopTrung = $checkTrung['thong_tin']['ten_lop'] ?? 'N/A';
                 $phongTrung = $checkTrung['thong_tin']['ten_phong'] ?? 'N/A';
-                $_SESSION['error'] = "Phòng học này đã được sử dụng bởi lớp khác cùng ca {$data['id_ca']} vào {$data['thu_trong_tuan']}! (Lớp: {$lopTrung}, Phòng: {$phongTrung})";
+                $thoiGian = !empty($data['ngay_hoc']) ? date('d/m/Y', strtotime($data['ngay_hoc'])) : $data['thu_trong_tuan'];
+                $_SESSION['error'] = "Phòng học này đã được sử dụng bởi lớp khác cùng ca vào {$thoiGian}! (Lớp: {$lopTrung}, Phòng: {$phongTrung})";
+                $_SESSION['error_field'] = 'id_phong';
             }
             header('Location: ?act=admin-edit-ca-hoc&id=' . $id);
             exit;
@@ -1306,7 +1406,7 @@ class admincontroller{
 
     // Xóa ca học
     public function deleteCaHoc(){
-        $this->checkPermission('xoa'); // Cần quyền xóa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             $_SESSION['error'] = 'ID không hợp lệ!';
@@ -1325,7 +1425,7 @@ class admincontroller{
 
     // Xóa lớp học
     public function deleteLopHoc(){
-        $this->checkPermission('xoa'); // Cần quyền xóa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             $_SESSION['error'] = 'ID không hợp lệ!';
@@ -1349,7 +1449,7 @@ class admincontroller{
 
     // Danh sách đăng ký
     public function listDangKy(){
-        $this->checkPermission('xem'); // Cần quyền xem
+        $this->checkAdminLogin();
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
@@ -1379,7 +1479,7 @@ class admincontroller{
 
     // Form sửa đăng ký
     public function editDangKy(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-dang-ky');
@@ -1398,7 +1498,7 @@ class admincontroller{
 
     // Xử lý cập nhật đăng ký
     public function updateDangKy(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_POST['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-dang-ky');
@@ -1434,9 +1534,141 @@ class admincontroller{
         exit;
     }
 
+    // Hoàn tiền cho đăng ký
+    public function hoanTien(){
+        $this->checkAdminLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['error'] = 'Phương thức không hợp lệ!';
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+        
+        $id_dang_ky = isset($_POST['id_dang_ky']) ? (int)$_POST['id_dang_ky'] : 0;
+        $ly_do = $_POST['ly_do'] ?? 'Hoàn tiền theo yêu cầu';
+        
+        if (!$id_dang_ky) {
+            $_SESSION['error'] = 'ID đăng ký không hợp lệ!';
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+        
+        // Lấy thông tin đăng ký
+        $dangKy = $this->model->getDangKyById($id_dang_ky);
+        if (!$dangKy) {
+            $_SESSION['error'] = 'Không tìm thấy đăng ký!';
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+        
+        // Kiểm tra đăng ký đã được thanh toán chưa
+        if ($dangKy['trang_thai'] !== 'Đã xác nhận') {
+            $_SESSION['error'] = 'Chỉ có thể hoàn tiền cho đăng ký đã được xác nhận!';
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id_dang_ky);
+            exit;
+        }
+        
+        // Lấy thông tin thanh toán
+        $thanhToan = $this->model->getThanhToanByIdDangKy($id_dang_ky);
+        if (!$thanhToan || $thanhToan['phuong_thuc'] !== 'VNPAY') {
+            $_SESSION['error'] = 'Không tìm thấy thông tin thanh toán VNPay hoặc đăng ký này không thanh toán qua VNPay!';
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id_dang_ky);
+            exit;
+        }
+        
+        // Kiểm tra đã hoàn tiền chưa
+        $checkHoanTien = $this->model->conn->prepare("
+            SELECT * FROM hoan_tien 
+            WHERE id_thanh_toan = :id_thanh_toan 
+            AND trang_thai IN ('Thành công', 'Đang xử lý')
+            LIMIT 1
+        ");
+        $checkHoanTien->execute([':id_thanh_toan' => $thanhToan['id']]);
+        if ($checkHoanTien->fetch()) {
+            $_SESSION['error'] = 'Đăng ký này đã được hoàn tiền hoặc đang trong quá trình hoàn tiền!';
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id_dang_ky);
+            exit;
+        }
+        
+        // Lấy thông tin giao dịch VNPay
+        $vnp_TxnRef = $dangKy['vnp_TxnRef'] ?? '';
+        $vnp_TransactionNo = $dangKy['vnp_TransactionNo'] ?? $thanhToan['ma_giao_dich'] ?? '';
+        
+        if (empty($vnp_TxnRef) || empty($vnp_TransactionNo)) {
+            $_SESSION['error'] = 'Không tìm thấy thông tin giao dịch VNPay!';
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id_dang_ky);
+            exit;
+        }
+        
+        // Lấy ngày giao dịch (từ mã đơn hàng hoặc database)
+        $vnp_TransactionDate = '';
+        if (preg_match('/DK(\d{14})/', $vnp_TxnRef, $matches)) {
+            $vnp_TransactionDate = $matches[1];
+        } else {
+            // Nếu không lấy được từ mã, dùng ngày thanh toán
+            $vnp_TransactionDate = date('YmdHis', strtotime($thanhToan['ngay_thanh_toan']));
+        }
+        
+        // Số tiền hoàn (nhân với 100 vì VNPay yêu cầu)
+        $vnp_Amount = (int)($thanhToan['so_tien'] * 100);
+        
+        // Gọi API hoàn tiền VNPay
+        require_once('./Commons/vnpay_helper.php');
+        $adminName = $_SESSION['admin_ho_ten'] ?? $_SESSION['client_ho_ten'] ?? 'Admin';
+        
+        $refundResult = VNPayHelper::refundTransaction(
+            $vnp_TxnRef,
+            $vnp_TransactionNo,
+            $vnp_Amount,
+            $vnp_TransactionDate,
+            $adminName,
+            $ly_do
+        );
+        
+        if ($refundResult === false || !isset($refundResult['verified'])) {
+            $_SESSION['error'] = 'Không thể thực hiện hoàn tiền. Vui lòng thử lại sau hoặc liên hệ VNPay!';
+            error_log("Lỗi hoàn tiền - ID đăng ký: $id_dang_ky, TxnRef: $vnp_TxnRef");
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id_dang_ky);
+            exit;
+        }
+        
+        // Kiểm tra response code
+        $vnp_ResponseCode = $refundResult['vnp_ResponseCode'] ?? '';
+        
+        if ($vnp_ResponseCode === '00') {
+            // Hoàn tiền thành công
+            $trangThaiHoanTien = 'Thành công';
+            
+            // Cập nhật trạng thái đăng ký thành "Đã hủy" hoặc "Hoàn tiền"
+            $this->model->updateDangKy($id_dang_ky, [
+                'trang_thai' => 'Hoàn tiền'
+            ]);
+            
+            $_SESSION['success'] = 'Hoàn tiền thành công! Mã giao dịch hoàn tiền: ' . ($refundResult['vnp_TransactionNo'] ?? '');
+        } else {
+            // Hoàn tiền thất bại hoặc đang xử lý
+            $trangThaiHoanTien = ($vnp_ResponseCode === '94' || $vnp_ResponseCode === '95') ? 'Đang xử lý' : 'Thất bại';
+            $errorMsg = $refundResult['vnp_ResponseMessage'] ?? 'Không xác định';
+            $_SESSION['error'] = "Hoàn tiền không thành công. Mã lỗi: $vnp_ResponseCode - $errorMsg";
+        }
+        
+        // Lưu thông tin hoàn tiền vào database
+        $this->model->saveHoanTien(
+            $thanhToan['id'],
+            $refundResult['vnp_RefundRef'] ?? $refundResult['vnp_TxnRef'] ?? '',
+            $refundResult['vnp_TransactionNo'] ?? '',
+            $thanhToan['so_tien'],
+            $ly_do,
+            $trangThaiHoanTien
+        );
+        
+        header('Location: ?act=admin-edit-dang-ky&id=' . $id_dang_ky);
+        exit;
+    }
+
     // Xóa đăng ký
     public function deleteDangKy(){
-        $this->checkPermission('xoa'); // Cần quyền xóa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             $_SESSION['error'] = 'ID không hợp lệ!';
@@ -1459,7 +1691,7 @@ class admincontroller{
 
     // Danh sách bình luận
     public function listBinhLuan(){
-        $this->checkPermission('xem'); // Cần quyền xem
+        $this->checkAdminLogin();
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
@@ -1560,13 +1792,93 @@ class admincontroller{
         exit;
     }
 
+    // Form chỉnh sửa phản hồi bình luận
+    public function editPhanHoiBinhLuan(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID phản hồi không hợp lệ!';
+            header('Location: ?act=admin-list-binh-luan');
+            exit;
+        }
+        
+        $phanHoi = $this->model->getPhanHoiBinhLuanById($id);
+        if (!$phanHoi) {
+            $_SESSION['error'] = 'Không tìm thấy phản hồi!';
+            header('Location: ?act=admin-list-binh-luan');
+            exit;
+        }
+        
+        // Kiểm tra xem admin hiện tại có phải là người tạo phản hồi không
+        $currentAdminId = $_SESSION['admin_id'] ?? $_SESSION['client_id'] ?? 0;
+        if ($phanHoi['id_admin'] != $currentAdminId) {
+            $_SESSION['error'] = 'Bạn không có quyền chỉnh sửa phản hồi này!';
+            header('Location: ?act=admin-tra-loi-binh-luan&id=' . $phanHoi['id_binh_luan']);
+            exit;
+        }
+        
+        // Lấy thông tin bình luận gốc
+        $binhLuan = $this->model->getBinhLuanById($phanHoi['id_binh_luan']);
+        
+        $data = [
+            'phanHoi' => $phanHoi,
+            'binhLuan' => $binhLuan
+        ];
+        extract($data);
+        
+        require_once('./admin/View/binh_luan/edit_phan_hoi.php');
+    }
+
+    // Xử lý cập nhật phản hồi bình luận
+    public function updatePhanHoiBinhLuan(){
+        $this->checkAdminLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?act=admin-list-binh-luan');
+            exit;
+        }
+        
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $noi_dung = $_POST['noi_dung'] ?? '';
+        $currentAdminId = $_SESSION['admin_id'] ?? $_SESSION['client_id'] ?? 0;
+        
+        if (!$id || empty($noi_dung)) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin!';
+            header('Location: ?act=admin-edit-phan-hoi-binh-luan&id=' . $id);
+            exit;
+        }
+        
+        // Kiểm tra phản hồi có tồn tại không và admin có quyền sửa không
+        $phanHoi = $this->model->getPhanHoiBinhLuanById($id);
+        if (!$phanHoi) {
+            $_SESSION['error'] = 'Không tìm thấy phản hồi!';
+            header('Location: ?act=admin-list-binh-luan');
+            exit;
+        }
+        
+        if ($phanHoi['id_admin'] != $currentAdminId) {
+            $_SESSION['error'] = 'Bạn không có quyền chỉnh sửa phản hồi này!';
+            header('Location: ?act=admin-tra-loi-binh-luan&id=' . $phanHoi['id_binh_luan']);
+            exit;
+        }
+        
+        if ($this->model->updatePhanHoiBinhLuan($id, $noi_dung)) {
+            $_SESSION['success'] = 'Cập nhật phản hồi thành công!';
+        } else {
+            $_SESSION['error'] = 'Có lỗi xảy ra khi cập nhật phản hồi!';
+        }
+        
+        header('Location: ?act=admin-tra-loi-binh-luan&id=' . $phanHoi['id_binh_luan']);
+        exit;
+    }
+
     // ===========================================
     //  QUẢN LÝ PHÒNG HỌC
     // ===========================================
 
     // Danh sách phòng học
     public function listPhongHoc(){
-        $this->checkPermission('xem'); // Cần quyền xem
+        $this->checkAdminLogin();
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
@@ -1598,13 +1910,13 @@ class admincontroller{
 
     // Form thêm phòng học
     public function addPhongHoc(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         require_once('./admin/View/phong_hoc/form.php');
     }
 
     // Xử lý thêm phòng học
     public function savePhongHoc(){
-        $this->checkPermission('them'); // Cần quyền thêm
+        $this->checkAdminLogin();
         $data = [
             'ten_phong' => $_POST['ten_phong'] ?? '',
             'suc_chua' => !empty($_POST['suc_chua']) ? (int)$_POST['suc_chua'] : 30,
@@ -1644,7 +1956,7 @@ class admincontroller{
 
     // Form sửa phòng học
     public function editPhongHoc(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-phong-hoc');
@@ -1663,7 +1975,7 @@ class admincontroller{
 
     // Xử lý cập nhật phòng học
     public function updatePhongHoc(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         $id = $_POST['id'] ?? 0;
         if (!$id) {
             header('Location: ?act=admin-list-phong-hoc');
@@ -1716,7 +2028,7 @@ class admincontroller{
 
     // Xóa phòng học
     public function deletePhongHoc(){
-        $this->checkPermission('xoa'); // Cần quyền xóa
+        $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
             $_SESSION['error'] = 'ID không hợp lệ!';
@@ -1740,7 +2052,7 @@ class admincontroller{
 
     // Danh sách tài khoản
     public function listTaiKhoan(){
-        $this->checkPermission('xem'); // Cần quyền xem
+        $this->checkAdminLogin();
         
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
@@ -1766,7 +2078,7 @@ class admincontroller{
 
     // Form sửa tài khoản
     public function editTaiKhoan(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         
         $id = $_GET['id'] ?? 0;
         if (!$id) {
@@ -1791,7 +2103,7 @@ class admincontroller{
 
     // Xử lý cập nhật tài khoản
     public function updateTaiKhoan(){
-        $this->checkPermission('sua'); // Cần quyền sửa
+        $this->checkAdminLogin();
         
         $id = $_POST['id'] ?? 0;
         if (!$id) {
@@ -1847,7 +2159,7 @@ class admincontroller{
 
     // Toggle trạng thái tài khoản (ban/mở ban)
     public function toggleTaiKhoanStatus(){
-        $this->checkPermission('xoa'); // Cần quyền xóa (ban = xóa quyền truy cập)
+        $this->checkAdminLogin();
         
         $id = $_GET['id'] ?? 0;
         if (!$id) {

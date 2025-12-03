@@ -29,6 +29,9 @@ class VNPayController {
             exit;
         }
         
+        // Log tất cả các tham số từ callback để debug
+        error_log("VNPay Callback - Tất cả tham số: " . json_encode($_GET, JSON_UNESCAPED_UNICODE));
+        
         // Xác thực dữ liệu từ callback URL trước
         $callbackInfo = VNPayHelper::verifyPayment($_GET);
         
@@ -58,6 +61,22 @@ class VNPayController {
             $paymentInfo = $callbackInfo;
         }
         
+        // Lấy thông tin ngân hàng từ callback (nếu có)
+        // Lưu ý: VNPay không trả về số tài khoản ngân hàng cụ thể vì lý do bảo mật
+        // Chỉ có thể lấy được:
+        // - vnp_BankCode: Mã ngân hàng (NCB, VCB, TCB, VTB, DAB, TPB, VIB, BID, VPB, HDB, MSB, ACB, OJB, MBB, STB, EXB, VAB, NAB, PGB, GPB, AGB, SGB, NVB, OCB, VCB, BVB, VPB, SCB, HDB, SHB, EIB, MSB, TPB, VTB, BID, ACB, VIB, EXB, MBB, STB, NAB, PGB, GPB, AGB, SGB, NVB, OCB, BVB, SCB, SHB, EIB)
+        // - vnp_CardType: Loại thẻ (ATM, CREDIT, DEBIT)
+        $vnp_BankCode = $paymentInfo['vnp_BankCode'] ?? $_GET['vnp_BankCode'] ?? '';
+        $vnp_CardType = $paymentInfo['vnp_CardType'] ?? $_GET['vnp_CardType'] ?? '';
+        
+        // Log thông tin ngân hàng để debug
+        if ($vnp_BankCode) {
+            error_log("VNPay Callback - Mã ngân hàng: $vnp_BankCode, Loại thẻ: $vnp_CardType");
+        }
+        
+        // Log tất cả các tham số từ callback để xem có thông tin nào khác không
+        error_log("VNPay Callback - Tất cả tham số GET: " . json_encode($_GET, JSON_UNESCAPED_UNICODE));
+        
         $vnp_ResponseCode = $paymentInfo['vnp_ResponseCode'] ?? '';
         
         // Xử lý theo response code từ API
@@ -79,12 +98,16 @@ class VNPayController {
             ]);
             
             // Lưu vào bảng thanh_toan với số tiền từ API
+            // Lưu ý: VNPay không trả về số tài khoản ngân hàng cụ thể trong callback
+            // Chỉ có thể lấy được mã ngân hàng (vnp_BankCode) và loại thẻ (vnp_CardType)
             $this->saveThanhToan(
                 $dangKy['id_hoc_sinh'],
                 $dangKy['id'],
                 'VNPAY',
                 $so_tien,
-                $paymentInfo['vnp_TransactionNo'] ?? ''
+                $paymentInfo['vnp_TransactionNo'] ?? '',
+                $vnp_BankCode, // Mã ngân hàng (NCB, VCB, TCB...)
+                $vnp_CardType  // Loại thẻ (ATM, CREDIT, DEBIT...)
             );
             
             $_SESSION['success'] = 'Thanh toán thành công! Đăng ký khóa học của bạn đã được xác nhận.';
@@ -112,8 +135,16 @@ class VNPayController {
     
     /**
      * Lưu thông tin thanh toán vào bảng thanh_toan
+     * 
+     * @param int $id_hoc_sinh ID học sinh
+     * @param int $id_dang_ky ID đăng ký
+     * @param string $phuong_thuc Phương thức thanh toán
+     * @param float $so_tien Số tiền
+     * @param string $ma_giao_dich Mã giao dịch
+     * @param string $ma_ngan_hang Mã ngân hàng (tùy chọn)
+     * @param string $loai_the Loại thẻ (tùy chọn)
      */
-    private function saveThanhToan($id_hoc_sinh, $id_dang_ky, $phuong_thuc, $so_tien, $ma_giao_dich) {
+    private function saveThanhToan($id_hoc_sinh, $id_dang_ky, $phuong_thuc, $so_tien, $ma_giao_dich, $ma_ngan_hang = '', $loai_the = '') {
         try {
             require_once __DIR__ . '/../../Commons/function.php';
             $db = connectDB();
@@ -134,18 +165,44 @@ class VNPayController {
             
             $trang_thai = 'Thành công';
             
-            $sql = "INSERT INTO thanh_toan (id_hoc_sinh, id_dang_ky, phuong_thuc, so_tien, ngay_thanh_toan, trang_thai, ma_giao_dich)
-                    VALUES (:id_hoc_sinh, :id_dang_ky, :phuong_thuc, :so_tien, NOW(), :trang_thai, :ma_giao_dich)";
+            // Kiểm tra xem bảng có cột ma_ngan_hang và loai_the không
+            $checkBankCode = $db->query("SHOW COLUMNS FROM thanh_toan LIKE 'ma_ngan_hang'");
+            $checkCardType = $db->query("SHOW COLUMNS FROM thanh_toan LIKE 'loai_the'");
             
-            $stmt = $db->prepare($sql);
-            $result = $stmt->execute([
-                ':id_hoc_sinh' => $id_hoc_sinh,
-                ':id_dang_ky' => $id_dang_ky,
-                ':phuong_thuc' => $phuong_thuc,
-                ':so_tien' => $so_tien,
-                ':trang_thai' => $trang_thai,
-                ':ma_giao_dich' => $ma_giao_dich
-            ]);
+            $hasBankCode = $checkBankCode && $checkBankCode->rowCount() > 0;
+            $hasCardType = $checkCardType && $checkCardType->rowCount() > 0;
+            
+            if ($hasBankCode && $hasCardType) {
+                // Nếu có cả 2 cột, insert với thông tin ngân hàng
+                $sql = "INSERT INTO thanh_toan (id_hoc_sinh, id_dang_ky, phuong_thuc, so_tien, ngay_thanh_toan, trang_thai, ma_giao_dich, ma_ngan_hang, loai_the)
+                        VALUES (:id_hoc_sinh, :id_dang_ky, :phuong_thuc, :so_tien, NOW(), :trang_thai, :ma_giao_dich, :ma_ngan_hang, :loai_the)";
+                
+                $stmt = $db->prepare($sql);
+                $result = $stmt->execute([
+                    ':id_hoc_sinh' => $id_hoc_sinh,
+                    ':id_dang_ky' => $id_dang_ky,
+                    ':phuong_thuc' => $phuong_thuc,
+                    ':so_tien' => $so_tien,
+                    ':trang_thai' => $trang_thai,
+                    ':ma_giao_dich' => $ma_giao_dich,
+                    ':ma_ngan_hang' => $ma_ngan_hang,
+                    ':loai_the' => $loai_the
+                ]);
+            } else {
+                // Nếu không có cột, insert như cũ
+                $sql = "INSERT INTO thanh_toan (id_hoc_sinh, id_dang_ky, phuong_thuc, so_tien, ngay_thanh_toan, trang_thai, ma_giao_dich)
+                        VALUES (:id_hoc_sinh, :id_dang_ky, :phuong_thuc, :so_tien, NOW(), :trang_thai, :ma_giao_dich)";
+                
+                $stmt = $db->prepare($sql);
+                $result = $stmt->execute([
+                    ':id_hoc_sinh' => $id_hoc_sinh,
+                    ':id_dang_ky' => $id_dang_ky,
+                    ':phuong_thuc' => $phuong_thuc,
+                    ':so_tien' => $so_tien,
+                    ':trang_thai' => $trang_thai,
+                    ':ma_giao_dich' => $ma_giao_dich
+                ]);
+            }
             
             if ($result) {
                 error_log("Đã lưu thanh toán thành công - Đăng ký ID: $id_dang_ky, Số tiền: $so_tien");
@@ -222,12 +279,19 @@ class VNPayController {
             
             // Lưu vào bảng thanh_toan với số tiền từ API
             $so_tien = ($paymentInfo['vnp_Amount'] ?? 0) / 100;
+            
+            // Lấy thông tin ngân hàng từ callback (nếu có)
+            $vnp_BankCode = $paymentInfo['vnp_BankCode'] ?? $_GET['vnp_BankCode'] ?? '';
+            $vnp_CardType = $_GET['vnp_CardType'] ?? '';
+            
             $this->saveThanhToan(
                 $dangKy['id_hoc_sinh'],
                 $dangKy['id'],
                 'VNPAY',
                 $so_tien,
-                $paymentInfo['vnp_TransactionNo'] ?? ''
+                $paymentInfo['vnp_TransactionNo'] ?? '',
+                $vnp_BankCode,
+                $vnp_CardType
             );
         }
         

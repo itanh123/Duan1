@@ -46,7 +46,6 @@ $pageTitle = 'Quản lý Giảng viên';
                         <th>Email</th>
                         <th>Số điện thoại</th>
                         <th>Địa chỉ</th>
-                        <th>Quyền</th>
                         <th>Trạng thái</th>
                         <th>Ngày tạo</th>
                         <th>Thao tác</th>
@@ -60,30 +59,6 @@ $pageTitle = 'Quản lý Giảng viên';
                             <td><?= htmlspecialchars($gv['email']) ?></td>
                             <td><?= htmlspecialchars($gv['so_dien_thoai'] ?? 'N/A') ?></td>
                             <td><?= htmlspecialchars($gv['dia_chi'] ?? 'N/A') ?></td>
-                            <td>
-                                <?php if (!empty($gv['quyen']) && is_array($gv['quyen'])): ?>
-                                    <?php 
-                                    $quyenLabels = [
-                                        'xem' => 'Xem',
-                                        'them' => 'Thêm',
-                                        'sua' => 'Sửa',
-                                        'xoa' => 'Xóa',
-                                        'quan_tri' => 'Quản trị'
-                                    ];
-                                    foreach ($gv['quyen'] as $quyen): 
-                                        if (!empty($quyen)):
-                                    ?>
-                                        <span style="display: inline-block; margin: 2px; padding: 4px 8px; background: #28a745; color: white; border-radius: 4px; font-size: 11px;">
-                                            <?= $quyenLabels[$quyen] ?? $quyen ?>
-                                        </span>
-                                    <?php 
-                                        endif;
-                                    endforeach; 
-                                    ?>
-                                <?php else: ?>
-                                    <span style="color: #999;">Chưa có quyền</span>
-                                <?php endif; ?>
-                            </td>
                             <td>
                                 <span class="<?= $gv['trang_thai'] == 1 ? 'status-active' : 'status-inactive' ?>">
                                     <?= $gv['trang_thai'] == 1 ? 'Hoạt động' : 'Khóa' ?>

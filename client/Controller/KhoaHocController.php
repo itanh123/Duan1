@@ -229,30 +229,17 @@ class KhoaHocController {
         $user = $this->userModel->loginByEmail($email, $password);
         
         if ($user) {
-            // Lấy tất cả vai trò của người dùng
-            require_once('./admin/Model/adminmodel.php');
-            $adminModel = new adminmodel();
-            $vaiTroList = $adminModel->getVaiTroByNguoiDung($user['id']);
+            // Lấy vai trò trực tiếp từ cột vai_tro trong database
+            $vaiTro = $user['vai_tro'] ?? '';
             
-            if (empty($vaiTroList)) {
+            if (empty($vaiTro)) {
                 $_SESSION['error'] = 'Tài khoản chưa được phân vai trò!';
                 header('Location: ?act=client-login');
                 exit;
             }
             
-            // Nếu chỉ có 1 vai trò, tự động đăng nhập với vai trò đó
-            if (count($vaiTroList) == 1) {
-                $vaiTro = $vaiTroList[0];
-                $this->setSessionByVaiTro($user, $vaiTro);
-                exit;
-            }
-            
-            // Nếu có nhiều vai trò, hiển thị form chọn vai trò
-            $_SESSION['temp_user_id'] = $user['id'];
-            $_SESSION['temp_user_email'] = $user['email'];
-            $_SESSION['temp_user_ho_ten'] = $user['ho_ten'];
-            $_SESSION['temp_vai_tro_list'] = $vaiTroList;
-            header('Location: ?act=client-choose-role');
+            // Đăng nhập với vai trò từ cột vai_tro
+            $this->setSessionByVaiTro($user, $vaiTro);
             exit;
         }
 
