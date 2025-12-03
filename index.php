@@ -233,6 +233,7 @@ match ($act) {
     'admin-edit-dang-ky' => $adminController->editDangKy(),
     'admin-update-dang-ky' => $adminController->updateDangKy(),
     'admin-delete-dang-ky' => $adminController->deleteDangKy(),
+    'admin-hoan-tien' => $adminController->hoanTien(),
     
     // ============================
     //  ADMIN - QUẢN LÝ BÌNH LUẬN

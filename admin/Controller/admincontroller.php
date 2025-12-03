@@ -898,18 +898,6 @@ class admincontroller{
         $this->renderView('./admin/View/lop_hoc/list_content.php', 'Quản lý Lớp học', $data);
     }
 
-    // Form thêm lớp học
-    public function addLopHoc(){
-        $this->checkAdminLogin();
-        $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
-        
-        $data = [
-            'khoaHocList' => $khoaHocList
-        ];
-
-        $this->renderView('./admin/View/lop_hoc/form_content.php', 'Thêm Lớp học', $data);
-    }
-
     // Xử lý thêm lớp học
     public function saveLopHoc(){
         $this->checkAdminLogin();
@@ -919,11 +907,37 @@ class admincontroller{
         if (!in_array($trang_thai, $validTrangThai)) {
             $trang_thai = 'Chưa khai giảng'; // Mặc định
         }
+        
+        $id_phong_hoc = isset($_POST['id_phong_hoc']) ? (int)$_POST['id_phong_hoc'] : 0;
+        $so_luong_toi_da = !empty($_POST['so_luong_toi_da']) ? (int)$_POST['so_luong_toi_da'] : null;
+        
+        // Validation: Phải chọn phòng học
+        if (!$id_phong_hoc) {
+            $_SESSION['error'] = 'Vui lòng chọn phòng học!';
+            header('Location: ?act=admin-add-lop-hoc');
+            exit;
+        }
+        
+        // Lấy thông tin phòng học để kiểm tra sức chứa
+        $phongHoc = $this->model->getPhongHocById($id_phong_hoc);
+        if (!$phongHoc) {
+            $_SESSION['error'] = 'Phòng học không tồn tại!';
+            header('Location: ?act=admin-add-lop-hoc');
+            exit;
+        }
+        
+        // Validation: Số lượng tối đa không được vượt quá sức chứa phòng học
+        if ($so_luong_toi_da && $so_luong_toi_da > $phongHoc['suc_chua']) {
+            $_SESSION['error'] = "Số lượng tối đa ({$so_luong_toi_da}) không được vượt quá sức chứa phòng học ({$phongHoc['suc_chua']})!";
+            header('Location: ?act=admin-add-lop-hoc');
+            exit;
+        }
+        
         $data = [
             'id_khoa_hoc' => $_POST['id_khoa_hoc'] ?? '',
             'ten_lop' => $_POST['ten_lop'] ?? '',
             'mo_ta' => $_POST['mo_ta'] ?? '',
-            'so_luong_toi_da' => !empty($_POST['so_luong_toi_da']) ? (int)$_POST['so_luong_toi_da'] : null,
+            'so_luong_toi_da' => $so_luong_toi_da,
             'trang_thai' => $trang_thai
         ];
 
@@ -963,15 +977,30 @@ class admincontroller{
         $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
         $soLuongDangKy = $this->model->countDangKyByLop($id); // Đếm số lượng đăng ký hiện tại
         $phongHocInfo = $this->model->getSucChuaPhongHocNhoNhatByLop($id); // Lấy thông tin sức chứa phòng học
+        $phongHocList = $this->model->getPhongHocList(); // Lấy danh sách phòng học
         
         $data = [
             'lopHoc' => $lopHoc,
             'khoaHocList' => $khoaHocList,
             'soLuongDangKy' => $soLuongDangKy,
-            'phongHocInfo' => $phongHocInfo
+            'phongHocInfo' => $phongHocInfo,
+            'phongHocList' => $phongHocList
         ];
 
         $this->renderView('./admin/View/lop_hoc/form_content.php', 'Sửa Lớp học', $data);
+    }
+    
+    public function addLopHoc(){
+        $this->checkAdminLogin();
+        $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
+        $phongHocList = $this->model->getPhongHocList(); // Lấy danh sách phòng học
+        
+        $data = [
+            'khoaHocList' => $khoaHocList,
+            'phongHocList' => $phongHocList
+        ];
+
+        $this->renderView('./admin/View/lop_hoc/form_content.php', 'Thêm Lớp học', $data);
     }
 
     // Xử lý cập nhật lớp học
@@ -1011,6 +1040,22 @@ class admincontroller{
             exit;
         }
 
+        // Validation: Phải chọn phòng học
+        $id_phong_hoc = isset($_POST['id_phong_hoc']) ? (int)$_POST['id_phong_hoc'] : 0;
+        if (!$id_phong_hoc) {
+            $_SESSION['error'] = 'Vui lòng chọn phòng học!';
+            header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
+            exit;
+        }
+        
+        // Lấy thông tin phòng học để kiểm tra sức chứa
+        $phongHoc = $this->model->getPhongHocById($id_phong_hoc);
+        if (!$phongHoc) {
+            $_SESSION['error'] = 'Phòng học không tồn tại!';
+            header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
+            exit;
+        }
+        
         // Kiểm tra số lượng tối đa không được nhỏ hơn số lượng đăng ký hiện tại
         $soLuongDangKy = $this->model->countDangKyByLop($id);
         $soLuongToiDaCu = $lopHoc['so_luong_toi_da'] ?? null;
@@ -1023,10 +1068,9 @@ class admincontroller{
                 exit;
             }
             
-            // Kiểm tra 2: Số lượng tối đa không được lớn hơn sức chứa của phòng học
-            $phongHocInfo = $this->model->getSucChuaPhongHocNhoNhatByLop($id);
-            if ($phongHocInfo && $data['so_luong_toi_da'] > $phongHocInfo['suc_chua']) {
-                $_SESSION['error'] = "Không thể đặt số lượng tối đa là {$data['so_luong_toi_da']}! Lớp học này đang sử dụng phòng học có sức chứa tối đa là {$phongHocInfo['suc_chua']} người (Phòng: {$phongHocInfo['danh_sach_phong']}). Số lượng tối đa phải <= {$phongHocInfo['suc_chua']}.";
+            // Kiểm tra 2: Số lượng tối đa không được lớn hơn sức chứa của phòng học đã chọn
+            if ($data['so_luong_toi_da'] > $phongHoc['suc_chua']) {
+                $_SESSION['error'] = "Số lượng tối đa ({$data['so_luong_toi_da']}) không được vượt quá sức chứa phòng học ({$phongHoc['suc_chua']})! Phòng: {$phongHoc['ten_phong']}.";
                 header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
                 exit;
             }
@@ -1487,6 +1531,138 @@ class admincontroller{
             $_SESSION['error'] = 'Cập nhật đăng ký thất bại!';
             header('Location: ?act=admin-edit-dang-ky&id=' . $id);
         }
+        exit;
+    }
+
+    // Hoàn tiền cho đăng ký
+    public function hoanTien(){
+        $this->checkAdminLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['error'] = 'Phương thức không hợp lệ!';
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+        
+        $id_dang_ky = isset($_POST['id_dang_ky']) ? (int)$_POST['id_dang_ky'] : 0;
+        $ly_do = $_POST['ly_do'] ?? 'Hoàn tiền theo yêu cầu';
+        
+        if (!$id_dang_ky) {
+            $_SESSION['error'] = 'ID đăng ký không hợp lệ!';
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+        
+        // Lấy thông tin đăng ký
+        $dangKy = $this->model->getDangKyById($id_dang_ky);
+        if (!$dangKy) {
+            $_SESSION['error'] = 'Không tìm thấy đăng ký!';
+            header('Location: ?act=admin-list-dang-ky');
+            exit;
+        }
+        
+        // Kiểm tra đăng ký đã được thanh toán chưa
+        if ($dangKy['trang_thai'] !== 'Đã xác nhận') {
+            $_SESSION['error'] = 'Chỉ có thể hoàn tiền cho đăng ký đã được xác nhận!';
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id_dang_ky);
+            exit;
+        }
+        
+        // Lấy thông tin thanh toán
+        $thanhToan = $this->model->getThanhToanByIdDangKy($id_dang_ky);
+        if (!$thanhToan || $thanhToan['phuong_thuc'] !== 'VNPAY') {
+            $_SESSION['error'] = 'Không tìm thấy thông tin thanh toán VNPay hoặc đăng ký này không thanh toán qua VNPay!';
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id_dang_ky);
+            exit;
+        }
+        
+        // Kiểm tra đã hoàn tiền chưa
+        $checkHoanTien = $this->model->conn->prepare("
+            SELECT * FROM hoan_tien 
+            WHERE id_thanh_toan = :id_thanh_toan 
+            AND trang_thai IN ('Thành công', 'Đang xử lý')
+            LIMIT 1
+        ");
+        $checkHoanTien->execute([':id_thanh_toan' => $thanhToan['id']]);
+        if ($checkHoanTien->fetch()) {
+            $_SESSION['error'] = 'Đăng ký này đã được hoàn tiền hoặc đang trong quá trình hoàn tiền!';
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id_dang_ky);
+            exit;
+        }
+        
+        // Lấy thông tin giao dịch VNPay
+        $vnp_TxnRef = $dangKy['vnp_TxnRef'] ?? '';
+        $vnp_TransactionNo = $dangKy['vnp_TransactionNo'] ?? $thanhToan['ma_giao_dich'] ?? '';
+        
+        if (empty($vnp_TxnRef) || empty($vnp_TransactionNo)) {
+            $_SESSION['error'] = 'Không tìm thấy thông tin giao dịch VNPay!';
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id_dang_ky);
+            exit;
+        }
+        
+        // Lấy ngày giao dịch (từ mã đơn hàng hoặc database)
+        $vnp_TransactionDate = '';
+        if (preg_match('/DK(\d{14})/', $vnp_TxnRef, $matches)) {
+            $vnp_TransactionDate = $matches[1];
+        } else {
+            // Nếu không lấy được từ mã, dùng ngày thanh toán
+            $vnp_TransactionDate = date('YmdHis', strtotime($thanhToan['ngay_thanh_toan']));
+        }
+        
+        // Số tiền hoàn (nhân với 100 vì VNPay yêu cầu)
+        $vnp_Amount = (int)($thanhToan['so_tien'] * 100);
+        
+        // Gọi API hoàn tiền VNPay
+        require_once('./Commons/vnpay_helper.php');
+        $adminName = $_SESSION['admin_ho_ten'] ?? $_SESSION['client_ho_ten'] ?? 'Admin';
+        
+        $refundResult = VNPayHelper::refundTransaction(
+            $vnp_TxnRef,
+            $vnp_TransactionNo,
+            $vnp_Amount,
+            $vnp_TransactionDate,
+            $adminName,
+            $ly_do
+        );
+        
+        if ($refundResult === false || !isset($refundResult['verified'])) {
+            $_SESSION['error'] = 'Không thể thực hiện hoàn tiền. Vui lòng thử lại sau hoặc liên hệ VNPay!';
+            error_log("Lỗi hoàn tiền - ID đăng ký: $id_dang_ky, TxnRef: $vnp_TxnRef");
+            header('Location: ?act=admin-edit-dang-ky&id=' . $id_dang_ky);
+            exit;
+        }
+        
+        // Kiểm tra response code
+        $vnp_ResponseCode = $refundResult['vnp_ResponseCode'] ?? '';
+        
+        if ($vnp_ResponseCode === '00') {
+            // Hoàn tiền thành công
+            $trangThaiHoanTien = 'Thành công';
+            
+            // Cập nhật trạng thái đăng ký thành "Đã hủy" hoặc "Hoàn tiền"
+            $this->model->updateDangKy($id_dang_ky, [
+                'trang_thai' => 'Hoàn tiền'
+            ]);
+            
+            $_SESSION['success'] = 'Hoàn tiền thành công! Mã giao dịch hoàn tiền: ' . ($refundResult['vnp_TransactionNo'] ?? '');
+        } else {
+            // Hoàn tiền thất bại hoặc đang xử lý
+            $trangThaiHoanTien = ($vnp_ResponseCode === '94' || $vnp_ResponseCode === '95') ? 'Đang xử lý' : 'Thất bại';
+            $errorMsg = $refundResult['vnp_ResponseMessage'] ?? 'Không xác định';
+            $_SESSION['error'] = "Hoàn tiền không thành công. Mã lỗi: $vnp_ResponseCode - $errorMsg";
+        }
+        
+        // Lưu thông tin hoàn tiền vào database
+        $this->model->saveHoanTien(
+            $thanhToan['id'],
+            $refundResult['vnp_RefundRef'] ?? $refundResult['vnp_TxnRef'] ?? '',
+            $refundResult['vnp_TransactionNo'] ?? '',
+            $thanhToan['so_tien'],
+            $ly_do,
+            $trangThaiHoanTien
+        );
+        
+        header('Location: ?act=admin-edit-dang-ky&id=' . $id_dang_ky);
         exit;
     }
 

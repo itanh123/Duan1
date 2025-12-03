@@ -275,5 +275,134 @@ class VNPayHelper {
             'verified' => true
         ];
     }
+    
+    /**
+     * Hoàn tiền giao dịch VNPay
+     * 
+     * @param string $vnp_TxnRef Mã đơn hàng gốc
+     * @param string $vnp_TransactionNo Mã giao dịch gốc
+     * @param int $vnp_Amount Số tiền hoàn (nhân với 100)
+     * @param string $vnp_TransactionDate Ngày giao dịch gốc (YmdHis)
+     * @param string $vnp_CreateBy Người tạo (tùy chọn)
+     * @param string $vnp_Description Mô tả lý do hoàn tiền
+     * @return array|false Thông tin hoàn tiền hoặc false nếu lỗi
+     */
+    public static function refundTransaction($vnp_TxnRef, $vnp_TransactionNo, $vnp_Amount, $vnp_TransactionDate, $vnp_CreateBy = '', $vnp_Description = '') {
+        require_once __DIR__ . '/vnpay_config.php';
+        
+        $vnp_TmnCode = VNPAY_TMN_CODE;
+        $vnp_HashSecret = VNPAY_HASH_SECRET;
+        
+        // Tạo mã đơn hàng hoàn tiền (thêm prefix REF)
+        $vnp_RefundRef = 'REF' . date('YmdHis') . substr($vnp_TxnRef, -6);
+        
+        // Tạo mảng input data cho API refund
+        $inputData = array(
+            "vnp_Version" => "2.1.0",
+            "vnp_Command" => "refund",
+            "vnp_TmnCode" => $vnp_TmnCode,
+            "vnp_TransactionType" => "03", // 03 = Hoàn tiền
+            "vnp_TxnRef" => $vnp_RefundRef, // Mã đơn hàng hoàn tiền
+            "vnp_Amount" => $vnp_Amount, // Số tiền hoàn
+            "vnp_OrderInfo" => "Hoan tien " . $vnp_TxnRef . ($vnp_Description ? " - " . $vnp_Description : ""),
+            "vnp_TransactionNo" => $vnp_TransactionNo, // Mã giao dịch gốc
+            "vnp_TransactionDate" => $vnp_TransactionDate, // Ngày giao dịch gốc
+            "vnp_CreateDate" => date('YmdHis'),
+            "vnp_CreateBy" => $vnp_CreateBy ?: "Admin",
+            "vnp_IpAddr" => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
+        );
+        
+        // Sắp xếp lại các tham số
+        ksort($inputData);
+        
+        // Tạo query string
+        $query = "";
+        $hashdata = "";
+        $i = 0;
+        foreach ($inputData as $key => $value) {
+            if ($i == 1) {
+                $hashdata .= '&' . urlencode($key) . "=" . urlencode($value);
+            } else {
+                $hashdata .= urlencode($key) . "=" . urlencode($value);
+                $i = 1;
+            }
+            $query .= urlencode($key) . "=" . urlencode($value) . '&';
+        }
+        
+        // Tạo SecureHash
+        $vnpSecureHash = hash_hmac('sha512', $hashdata, $vnp_HashSecret);
+        $query .= 'vnp_SecureHash=' . $vnpSecureHash;
+        
+        // URL API refund
+        $vnp_ApiUrl = VNPAY_API_URL;
+        
+        // Gọi API với timeout
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $vnp_ApiUrl);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $query);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30); // Timeout 30 giây cho refund
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Content-Type: application/x-www-form-urlencoded'
+        ));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+        
+        if ($curlError) {
+            error_log("VNPay Refund API CURL Error - TxnRef: $vnp_TxnRef, Error: $curlError");
+            return false;
+        }
+        
+        if ($httpCode !== 200 || empty($response)) {
+            error_log("VNPay Refund API Error - HTTP Code: $httpCode, Response: $response, TxnRef: $vnp_TxnRef");
+            return false;
+        }
+        
+        // Parse response (VNPay trả về dạng query string)
+        parse_str($response, $result);
+        
+        // Xác thực SecureHash từ response
+        $vnp_SecureHash = $result['vnp_SecureHash'] ?? '';
+        unset($result['vnp_SecureHash']);
+        
+        // Sắp xếp và tính toán hash
+        ksort($result);
+        $i = 0;
+        $hashData = "";
+        foreach ($result as $key => $value) {
+            if ($i == 1) {
+                $hashData .= '&' . urlencode($key) . "=" . urlencode($value);
+            } else {
+                $hashData .= urlencode($key) . "=" . urlencode($value);
+                $i = 1;
+            }
+        }
+        
+        $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
+        
+        // Kiểm tra SecureHash
+        if ($secureHash !== $vnp_SecureHash) {
+            error_log("VNPay Refund API - SecureHash không khớp!");
+            return false;
+        }
+        
+        // Trả về thông tin hoàn tiền
+        return [
+            'vnp_RefundRef' => $vnp_RefundRef,
+            'vnp_TxnRef' => $result['vnp_TxnRef'] ?? $vnp_RefundRef,
+            'vnp_TransactionNo' => $result['vnp_TransactionNo'] ?? '',
+            'vnp_ResponseCode' => $result['vnp_ResponseCode'] ?? '',
+            'vnp_ResponseMessage' => $result['vnp_ResponseMessage'] ?? '',
+            'vnp_Amount' => $result['vnp_Amount'] ?? $vnp_Amount,
+            'verified' => true
+        ];
+    }
 }
 

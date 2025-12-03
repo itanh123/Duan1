@@ -271,10 +271,125 @@
                             <option value="Chờ xác nhận" <?= (isset($dangKy) && $dangKy['trang_thai'] == 'Chờ xác nhận') ? 'selected' : '' ?>>Chờ xác nhận</option>
                             <option value="Đã xác nhận" <?= (isset($dangKy) && $dangKy['trang_thai'] == 'Đã xác nhận') ? 'selected' : '' ?>>Đã xác nhận</option>
                             <option value="Đã hủy" <?= (isset($dangKy) && $dangKy['trang_thai'] == 'Đã hủy') ? 'selected' : '' ?>>Đã hủy</option>
+                            <option value="Hoàn tiền" <?= (isset($dangKy) && $dangKy['trang_thai'] == 'Hoàn tiền') ? 'selected' : '' ?>>Hoàn tiền</option>
                         </select>
                     </div>
                 </div>
             </div>
+
+            <?php
+            // Lấy thông tin thanh toán nếu có
+            if (isset($dangKy['id'])) {
+                require_once('./admin/Model/adminmodel.php');
+                $adminModel = new adminmodel();
+                $thanhToan = $adminModel->getThanhToanByIdDangKy($dangKy['id']);
+                
+                // Kiểm tra đã hoàn tiền chưa
+                $daHoanTien = false;
+                $thongTinHoanTien = null;
+                if ($thanhToan) {
+                    $checkHoanTien = $adminModel->conn->prepare("
+                        SELECT * FROM hoan_tien 
+                        WHERE id_thanh_toan = :id_thanh_toan 
+                        ORDER BY ngay_tao DESC
+                        LIMIT 1
+                    ");
+                    $checkHoanTien->execute([':id_thanh_toan' => $thanhToan['id']]);
+                    $thongTinHoanTien = $checkHoanTien->fetch();
+                    $daHoanTien = $thongTinHoanTien !== false;
+                }
+            ?>
+            <!-- Thông tin thanh toán -->
+            <?php if ($thanhToan): ?>
+            <div class="form-section">
+                <h3>Thông tin thanh toán</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Phương thức thanh toán</label>
+                        <input type="text" 
+                               class="form-control" 
+                               value="<?= htmlspecialchars($thanhToan['phuong_thuc']) ?>" 
+                               readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Số tiền</label>
+                        <input type="text" 
+                               class="form-control" 
+                               value="<?= number_format($thanhToan['so_tien'], 0, ',', '.') ?> đ" 
+                               readonly>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ngày thanh toán</label>
+                        <input type="text" 
+                               class="form-control" 
+                               value="<?= date('d/m/Y H:i:s', strtotime($thanhToan['ngay_thanh_toan'])) ?>" 
+                               readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Mã giao dịch</label>
+                        <input type="text" 
+                               class="form-control" 
+                               value="<?= htmlspecialchars($thanhToan['ma_giao_dich'] ?? 'N/A') ?>" 
+                               readonly>
+                    </div>
+                </div>
+                
+                <!-- Thông tin hoàn tiền -->
+                <?php if ($daHoanTien && $thongTinHoanTien): ?>
+                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px;">
+                    <h4 style="color: #856404; margin-bottom: 10px;">Thông tin hoàn tiền</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Mã hoàn tiền</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   value="<?= htmlspecialchars($thongTinHoanTien['ma_hoan_tien']) ?>" 
+                                   readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Trạng thái</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   value="<?= htmlspecialchars($thongTinHoanTien['trang_thai']) ?>" 
+                                   readonly>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Lý do hoàn tiền</label>
+                        <textarea class="form-control" readonly><?= htmlspecialchars($thongTinHoanTien['ly_do'] ?? '') ?></textarea>
+                    </div>
+                </div>
+                <?php elseif ($thanhToan['phuong_thuc'] === 'VNPAY' && $dangKy['trang_thai'] === 'Đã xác nhận'): ?>
+                <!-- Form hoàn tiền -->
+                <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border: 1px solid #007bff; border-radius: 5px;">
+                    <h4 style="color: #004085; margin-bottom: 15px;">Hoàn tiền tự động</h4>
+                    <form method="POST" action="?act=admin-hoan-tien" onsubmit="return confirm('Bạn có chắc chắn muốn hoàn tiền cho đăng ký này? Hành động này không thể hoàn tác!');">
+                        <input type="hidden" name="id_dang_ky" value="<?= $dangKy['id'] ?>">
+                        <div class="form-group">
+                            <label for="ly_do_hoan_tien">Lý do hoàn tiền</label>
+                            <textarea name="ly_do" 
+                                      id="ly_do_hoan_tien" 
+                                      class="form-control" 
+                                      rows="3" 
+                                      placeholder="Nhập lý do hoàn tiền..." 
+                                      required><?= htmlspecialchars($_POST['ly_do'] ?? 'Hoàn tiền theo yêu cầu') ?></textarea>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn" style="background: #28a745; color: white;">
+                                💰 Hoàn tiền tự động
+                            </button>
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                Số tiền sẽ được hoàn: <strong><?= number_format($thanhToan['so_tien'], 0, ',', '.') ?> đ</strong>
+                            </small>
+                        </div>
+                    </form>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+            <?php } ?>
 
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">

@@ -1447,6 +1447,119 @@ class adminmodel
         return $stmt->fetchAll();
     }
 
+    // Lấy thông tin thanh toán theo ID đăng ký
+    public function getThanhToanByIdDangKy($id_dang_ky)
+    {
+        $sql = "SELECT tt.*, nd.ho_ten, nd.email, dk.vnp_TxnRef, dk.vnp_TransactionNo
+                FROM thanh_toan tt
+                LEFT JOIN nguoi_dung nd ON tt.id_hoc_sinh = nd.id
+                LEFT JOIN dang_ky dk ON tt.id_dang_ky = dk.id
+                WHERE tt.id_dang_ky = :id_dang_ky 
+                AND tt.trang_thai = 'Thành công'
+                AND tt.phuong_thuc = 'VNPAY'
+                ORDER BY tt.ngay_thanh_toan DESC
+                LIMIT 1";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id_dang_ky', $id_dang_ky, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
+
+    // Lấy thông tin thanh toán theo ID
+    public function getThanhToanById($id)
+    {
+        $sql = "SELECT tt.*, nd.ho_ten, nd.email, dk.vnp_TxnRef, dk.vnp_TransactionNo, dk.vnp_TransactionDate
+                FROM thanh_toan tt
+                LEFT JOIN nguoi_dung nd ON tt.id_hoc_sinh = nd.id
+                LEFT JOIN dang_ky dk ON tt.id_dang_ky = dk.id
+                WHERE tt.id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
+
+    // Lưu thông tin hoàn tiền
+    public function saveHoanTien($id_thanh_toan, $vnp_RefundRef, $vnp_RefundTransactionNo, $so_tien_hoan, $ly_do, $trang_thai = 'Đang xử lý')
+    {
+        try {
+            // Kiểm tra xem bảng thanh_toan có cột hoàn tiền không
+            $checkRefundColumns = $this->conn->query("SHOW COLUMNS FROM thanh_toan LIKE 'ma_hoan_tien'");
+            $hasRefundColumns = $checkRefundColumns && $checkRefundColumns->rowCount() > 0;
+            
+            if ($hasRefundColumns) {
+                // Nếu có cột hoàn tiền, cập nhật
+                $sql = "UPDATE thanh_toan 
+                        SET ma_hoan_tien = :ma_hoan_tien,
+                            ma_giao_dich_hoan_tien = :ma_giao_dich_hoan_tien,
+                            so_tien_hoan = :so_tien_hoan,
+                            ly_do_hoan_tien = :ly_do,
+                            trang_thai_hoan_tien = :trang_thai,
+                            ngay_hoan_tien = NOW()
+                        WHERE id = :id";
+                $stmt = $this->conn->prepare($sql);
+                $stmt->execute([
+                    ':id' => $id_thanh_toan,
+                    ':ma_hoan_tien' => $vnp_RefundRef,
+                    ':ma_giao_dich_hoan_tien' => $vnp_RefundTransactionNo,
+                    ':so_tien_hoan' => $so_tien_hoan,
+                    ':ly_do' => $ly_do,
+                    ':trang_thai' => $trang_thai
+                ]);
+            } else {
+                // Nếu không có cột, tạo bảng hoan_tien riêng
+                $this->ensureHoanTienTable();
+                
+                $sql = "INSERT INTO hoan_tien (id_thanh_toan, ma_hoan_tien, ma_giao_dich_hoan_tien, so_tien_hoan, ly_do, trang_thai, ngay_tao)
+                        VALUES (:id_thanh_toan, :ma_hoan_tien, :ma_giao_dich_hoan_tien, :so_tien_hoan, :ly_do, :trang_thai, NOW())
+                        ON DUPLICATE KEY UPDATE
+                        ma_giao_dich_hoan_tien = :ma_giao_dich_hoan_tien,
+                        so_tien_hoan = :so_tien_hoan,
+                        ly_do = :ly_do,
+                        trang_thai = :trang_thai,
+                        ngay_cap_nhat = NOW()";
+                $stmt = $this->conn->prepare($sql);
+                $stmt->execute([
+                    ':id_thanh_toan' => $id_thanh_toan,
+                    ':ma_hoan_tien' => $vnp_RefundRef,
+                    ':ma_giao_dich_hoan_tien' => $vnp_RefundTransactionNo,
+                    ':so_tien_hoan' => $so_tien_hoan,
+                    ':ly_do' => $ly_do,
+                    ':trang_thai' => $trang_thai
+                ]);
+            }
+            
+            return true;
+        } catch (PDOException $e) {
+            error_log("Lỗi khi lưu thông tin hoàn tiền: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Tạo bảng hoan_tien nếu chưa có
+    private function ensureHoanTienTable()
+    {
+        try {
+            $sql = "CREATE TABLE IF NOT EXISTS hoan_tien (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                id_thanh_toan INT NOT NULL,
+                ma_hoan_tien VARCHAR(100) NOT NULL UNIQUE,
+                ma_giao_dich_hoan_tien VARCHAR(100),
+                so_tien_hoan DECIMAL(15,2) NOT NULL,
+                ly_do TEXT,
+                trang_thai VARCHAR(50) DEFAULT 'Đang xử lý',
+                ngay_tao DATETIME DEFAULT CURRENT_TIMESTAMP,
+                ngay_cap_nhat DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_id_thanh_toan (id_thanh_toan),
+                INDEX idx_ma_hoan_tien (ma_hoan_tien)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+            $this->conn->exec($sql);
+        } catch (PDOException $e) {
+            // Bảng đã tồn tại hoặc có lỗi
+            error_log("Lỗi khi tạo bảng hoan_tien: " . $e->getMessage());
+        }
+    }
+
     // Đăng nhập - Kiểm tra email và mật khẩu
     public function login($email, $password, $vai_tro = 'admin')
     {

@@ -38,6 +38,25 @@
                    placeholder="Nhập tên lớp học">
         </div>
 
+        <div class="form-group">
+            <label for="id_phong_hoc" class="required">Phòng học</label>
+            <select name="id_phong_hoc" id="id_phong_hoc" class="form-control" required>
+                <option value="">-- Chọn phòng học trước --</option>
+                <?php if (isset($phongHocList)): ?>
+                    <?php foreach ($phongHocList as $ph): ?>
+                        <option value="<?= $ph['id'] ?>" 
+                                data-suc-chua="<?= $ph['suc_chua'] ?>"
+                                <?= (isset($lopHoc) && isset($phongHocInfo) && $phongHocInfo && $ph['id'] == ($phongHocInfo['id_phong'] ?? null)) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($ph['ten_phong']) ?> (Sức chứa: <?= $ph['suc_chua'] ?> người)
+                        </option>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </select>
+            <small style="color: #666; display: block; margin-top: 5px;">
+                ⚠️ Bạn phải chọn phòng học trước khi có thể chỉnh sửa số lượng tối đa
+            </small>
+        </div>
+
         <div class="form-row">
             <div class="form-group">
                 <label for="so_luong_toi_da">Số lượng tối đa</label>
@@ -70,7 +89,12 @@
                        value="<?= $lopHoc['so_luong_toi_da'] ?? '' ?>" 
                        min="<?= $minValue ?>"
                        <?= $maxValue ? 'max="' . $maxValue . '"' : '' ?>
-                       placeholder="Để trống nếu không giới hạn">
+                       placeholder="Sẽ tự động điền khi chọn phòng học"
+                       readonly
+                       required>
+                <small id="so_luong_hint" style="color: #666; display: block; margin-top: 5px;">
+                    Vui lòng chọn phòng học trước
+                </small>
                 <?php if (isset($lopHoc)): ?>
                     <div style="margin-top: 8px; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 13px;">
                         <strong style="color: #856404;">⚠️ Lưu ý quan trọng:</strong>
@@ -148,5 +172,85 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const idPhongHoc = document.getElementById('id_phong_hoc');
+    const soLuongToiDa = document.getElementById('so_luong_toi_da');
+    const soLuongHint = document.getElementById('so_luong_hint');
+    
+    // Lấy số lượng đăng ký hiện tại (nếu có)
+    const soLuongDangKy = <?= isset($soLuongDangKy) ? (int)$soLuongDangKy : 0 ?>;
+    
+    // Khi chọn phòng học
+    idPhongHoc.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const sucChua = selectedOption ? parseInt(selectedOption.getAttribute('data-suc-chua')) : null;
+        
+        if (sucChua && sucChua > 0) {
+            // Cho phép chỉnh sửa số lượng tối đa
+            soLuongToiDa.removeAttribute('readonly');
+            soLuongToiDa.setAttribute('max', sucChua);
+            
+            // Tự động điền số lượng tối đa = sức chứa phòng học
+            // Nhưng không được nhỏ hơn số lượng đã đăng ký
+            const minValue = Math.max(1, soLuongDangKy);
+            soLuongToiDa.setAttribute('min', minValue);
+            
+            if (!soLuongToiDa.value || parseInt(soLuongToiDa.value) > sucChua) {
+                soLuongToiDa.value = Math.max(minValue, sucChua);
+            }
+            
+            // Cập nhật hint
+            soLuongHint.innerHTML = `Sức chứa phòng học: <strong>${sucChua}</strong> người. `;
+            if (soLuongDangKy > 0) {
+                soLuongHint.innerHTML += `Đã có <strong>${soLuongDangKy}</strong> học sinh đăng ký. `;
+            }
+            soLuongHint.innerHTML += `Số lượng tối đa phải từ <strong>${minValue}</strong> đến <strong>${sucChua}</strong>.`;
+            soLuongHint.style.color = '#28a745';
+        } else {
+            // Không chọn phòng học
+            soLuongToiDa.setAttribute('readonly', 'readonly');
+            soLuongToiDa.value = '';
+            soLuongHint.innerHTML = 'Vui lòng chọn phòng học trước';
+            soLuongHint.style.color = '#666';
+        }
+    });
+    
+    // Validate khi submit form
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        if (!idPhongHoc.value) {
+            e.preventDefault();
+            alert('Vui lòng chọn phòng học trước khi lưu!');
+            idPhongHoc.focus();
+            return false;
+        }
+        
+        const selectedOption = idPhongHoc.options[idPhongHoc.selectedIndex];
+        const sucChua = parseInt(selectedOption.getAttribute('data-suc-chua'));
+        const soLuong = parseInt(soLuongToiDa.value);
+        
+        if (soLuong > sucChua) {
+            e.preventDefault();
+            alert(`Số lượng tối đa (${soLuong}) không được vượt quá sức chứa phòng học (${sucChua})!`);
+            soLuongToiDa.focus();
+            return false;
+        }
+        
+        if (soLuong < soLuongDangKy) {
+            e.preventDefault();
+            alert(`Số lượng tối đa (${soLuong}) không được nhỏ hơn số lượng đã đăng ký (${soLuongDangKy})!`);
+            soLuongToiDa.focus();
+            return false;
+        }
+    });
+    
+    // Trigger change event nếu đã có phòng học được chọn
+    if (idPhongHoc.value) {
+        idPhongHoc.dispatchEvent(new Event('change'));
+    }
+});
+</script>
 
 
