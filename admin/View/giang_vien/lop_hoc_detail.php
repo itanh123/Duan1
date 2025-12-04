@@ -49,8 +49,20 @@ $pageTitle = 'Lớp học của ' . htmlspecialchars($giangVien['ho_ten']);
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
                         <div>
                             <strong>Trạng thái lớp:</strong>
-                            <span class="<?= $lop['trang_thai_lop'] == 1 ? 'status-active' : 'status-inactive' ?>" style="display: inline-block; margin-left: 5px;">
-                                <?= $lop['trang_thai_lop'] == 1 ? 'Đang hoạt động' : 'Ngừng hoạt động' ?>
+                            <?php 
+                            $trangThai = $lop['trang_thai_lop'] ?? 'Chưa khai giảng';
+                            $trangThaiClass = 'status-warning';
+                            if ($trangThai == 'Kết thúc') {
+                                $trangThaiClass = 'status-inactive';
+                            } elseif ($trangThai == 'Đang học') {
+                                $trangThaiClass = 'status-active';
+                            } else {
+                                // Chưa khai giảng
+                                $trangThaiClass = 'status-warning';
+                            }
+                            ?>
+                            <span class="<?= $trangThaiClass ?>" style="display: inline-block; margin-left: 5px;">
+                                <?= htmlspecialchars($trangThai) ?>
                             </span>
                         </div>
                         <?php if (!empty($lop['so_luong_toi_da'])): ?>

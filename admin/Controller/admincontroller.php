@@ -243,7 +243,7 @@ class admincontroller{
         exit; 
     }
 
-    // Xóa khóa học
+    // Ẩn khóa học (thay vì xóa)
     public function deleteKhoaHoc(){
         $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
@@ -253,15 +253,40 @@ class admincontroller{
             exit;
         }
 
+        // Không xóa file hình ảnh nữa, chỉ ẩn khóa học
+        if ($this->model->deleteKhoaHoc($id)) {
+            $_SESSION['success'] = 'Ẩn khóa học thành công!';
+        } else {
+            $_SESSION['error'] = 'Không thể ẩn khóa học!';
+        }
+        header('Location: ?act=admin-list-khoa-hoc');
+        exit;
+    }
+    
+    // Toggle trạng thái khóa học (ẩn/hiện)
+    public function toggleKhoaHocStatus(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-khoa-hoc');
+            exit;
+        }
+        
+        // Lấy thông tin khóa học để biết trạng thái hiện tại
         $khoaHoc = $this->model->getKhoaHocById($id);
-        if ($khoaHoc && $khoaHoc['hinh_anh'] && file_exists('./uploads/' . $khoaHoc['hinh_anh'])) {
-            unlink('./uploads/' . $khoaHoc['hinh_anh']);
+        if (!$khoaHoc) {
+            $_SESSION['error'] = 'Không tìm thấy khóa học!';
+            header('Location: ?act=admin-list-khoa-hoc');
+            exit;
         }
 
-        if ($this->model->deleteKhoaHoc($id)) {
-            $_SESSION['success'] = 'Xóa khóa học thành công!';
+        $result = $this->model->toggleKhoaHocStatus($id);
+        if ($result) {
+            $newStatus = $khoaHoc['trang_thai'] == 1 ? 'ẩn' : 'hiện';
+            $_SESSION['success'] = ucfirst($newStatus) . ' khóa học thành công!';
         } else {
-            $_SESSION['error'] = 'Xóa khóa học thất bại!';
+            $_SESSION['error'] = 'Không thể thay đổi trạng thái khóa học!';
         }
         header('Location: ?act=admin-list-khoa-hoc');
         exit;
@@ -472,9 +497,38 @@ class admincontroller{
         }
 
         if ($this->model->deleteHocSinh($id)) {
-            $_SESSION['success'] = 'Xóa học sinh thành công!';
+            $_SESSION['success'] = 'Ẩn học sinh thành công!';
         } else {
-            $_SESSION['error'] = 'Xóa học sinh thất bại!';
+            $_SESSION['error'] = 'Không thể ẩn học sinh!';
+        }
+        header('Location: ?act=admin-list-hoc-sinh');
+        exit;
+    }
+    
+    // Toggle trạng thái học sinh (ẩn/hiện)
+    public function toggleHocSinhStatus(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+        
+        // Lấy thông tin học sinh để biết trạng thái hiện tại
+        $hocSinh = $this->model->getHocSinhById($id);
+        if (!$hocSinh) {
+            $_SESSION['error'] = 'Không tìm thấy học sinh!';
+            header('Location: ?act=admin-list-hoc-sinh');
+            exit;
+        }
+
+        $result = $this->model->toggleHocSinhStatus($id);
+        if ($result) {
+            $newStatus = $hocSinh['trang_thai'] == 1 ? 'ẩn' : 'hiện';
+            $_SESSION['success'] = ucfirst($newStatus) . ' học sinh thành công!';
+        } else {
+            $_SESSION['error'] = 'Không thể thay đổi trạng thái học sinh!';
         }
         header('Location: ?act=admin-list-hoc-sinh');
         exit;
@@ -658,9 +712,38 @@ class admincontroller{
 
         $result = $this->model->deleteDanhMuc($id);
         if ($result) {
-            $_SESSION['success'] = 'Xóa danh mục thành công!';
+            $_SESSION['success'] = 'Ẩn danh mục thành công!';
         } else {
-            $_SESSION['error'] = 'Không thể xóa danh mục! Danh mục này đang được sử dụng trong khóa học.';
+            $_SESSION['error'] = 'Không thể ẩn danh mục!';
+        }
+        header('Location: ?act=admin-list-danh-muc');
+        exit;
+    }
+    
+    // Toggle trạng thái danh mục (ẩn/hiện)
+    public function toggleDanhMucStatus(){
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-danh-muc');
+            exit;
+        }
+        
+        // Lấy thông tin danh mục để biết trạng thái hiện tại
+        $danhMuc = $this->model->getDanhMucById($id);
+        if (!$danhMuc) {
+            $_SESSION['error'] = 'Không tìm thấy danh mục!';
+            header('Location: ?act=admin-list-danh-muc');
+            exit;
+        }
+
+        $result = $this->model->toggleDanhMucStatus($id);
+        if ($result) {
+            $newStatus = $danhMuc['trang_thai'] == 1 ? 'ẩn' : 'hiện';
+            $_SESSION['success'] = ucfirst($newStatus) . ' danh mục thành công!';
+        } else {
+            $_SESSION['error'] = 'Không thể thay đổi trạng thái danh mục!';
         }
         header('Location: ?act=admin-list-danh-muc');
         exit;

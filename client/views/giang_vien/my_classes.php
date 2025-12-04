@@ -171,6 +171,11 @@ if (session_status() === PHP_SESSION_NONE) {
             color: #721c24;
         }
 
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
         .schedule-section {
             margin-top: 20px;
             padding-top: 20px;
@@ -275,8 +280,21 @@ if (session_status() === PHP_SESSION_NONE) {
                         <div class="class-info">
                             <div class="info-item">
                                 <strong>Trạng thái:</strong>
-                                <span class="status-badge <?= $lop['trang_thai_lop'] == 1 ? 'status-active' : 'status-inactive' ?>">
-                                    <?= $lop['trang_thai_lop'] == 1 ? 'Đang hoạt động' : 'Ngừng hoạt động' ?>
+                                <?php 
+                                // Lấy trạng thái từ trang_thai_lop (từ model getLopHocByGiangVien)
+                                $trangThai = $lop['trang_thai_lop'] ?? 'Chưa khai giảng';
+                                $trangThaiClass = 'status-warning';
+                                if ($trangThai == 'Kết thúc') {
+                                    $trangThaiClass = 'status-inactive';
+                                } elseif ($trangThai == 'Đang học') {
+                                    $trangThaiClass = 'status-active';
+                                } else {
+                                    // Chưa khai giảng
+                                    $trangThaiClass = 'status-warning';
+                                }
+                                ?>
+                                <span class="status-badge <?= $trangThaiClass ?>">
+                                    <?= htmlspecialchars($trangThai) ?>
                                 </span>
                             </div>
                             <?php if (!empty($lop['so_luong_toi_da'])): ?>

@@ -116,11 +116,47 @@ class adminmodel
     }
 
     // Xóa khóa học
+    // Ẩn khóa học (thay vì xóa)
     public function deleteKhoaHoc($id)
     {
-        $sql = "DELETE FROM khoa_hoc WHERE id = :id";
+        // Thay vì xóa, chỉ cập nhật trạng thái thành 0 (ẩn)
+        // Không xóa file hình ảnh để có thể khôi phục sau
+        $sql = "UPDATE khoa_hoc SET trang_thai = 0 WHERE id = :id";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+    
+    // Hiện lại khóa học đã bị ẩn
+    public function showKhoaHoc($id)
+    {
+        $sql = "UPDATE khoa_hoc SET trang_thai = 1 WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+    
+    // Toggle trạng thái khóa học (ẩn/hiện)
+    public function toggleKhoaHocStatus($id)
+    {
+        // Lấy trạng thái hiện tại
+        $sql = "SELECT trang_thai FROM khoa_hoc WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch();
+        
+        if (!$result) {
+            return false;
+        }
+        
+        // Đảo ngược trạng thái
+        $newStatus = $result['trang_thai'] == 1 ? 0 : 1;
+        
+        $sql = "UPDATE khoa_hoc SET trang_thai = :trang_thai WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':trang_thai', $newStatus, PDO::PARAM_INT);
         return $stmt->execute();
     }
 
@@ -219,23 +255,46 @@ class adminmodel
         return $stmt->execute();
     }
 
-    // Xóa danh mục
+    // Ẩn danh mục (thay vì xóa)
     public function deleteDanhMuc($id)
     {
-        // Kiểm tra xem danh mục có đang được sử dụng trong khóa học không
-        $sqlCheck = "SELECT COUNT(*) as total FROM khoa_hoc WHERE id_danh_muc = :id";
-        $stmtCheck = $this->conn->prepare($sqlCheck);
-        $stmtCheck->bindValue(':id', $id, PDO::PARAM_INT);
-        $stmtCheck->execute();
-        $result = $stmtCheck->fetch();
-        
-        if ($result['total'] > 0) {
-            return false; // Không thể xóa vì đang có khóa học sử dụng
-        }
-
-        $sql = "DELETE FROM danh_muc WHERE id = :id";
+        // Thay vì xóa, chỉ cập nhật trạng thái thành 0 (ẩn)
+        $sql = "UPDATE danh_muc SET trang_thai = 0 WHERE id = :id";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+    
+    // Hiện lại danh mục đã bị ẩn
+    public function showDanhMuc($id)
+    {
+        $sql = "UPDATE danh_muc SET trang_thai = 1 WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+    
+    // Toggle trạng thái danh mục (ẩn/hiện)
+    public function toggleDanhMucStatus($id)
+    {
+        // Lấy trạng thái hiện tại
+        $sql = "SELECT trang_thai FROM danh_muc WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch();
+        
+        if (!$result) {
+            return false;
+        }
+        
+        // Đảo ngược trạng thái
+        $newStatus = $result['trang_thai'] == 1 ? 0 : 1;
+        
+        $sql = "UPDATE danh_muc SET trang_thai = :trang_thai WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':trang_thai', $newStatus, PDO::PARAM_INT);
         return $stmt->execute();
     }
 
@@ -1853,11 +1912,46 @@ class adminmodel
     }
 
     // Xóa học sinh
+    // Ẩn học sinh (thay vì xóa)
     public function deleteHocSinh($id)
     {
-        $sql = "DELETE FROM nguoi_dung WHERE id = :id AND vai_tro = 'hoc_sinh'";
+        // Thay vì xóa, chỉ cập nhật trạng thái thành 0 (ẩn)
+        $sql = "UPDATE nguoi_dung SET trang_thai = 0 WHERE id = :id AND vai_tro = 'hoc_sinh'";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+    
+    // Hiện lại học sinh đã bị ẩn
+    public function showHocSinh($id)
+    {
+        $sql = "UPDATE nguoi_dung SET trang_thai = 1 WHERE id = :id AND vai_tro = 'hoc_sinh'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+    
+    // Toggle trạng thái học sinh (ẩn/hiện)
+    public function toggleHocSinhStatus($id)
+    {
+        // Lấy trạng thái hiện tại
+        $sql = "SELECT trang_thai FROM nguoi_dung WHERE id = :id AND vai_tro = 'hoc_sinh'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch();
+        
+        if (!$result) {
+            return false;
+        }
+        
+        // Đảo ngược trạng thái
+        $newStatus = $result['trang_thai'] == 1 ? 0 : 1;
+        
+        $sql = "UPDATE nguoi_dung SET trang_thai = :trang_thai WHERE id = :id AND vai_tro = 'hoc_sinh'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':trang_thai', $newStatus, PDO::PARAM_INT);
         return $stmt->execute();
     }
 

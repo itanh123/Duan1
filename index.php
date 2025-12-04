@@ -160,6 +160,7 @@ match ($act) {
     'admin-edit-khoa-hoc' => $adminController->editKhoaHoc(),
     'admin-update-khoa-hoc' => $adminController->updateKhoaHoc(),
     'admin-delete-khoa-hoc' => $adminController->deleteKhoaHoc(),
+    'admin-toggle-khoa-hoc-status' => $adminController->toggleKhoaHocStatus(),
     
     // ============================
     //  ADMIN - QUẢN LÝ HỌC SINH
@@ -172,6 +173,7 @@ match ($act) {
     'admin-edit-hoc-sinh' => $adminController->editHocSinh(),
     'admin-update-hoc-sinh' => $adminController->updateHocSinh(),
     'admin-delete-hoc-sinh' => $adminController->deleteHocSinh(),
+    'admin-toggle-hoc-sinh-status' => $adminController->toggleHocSinhStatus(),
     'admin-view-lop-hoc-hoc-sinh' => $adminController->viewLopHocHocSinh(),
     
     // ============================
@@ -185,6 +187,7 @@ match ($act) {
     'admin-edit-danh-muc' => $adminController->editDanhMuc(),
     'admin-update-danh-muc' => $adminController->updateDanhMuc(),
     'admin-delete-danh-muc' => $adminController->deleteDanhMuc(),
+    'admin-toggle-danh-muc-status' => $adminController->toggleDanhMucStatus(),
     
     // ============================
     //  ADMIN - QUẢN LÝ GIẢNG VIÊN
