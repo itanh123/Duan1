@@ -78,6 +78,15 @@
     background: #c82333;
 }
 
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #218838;
+}
+
 .btn-sm {
     padding: 5px 10px;
     font-size: 12px;

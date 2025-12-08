@@ -72,9 +72,16 @@ $pageTitle = 'Quản lý Học sinh';
                                        style="background: #17a2b8; color: white; margin-right: 5px;">Lớp học</a>
                                     <a href="?act=admin-edit-hoc-sinh&id=<?= $hs['id'] ?>" 
                                        class="btn btn-warning btn-sm">Sửa</a>
-                                    <a href="?act=admin-delete-hoc-sinh&id=<?= $hs['id'] ?>" 
-                                       class="btn btn-danger btn-sm" 
-                                       onclick="return confirm('Bạn có chắc chắn muốn xóa học sinh này?')">Xóa</a>
+                                    <?php if ($hs['trang_thai'] == 1): ?>
+                                        <a href="?act=admin-delete-hoc-sinh&id=<?= $hs['id'] ?>" 
+                                           class="btn btn-danger btn-sm" 
+                                           onclick="return confirm('Bạn có chắc chắn muốn ẩn học sinh này?')">Ẩn</a>
+                                    <?php else: ?>
+                                        <a href="?act=admin-toggle-hoc-sinh-status&id=<?= $hs['id'] ?>" 
+                                           class="btn btn-success btn-sm" 
+                                           style="background: #28a745; color: white;"
+                                           onclick="return confirm('Bạn có chắc chắn muốn hiện học sinh này?')">Hiện</a>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

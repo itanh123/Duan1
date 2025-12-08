@@ -325,7 +325,16 @@
                                 <div class="action-buttons">
                                     <a href="?act=admin-edit-khoa-hoc&id=<?= $kh['id'] ?>" 
                                        class="btn btn-warning btn-sm">Sửa</a>
-                                    <a href="?act=admin-delete-khoa-hoc&id=<?= $kh['id'] ?>" 
+                                    <?php if ($kh['trang_thai'] == 1): ?>
+                                        <a href="?act=admin-delete-khoa-hoc&id=<?= $kh['id'] ?>"
+                                           class="btn btn-danger btn-sm" 
+                                           onclick="return confirm('Bạn có chắc chắn muốn ẩn khóa học này?')">Ẩn</a>
+                                    <?php else: ?>
+                                        <a href="?act=admin-toggle-khoa-hoc-status&id=<?= $kh['id'] ?>"
+                                           class="btn btn-success btn-sm" 
+                                           style="background: #28a745; color: white;"
+                                           onclick="return confirm('Bạn có chắc chắn muốn hiện khóa học này?')">Hiện</a>
+                                    <?php endif; ?> 
                                        class="btn btn-danger btn-sm" 
                                        onclick="return confirm('Bạn có chắc chắn muốn xóa khóa học này?')">Xóa</a>
                                 </div>
