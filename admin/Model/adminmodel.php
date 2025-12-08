@@ -2889,17 +2889,29 @@ class adminmodel
             $id_ca_cu = $caHocHienTai['id_ca'] ?? null;
             $id_phong_cu = $caHocHienTai['id_phong'] ?? null;
             $thu_cu = $caHocHienTai['thu_trong_tuan'] ?? null;
+            $ngay_hoc_cu = $caHocHienTai['ngay_hoc'] ?? null;
+            
+            // Xử lý ngày học mới
+            // Nếu có ngày_doi (đổi lịch cho một ngày cụ thể), dùng ngày_doi làm ngay_hoc
+            // Nếu không có ngày_doi (đổi toàn bộ lịch), set ngay_hoc = NULL
+            $ngay_hoc_moi = !empty($yeuCau['ngay_doi']) ? $yeuCau['ngay_doi'] : null;
+            
+            // Xử lý thứ trong tuần
+            // Luôn dùng thu_trong_tuan_moi (không được NULL vì cột không cho phép NULL)
+            $thu_moi = $yeuCau['thu_trong_tuan_moi'];
             
             // Cập nhật ca học cũ
             $sqlUpdate = "UPDATE ca_hoc 
                          SET thu_trong_tuan = :thu_moi, 
                              id_ca = :id_ca_moi, 
-                             id_phong = :id_phong_moi
+                             id_phong = :id_phong_moi,
+                             ngay_hoc = :ngay_hoc_moi
                          WHERE id = :id_ca_hoc_cu";
             $stmt = $this->conn->prepare($sqlUpdate);
-            $stmt->bindValue(':thu_moi', $yeuCau['thu_trong_tuan_moi']);
+            $stmt->bindValue(':thu_moi', $thu_moi, PDO::PARAM_STR);
             $stmt->bindValue(':id_ca_moi', $yeuCau['id_ca_moi'], PDO::PARAM_INT);
             $stmt->bindValue(':id_phong_moi', $yeuCau['id_phong_moi'], PDO::PARAM_INT);
+            $stmt->bindValue(':ngay_hoc_moi', $ngay_hoc_moi, $ngay_hoc_moi === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
             $stmt->bindValue(':id_ca_hoc_cu', $yeuCau['id_ca_hoc_cu'], PDO::PARAM_INT);
             $stmt->execute();
             
