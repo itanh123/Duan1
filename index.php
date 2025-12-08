@@ -153,6 +153,7 @@ match ($act) {
     // ============================
     'admin' => $adminController->dashboard(),
     'admin-dashboard' => $adminController->dashboard(),
+    'admin-thong-ke' => $adminController->thongKe(),
     
     // ============================
     //  ADMIN - QUẢN LÝ KHÓA HỌC
@@ -282,6 +283,19 @@ match ($act) {
     'admin-huy-yeu-cau-doi-lich' => $adminController->huyYeuCauDoiLich(),
     'admin-xac-nhan-thay-doi-lich' => $adminController->xacNhanThayDoiLich(),
     'admin-hoan-nguyen-lich' => $adminController->hoanNguyenLich(),
+    
+    // ============================
+    //  ADMIN - QUẢN LÝ LIÊN HỆ
+    // ============================
+    
+    // Quản lý liên hệ
+    'admin-list-lien-he' => $adminController->listLienHe(),
+    'admin-add-lien-he' => $adminController->addLienHe(),
+    'admin-save-lien-he' => $adminController->saveLienHe(),
+    'admin-edit-lien-he' => $adminController->editLienHe(),
+    'admin-update-lien-he' => $adminController->updateLienHe(),
+    'admin-delete-lien-he' => $adminController->deleteLienHe(),
+    'admin-toggle-lien-he-status' => $adminController->toggleLienHeStatus(),
     
     // ============================
     //  MẶC ĐỊNH – KHÔNG TÌM THẤY

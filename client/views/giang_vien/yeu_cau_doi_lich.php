@@ -205,13 +205,13 @@ if (session_status() === PHP_SESSION_NONE) {
                         <label for="thu_trong_tuan_moi" class="form-label">Thứ trong tuần mới <span class="text-danger">*</span></label>
                         <select class="form-select" id="thu_trong_tuan_moi" name="thu_trong_tuan_moi" required>
                             <option value="">-- Chọn thứ --</option>
-                            <option value="Thứ 2">Thứ 2</option>
-                            <option value="Thứ 3">Thứ 3</option>
-                            <option value="Thứ 4">Thứ 4</option>
-                            <option value="Thứ 5">Thứ 5</option>
-                            <option value="Thứ 6">Thứ 6</option>
-                            <option value="Thứ 7">Thứ 7</option>
-                            <option value="Chủ nhật">Chủ nhật</option>
+                            <option value="Thứ 2" <?= (isset($caHoc['thu_trong_tuan']) && $caHoc['thu_trong_tuan'] == 'Thứ 2') ? 'selected' : '' ?>>Thứ 2</option>
+                            <option value="Thứ 3" <?= (isset($caHoc['thu_trong_tuan']) && $caHoc['thu_trong_tuan'] == 'Thứ 3') ? 'selected' : '' ?>>Thứ 3</option>
+                            <option value="Thứ 4" <?= (isset($caHoc['thu_trong_tuan']) && $caHoc['thu_trong_tuan'] == 'Thứ 4') ? 'selected' : '' ?>>Thứ 4</option>
+                            <option value="Thứ 5" <?= (isset($caHoc['thu_trong_tuan']) && $caHoc['thu_trong_tuan'] == 'Thứ 5') ? 'selected' : '' ?>>Thứ 5</option>
+                            <option value="Thứ 6" <?= (isset($caHoc['thu_trong_tuan']) && $caHoc['thu_trong_tuan'] == 'Thứ 6') ? 'selected' : '' ?>>Thứ 6</option>
+                            <option value="Thứ 7" <?= (isset($caHoc['thu_trong_tuan']) && $caHoc['thu_trong_tuan'] == 'Thứ 7') ? 'selected' : '' ?>>Thứ 7</option>
+                            <option value="Chủ nhật" <?= (isset($caHoc['thu_trong_tuan']) && $caHoc['thu_trong_tuan'] == 'Chủ nhật') ? 'selected' : '' ?>>Chủ nhật</option>
                         </select>
                     </div>
 
@@ -220,7 +220,10 @@ if (session_status() === PHP_SESSION_NONE) {
                         <select class="form-select" id="id_ca_moi" name="id_ca_moi" required>
                             <option value="">-- Chọn ca học --</option>
                             <?php foreach ($caMacDinhList as $ca): ?>
-                                <option value="<?= $ca['id'] ?>" data-gio-bat-dau="<?= htmlspecialchars($ca['gio_bat_dau']) ?>" data-gio-ket-thuc="<?= htmlspecialchars($ca['gio_ket_thuc']) ?>">
+                                <option value="<?= $ca['id'] ?>" 
+                                        data-gio-bat-dau="<?= htmlspecialchars($ca['gio_bat_dau']) ?>" 
+                                        data-gio-ket-thuc="<?= htmlspecialchars($ca['gio_ket_thuc']) ?>"
+                                        <?= (isset($caHoc['id_ca']) && $caHoc['id_ca'] == $ca['id']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($ca['ten_ca']) ?> (<?= htmlspecialchars($ca['gio_bat_dau']) ?> - <?= htmlspecialchars($ca['gio_ket_thuc']) ?>)
                                 </option>
                             <?php endforeach; ?>
@@ -232,7 +235,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         <select class="form-select" id="id_phong_moi" name="id_phong_moi" required>
                             <option value="">-- Chọn phòng học --</option>
                             <?php foreach ($phongHocList as $phong): ?>
-                                <option value="<?= $phong['id'] ?>">
+                                <option value="<?= $phong['id'] ?>" <?= (isset($caHoc['id_phong']) && $caHoc['id_phong'] == $phong['id']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($phong['ten_phong']) ?> (Sức chứa: <?= $phong['suc_chua'] ?> người)
                                 </option>
                             <?php endforeach; ?>
@@ -241,7 +244,11 @@ if (session_status() === PHP_SESSION_NONE) {
 
                     <div class="mb-3">
                         <label for="ngay_doi" class="form-label">Ngày đổi (tùy chọn - để trống nếu đổi toàn bộ lịch)</label>
-                        <input type="date" class="form-control" id="ngay_doi" name="ngay_doi">
+                        <input type="date" 
+                               class="form-control" 
+                               id="ngay_doi" 
+                               name="ngay_doi"
+                               value="<?= !empty($caHoc['ngay_hoc']) ? htmlspecialchars($caHoc['ngay_hoc']) : '' ?>">
                         <small class="form-text text-muted">Nếu chọn ngày, chỉ đổi lịch cho ngày đó. Nếu để trống, sẽ đổi toàn bộ lịch trong khoảng thời gian của lớp.</small>
                     </div>
 

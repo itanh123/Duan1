@@ -2889,17 +2889,29 @@ class adminmodel
             $id_ca_cu = $caHocHienTai['id_ca'] ?? null;
             $id_phong_cu = $caHocHienTai['id_phong'] ?? null;
             $thu_cu = $caHocHienTai['thu_trong_tuan'] ?? null;
+            $ngay_hoc_cu = $caHocHienTai['ngay_hoc'] ?? null;
+            
+            // Xử lý ngày học mới
+            // Nếu có ngày_doi (đổi lịch cho một ngày cụ thể), dùng ngày_doi làm ngay_hoc
+            // Nếu không có ngày_doi (đổi toàn bộ lịch), set ngay_hoc = NULL
+            $ngay_hoc_moi = !empty($yeuCau['ngay_doi']) ? $yeuCau['ngay_doi'] : null;
+            
+            // Xử lý thứ trong tuần
+            // Luôn dùng thu_trong_tuan_moi (không được NULL vì cột không cho phép NULL)
+            $thu_moi = $yeuCau['thu_trong_tuan_moi'];
             
             // Cập nhật ca học cũ
             $sqlUpdate = "UPDATE ca_hoc 
                          SET thu_trong_tuan = :thu_moi, 
                              id_ca = :id_ca_moi, 
-                             id_phong = :id_phong_moi
+                             id_phong = :id_phong_moi,
+                             ngay_hoc = :ngay_hoc_moi
                          WHERE id = :id_ca_hoc_cu";
             $stmt = $this->conn->prepare($sqlUpdate);
-            $stmt->bindValue(':thu_moi', $yeuCau['thu_trong_tuan_moi']);
+            $stmt->bindValue(':thu_moi', $thu_moi, PDO::PARAM_STR);
             $stmt->bindValue(':id_ca_moi', $yeuCau['id_ca_moi'], PDO::PARAM_INT);
             $stmt->bindValue(':id_phong_moi', $yeuCau['id_phong_moi'], PDO::PARAM_INT);
+            $stmt->bindValue(':ngay_hoc_moi', $ngay_hoc_moi, $ngay_hoc_moi === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
             $stmt->bindValue(':id_ca_hoc_cu', $yeuCau['id_ca_hoc_cu'], PDO::PARAM_INT);
             $stmt->execute();
             
@@ -3140,6 +3152,481 @@ class adminmodel
             error_log("Lỗi khi hoàn nguyên lịch: " . $e->getMessage());
             return false;
         }
+    }
+
+    // ===========================================
+    //  QUẢN LÝ LIÊN HỆ
+    // ===========================================
+
+    // Đảm bảo bảng lien_he tồn tại
+    public function ensureLienHeTable()
+    {
+        $sql = "CREATE TABLE IF NOT EXISTS `lien_he` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `ten` varchar(200) NOT NULL COMMENT 'Tên kênh liên hệ (Zalo, Messenger, etc.)',
+            `loai` varchar(50) NOT NULL COMMENT 'Loại: zalo, messenger, phone, email, etc.',
+            `gia_tri` text NOT NULL COMMENT 'Giá trị: số điện thoại, link, email, etc.',
+            `mo_ta` text DEFAULT NULL COMMENT 'Mô tả',
+            `icon` varchar(100) DEFAULT NULL COMMENT 'Icon hoặc emoji',
+            `thu_tu` int(11) DEFAULT 0 COMMENT 'Thứ tự hiển thị',
+            `trang_thai` tinyint(1) DEFAULT 1 COMMENT '1: hiển thị, 0: ẩn',
+            `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        
+        try {
+            $this->conn->exec($sql);
+        } catch (PDOException $e) {
+            error_log("Lỗi khi tạo bảng lien_he: " . $e->getMessage());
+        }
+    }
+
+    // Lấy danh sách liên hệ
+    public function getLienHe($page = 1, $limit = 10, $search = '')
+    {
+        $this->ensureLienHeTable();
+        $offset = ($page - 1) * $limit;
+        
+        $sql = "SELECT * FROM lien_he WHERE 1=1";
+        $params = [];
+        
+        if (!empty($search)) {
+            $sql .= " AND (ten LIKE :search OR loai LIKE :search OR gia_tri LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+        
+        $sql .= " ORDER BY thu_tu ASC, id DESC LIMIT $limit OFFSET $offset";
+        
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Đếm tổng số liên hệ
+    public function countLienHe($search = '')
+    {
+        $this->ensureLienHeTable();
+        
+        $sql = "SELECT COUNT(*) as total FROM lien_he WHERE 1=1";
+        $params = [];
+        
+        if (!empty($search)) {
+            $sql .= " AND (ten LIKE :search OR loai LIKE :search OR gia_tri LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+        
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return $result['total'] ?? 0;
+    }
+
+    // Lấy thông tin liên hệ theo ID
+    public function getLienHeById($id)
+    {
+        $this->ensureLienHeTable();
+        
+        $sql = "SELECT * FROM lien_he WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
+
+    // Thêm liên hệ mới
+    public function addLienHe($data)
+    {
+        $this->ensureLienHeTable();
+        
+        $sql = "INSERT INTO lien_he (ten, loai, gia_tri, mo_ta, icon, thu_tu, trang_thai) 
+                VALUES (:ten, :loai, :gia_tri, :mo_ta, :icon, :thu_tu, :trang_thai)";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':ten', $data['ten']);
+        $stmt->bindValue(':loai', $data['loai']);
+        $stmt->bindValue(':gia_tri', $data['gia_tri']);
+        $stmt->bindValue(':mo_ta', $data['mo_ta'] ?? null);
+        $stmt->bindValue(':icon', $data['icon'] ?? null);
+        $stmt->bindValue(':thu_tu', $data['thu_tu'] ?? 0, PDO::PARAM_INT);
+        $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 1, PDO::PARAM_INT);
+        
+        return $stmt->execute();
+    }
+
+    // Cập nhật liên hệ
+    public function updateLienHe($id, $data)
+    {
+        $this->ensureLienHeTable();
+        
+        $sql = "UPDATE lien_he 
+                SET ten = :ten, 
+                    loai = :loai, 
+                    gia_tri = :gia_tri, 
+                    mo_ta = :mo_ta, 
+                    icon = :icon, 
+                    thu_tu = :thu_tu, 
+                    trang_thai = :trang_thai
+                WHERE id = :id";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':ten', $data['ten']);
+        $stmt->bindValue(':loai', $data['loai']);
+        $stmt->bindValue(':gia_tri', $data['gia_tri']);
+        $stmt->bindValue(':mo_ta', $data['mo_ta'] ?? null);
+        $stmt->bindValue(':icon', $data['icon'] ?? null);
+        $stmt->bindValue(':thu_tu', $data['thu_tu'] ?? 0, PDO::PARAM_INT);
+        $stmt->bindValue(':trang_thai', $data['trang_thai'] ?? 1, PDO::PARAM_INT);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        
+        return $stmt->execute();
+    }
+
+    // Xóa liên hệ (soft delete - ẩn)
+    public function deleteLienHe($id)
+    {
+        $this->ensureLienHeTable();
+        
+        $sql = "UPDATE lien_he SET trang_thai = 0 WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    // Toggle trạng thái liên hệ
+    public function toggleLienHeStatus($id)
+    {
+        $this->ensureLienHeTable();
+        
+        // Lấy trạng thái hiện tại
+        $lienHe = $this->getLienHeById($id);
+        if (!$lienHe) {
+            return false;
+        }
+        
+        $newStatus = $lienHe['trang_thai'] == 1 ? 0 : 1;
+        
+        $sql = "UPDATE lien_he SET trang_thai = :trang_thai WHERE id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':trang_thai', $newStatus, PDO::PARAM_INT);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    public function getThongKeDoanhThu($thang = null, $nam = null)
+{
+    $sql = "SELECT 
+                DATE(ngay_thanh_toan) AS ngay_date,
+                DATE_FORMAT(DATE(ngay_thanh_toan), '%Y-%m') AS thang_nam,
+                DATE_FORMAT(DATE(ngay_thanh_toan), '%d/%m/%Y') AS ngay,
+                DAY(DATE(ngay_thanh_toan)) AS ngay_trong_thang,
+                SUM(so_tien) AS tong_tien,
+                COUNT(*) AS so_luong
+            FROM thanh_toan 
+            WHERE trang_thai = 'Thành công'";
+    
+    $params = [];
+    if ($thang && $nam) {
+        $sql .= " AND MONTH(ngay_thanh_toan) = :thang AND YEAR(ngay_thanh_toan) = :nam";
+        $params[':thang'] = $thang;
+        $params[':nam'] = $nam;
+    } elseif ($nam) {
+        $sql .= " AND YEAR(ngay_thanh_toan) = :nam";
+        $params[':nam'] = $nam;
+    }
+
+    $sql .= " GROUP BY DATE(ngay_thanh_toan), DATE_FORMAT(DATE(ngay_thanh_toan), '%Y-%m'), DATE_FORMAT(DATE(ngay_thanh_toan), '%d/%m/%Y'), DAY(DATE(ngay_thanh_toan))
+              ORDER BY DATE(ngay_thanh_toan) ASC";
+
+    $stmt = $this->conn->prepare($sql);
+
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value, PDO::PARAM_INT);
+    }
+
+    $stmt->execute();
+    return $stmt->fetchAll();
+}
+
+
+
+    // Lấy dữ liệu thống kê đăng ký theo tháng/năm
+    public function getThongKeDangKy($thang = null, $nam = null)
+{
+    $sql = "SELECT 
+                DATE(ngay_dang_ky) as ngay_date,
+                DATE_FORMAT(DATE(ngay_dang_ky), '%Y-%m') as thang_nam,
+                DATE_FORMAT(DATE(ngay_dang_ky), '%d/%m/%Y') as ngay,
+                DAY(DATE(ngay_dang_ky)) as ngay_trong_thang,
+                COUNT(*) as so_luong,
+                SUM(CASE WHEN trang_thai = 'Đã xác nhận' THEN 1 ELSE 0 END) as da_xac_nhan,
+                SUM(CASE WHEN trang_thai = 'Chờ xác nhận' THEN 1 ELSE 0 END) as cho_xac_nhan,
+                SUM(CASE WHEN trang_thai = 'Đã hủy' THEN 1 ELSE 0 END) as da_huy
+            FROM dang_ky 
+            WHERE 1=1";
+
+    $params = [];
+    if ($thang && $nam) {
+        $sql .= " AND MONTH(ngay_dang_ky) = :thang AND YEAR(ngay_dang_ky) = :nam";
+        $params[':thang'] = $thang;
+        $params[':nam'] = $nam;
+    } elseif ($nam) {
+        $sql .= " AND YEAR(ngay_dang_ky) = :nam";
+        $params[':nam'] = $nam;
+    }
+
+    $sql .= " GROUP BY DATE(ngay_dang_ky), DATE_FORMAT(DATE(ngay_dang_ky), '%Y-%m'), DATE_FORMAT(DATE(ngay_dang_ky), '%d/%m/%Y'), DAY(DATE(ngay_dang_ky))
+              ORDER BY DATE(ngay_dang_ky) ASC";
+
+    $stmt = $this->conn->prepare($sql);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value, PDO::PARAM_INT);
+    }
+    $stmt->execute();
+    return $stmt->fetchAll();
+}
+
+
+    // Lấy dữ liệu thống kê thanh toán theo tháng/năm
+    public function getThongKeThanhToan($thang = null, $nam = null)
+{
+    $sql = "SELECT 
+                DATE(ngay_thanh_toan) as ngay_date,
+                DATE_FORMAT(DATE(ngay_thanh_toan), '%Y-%m') as thang_nam,
+                DATE_FORMAT(DATE(ngay_thanh_toan), '%d/%m/%Y') as ngay,
+                DAY(DATE(ngay_thanh_toan)) as ngay_trong_thang,
+                COUNT(*) as so_luong,
+                SUM(CASE WHEN trang_thai = 'Thành công' THEN 1 ELSE 0 END) as thanh_cong,
+                SUM(CASE WHEN trang_thai = 'Thất bại' THEN 1 ELSE 0 END) as that_bai,
+                SUM(CASE WHEN trang_thai = 'Chờ xác nhận' THEN 1 ELSE 0 END) as cho_xac_nhan,
+                SUM(CASE WHEN trang_thai = 'Hoàn tiền' THEN 1 ELSE 0 END) as hoan_tien
+            FROM thanh_toan 
+            WHERE 1=1";
+
+    $params = [];
+    if ($thang && $nam) {
+        $sql .= " AND MONTH(ngay_thanh_toan) = :thang AND YEAR(ngay_thanh_toan) = :nam";
+        $params[':thang'] = $thang;
+        $params[':nam'] = $nam;
+    } elseif ($nam) {
+        $sql .= " AND YEAR(ngay_thanh_toan) = :nam";
+        $params[':nam'] = $nam;
+    }
+
+    $sql .= " GROUP BY DATE(ngay_thanh_toan), DATE_FORMAT(DATE(ngay_thanh_toan), '%Y-%m'), DATE_FORMAT(DATE(ngay_thanh_toan), '%d/%m/%Y'), DAY(DATE(ngay_thanh_toan))
+              ORDER BY DATE(ngay_thanh_toan) ASC";
+
+    $stmt = $this->conn->prepare($sql);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value, PDO::PARAM_INT);
+    }
+    $stmt->execute();
+    return $stmt->fetchAll();
+}
+
+
+    // Lấy tổng hợp thống kê theo tháng/năm
+    public function getThongKeTongHop($thang = null, $nam = null)
+    {
+        $stats = [];
+        
+        // Điều kiện WHERE cho thanh_toan
+        $whereThanhToan = "";
+        $whereDangKy = "";
+        $whereHoanTien = "";
+        $params = [];
+        
+        if ($thang && $nam) {
+            $whereThanhToan = " AND MONTH(ngay_thanh_toan) = :thang AND YEAR(ngay_thanh_toan) = :nam";
+            $whereDangKy = " AND MONTH(ngay_dang_ky) = :thang AND YEAR(ngay_dang_ky) = :nam";
+            $whereHoanTien = " AND MONTH(ngay_tao) = :thang AND YEAR(ngay_tao) = :nam";
+            $params[':thang'] = $thang;
+            $params[':nam'] = $nam;
+        } elseif ($nam) {
+            $whereThanhToan = " AND YEAR(ngay_thanh_toan) = :nam";
+            $whereDangKy = " AND YEAR(ngay_dang_ky) = :nam";
+            $whereHoanTien = " AND YEAR(ngay_tao) = :nam";
+            $params[':nam'] = $nam;
+        }
+        
+        // Tổng doanh thu (chỉ tính thành công)
+        $sql = "SELECT COALESCE(SUM(so_tien), 0) as total FROM thanh_toan WHERE trang_thai = 'Thành công'" . $whereThanhToan;
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $stats['tong_doanh_thu'] = $stmt->fetch()['total'];
+        
+        // Tổng số đăng ký
+        $sql = "SELECT COUNT(*) as total FROM dang_ky WHERE 1=1" . $whereDangKy;
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $stats['tong_dang_ky'] = $stmt->fetch()['total'];
+        
+        // Tổng số đăng ký đã xác nhận
+        $sql = "SELECT COUNT(*) as total FROM dang_ky WHERE trang_thai = 'Đã xác nhận'" . $whereDangKy;
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $stats['tong_dang_ky_da_xac_nhan'] = $stmt->fetch()['total'];
+        
+        // Tổng số thanh toán thành công
+        $sql = "SELECT COUNT(*) as total FROM thanh_toan WHERE trang_thai = 'Thành công'" . $whereThanhToan;
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $stats['tong_thanh_toan'] = $stmt->fetch()['total'];
+        
+        // Tổng số hoàn tiền
+        $sql = "SELECT COALESCE(SUM(so_tien_hoan), 0) as total FROM hoan_tien WHERE trang_thai = 'Thành công'" . $whereHoanTien;
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $stats['tong_hoan_tien'] = $stmt->fetch()['total'];
+        
+        // Số lượng hoàn tiền
+        $sql = "SELECT COUNT(*) as total FROM hoan_tien WHERE trang_thai = 'Thành công'" . $whereHoanTien;
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $stats['so_luong_hoan_tien'] = $stmt->fetch()['total'];
+        
+        return $stats;
+    }
+
+    // Lấy thống kê hoàn tiền theo tháng/năm
+    public function getThongKeHoanTien($thang = null, $nam = null)
+{
+    $sql = "SELECT 
+                DATE(ngay_tao) as ngay_date,
+                DATE_FORMAT(DATE(ngay_tao), '%Y-%m') as thang_nam,
+                DATE_FORMAT(DATE(ngay_tao), '%d/%m/%Y') as ngay,
+                DAY(DATE(ngay_tao)) as ngay_trong_thang,
+                SUM(so_tien_hoan) as tong_tien_hoan,
+                COUNT(*) as so_luong,
+                SUM(CASE WHEN trang_thai = 'Thành công' THEN so_tien_hoan ELSE 0 END) as thanh_cong,
+                SUM(CASE WHEN trang_thai = 'Đang xử lý' THEN so_tien_hoan ELSE 0 END) as dang_xu_ly
+            FROM hoan_tien 
+            WHERE 1=1";
+
+    $params = [];
+    if ($thang && $nam) {
+        $sql .= " AND MONTH(ngay_tao) = :thang AND YEAR(ngay_tao) = :nam";
+        $params[':thang'] = $thang;
+        $params[':nam'] = $nam;
+    } elseif ($nam) {
+        $sql .= " AND YEAR(ngay_tao) = :nam";
+        $params[':nam'] = $nam;
+    }
+
+    $sql .= " GROUP BY DATE(ngay_tao), DATE_FORMAT(DATE(ngay_tao), '%Y-%m'), DATE_FORMAT(DATE(ngay_tao), '%d/%m/%Y'), DAY(DATE(ngay_tao))
+              ORDER BY DATE(ngay_tao) ASC";
+
+    $stmt = $this->conn->prepare($sql);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value, PDO::PARAM_INT);
+    }
+    $stmt->execute();
+    return $stmt->fetchAll();
+}
+
+
+    // Lấy thống kê theo khóa học
+    public function getThongKeTheoKhoaHoc($thang = null, $nam = null)
+    {
+        $params = [];
+        $dateFilterDangKy = "";
+        $dateFilterThanhToan = "";
+        
+        if ($thang && $nam) {
+            $dateFilterDangKy = " AND MONTH(dk.ngay_dang_ky) = :thang AND YEAR(dk.ngay_dang_ky) = :nam";
+            $dateFilterThanhToan = " AND MONTH(tt.ngay_thanh_toan) = :thang2 AND YEAR(tt.ngay_thanh_toan) = :nam2";
+            $params[':thang'] = $thang;
+            $params[':nam'] = $nam;
+            $params[':thang2'] = $thang;
+            $params[':nam2'] = $nam;
+        } elseif ($nam) {
+            $dateFilterDangKy = " AND YEAR(dk.ngay_dang_ky) = :nam";
+            $dateFilterThanhToan = " AND YEAR(tt.ngay_thanh_toan) = :nam2";
+            $params[':nam'] = $nam;
+            $params[':nam2'] = $nam;
+        }
+        
+        // Sử dụng MAX() cho ten_danh_muc và chỉ GROUP BY kh.id, kh.ten_khoa_hoc
+        $sql = "SELECT 
+                    kh.id,
+                    kh.ten_khoa_hoc,
+                    MAX(dm.ten_danh_muc) as ten_danh_muc,
+                    COUNT(DISTINCT CASE WHEN dk.id IS NOT NULL" . $dateFilterDangKy . " THEN dk.id END) as so_dang_ky,
+                    COUNT(DISTINCT CASE WHEN dk.trang_thai = 'Đã xác nhận'" . $dateFilterDangKy . " THEN dk.id END) as so_da_xac_nhan,
+                    COALESCE(SUM(CASE WHEN tt.trang_thai = 'Thành công'" . $dateFilterThanhToan . " THEN tt.so_tien ELSE 0 END), 0) as doanh_thu,
+                    COUNT(DISTINCT CASE WHEN tt.trang_thai = 'Thành công'" . $dateFilterThanhToan . " THEN tt.id END) as so_thanh_toan
+                FROM khoa_hoc kh
+                LEFT JOIN danh_muc dm ON kh.id_danh_muc = dm.id
+                LEFT JOIN lop_hoc lh ON kh.id = lh.id_khoa_hoc
+                LEFT JOIN dang_ky dk ON lh.id = dk.id_lop
+                LEFT JOIN thanh_toan tt ON dk.id = tt.id_dang_ky AND tt.trang_thai = 'Thành công'
+                WHERE kh.trang_thai = 1
+                GROUP BY kh.id, kh.ten_khoa_hoc
+                HAVING so_dang_ky > 0 OR doanh_thu > 0
+                ORDER BY doanh_thu DESC, so_dang_ky DESC";
+        
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Lấy thống kê theo phương thức thanh toán
+    public function getThongKeTheoPhuongThuc($thang = null, $nam = null)
+    {
+        $sql = "SELECT 
+                    phuong_thuc,
+                    COUNT(*) as so_luong,
+                    SUM(CASE WHEN trang_thai = 'Thành công' THEN so_tien ELSE 0 END) as tong_tien,
+                    SUM(CASE WHEN trang_thai = 'Thành công' THEN 1 ELSE 0 END) as thanh_cong,
+                    SUM(CASE WHEN trang_thai = 'Thất bại' THEN 1 ELSE 0 END) as that_bai
+                FROM thanh_toan 
+                WHERE 1=1";
+        
+        $params = [];
+        if ($thang && $nam) {
+            $sql .= " AND MONTH(ngay_thanh_toan) = :thang AND YEAR(ngay_thanh_toan) = :nam";
+            $params[':thang'] = $thang;
+            $params[':nam'] = $nam;
+        } elseif ($nam) {
+            $sql .= " AND YEAR(ngay_thanh_toan) = :nam";
+            $params[':nam'] = $nam;
+        }
+        
+        $sql .= " GROUP BY phuong_thuc ORDER BY tong_tien DESC";
+        
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll();
     }
 }
 
