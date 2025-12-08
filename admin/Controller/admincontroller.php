@@ -2876,6 +2876,377 @@ class admincontroller{
         header('Location: ?act=admin-detail-yeu-cau-doi-lich&id=' . $id);
         exit;
     }
+
+    // ===========================================
+    //  QUẢN LÝ LIÊN HỆ
+    // ===========================================
+
+    // Danh sách liên hệ
+    public function listLienHe()
+    {
+        $this->checkAdminLogin();
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $limit = 10;
+        $search = $_GET['search'] ?? '';
+        
+        $total = $this->model->countLienHe($search);
+        $totalPages = ceil($total / $limit);
+        $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
+        
+        $lienHe = $this->model->getLienHe($page, $limit, $search);
+        
+        $data = [
+            'lienHe' => $lienHe,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'search' => $search
+        ];
+        
+        $this->renderView('./admin/View/lien_he/list_content.php', 'Quản lý Liên hệ', $data);
+    }
+
+    // Form thêm liên hệ
+    public function addLienHe()
+    {
+        $this->checkAdminLogin();
+        require_once('./admin/View/lien_he/form.php');
+    }
+
+    // Xử lý thêm liên hệ
+    public function saveLienHe()
+    {
+        $this->checkAdminLogin();
+        $data = [
+            'ten' => trim($_POST['ten'] ?? ''),
+            'loai' => trim($_POST['loai'] ?? ''),
+            'gia_tri' => trim($_POST['gia_tri'] ?? ''),
+            'mo_ta' => trim($_POST['mo_ta'] ?? ''),
+            'icon' => trim($_POST['icon'] ?? ''),
+            'thu_tu' => !empty($_POST['thu_tu']) ? (int)$_POST['thu_tu'] : 0,
+            'trang_thai' => $_POST['trang_thai'] ?? 1
+        ];
+
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['ten'])) {
+            $errors[] = 'Vui lòng nhập tên liên hệ!';
+        } elseif (strlen($data['ten']) > 200) {
+            $errors[] = 'Tên liên hệ không được vượt quá 200 ký tự!';
+        }
+        
+        if (empty($data['loai'])) {
+            $errors[] = 'Vui lòng chọn loại liên hệ!';
+        } elseif (strlen($data['loai']) > 50) {
+            $errors[] = 'Loại liên hệ không được vượt quá 50 ký tự!';
+        }
+        
+        if (empty($data['gia_tri'])) {
+            $errors[] = 'Vui lòng nhập giá trị liên hệ!';
+        }
+        
+        if (strlen($data['icon']) > 100) {
+            $errors[] = 'Icon không được vượt quá 100 ký tự!';
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
+            header('Location: ?act=admin-add-lien-he');
+            exit;
+        }
+
+        if ($this->model->addLienHe($data)) {
+            $_SESSION['success'] = 'Thêm liên hệ thành công!';
+            header('Location: ?act=admin-list-lien-he');
+        } else {
+            $_SESSION['error'] = 'Thêm liên hệ thất bại!';
+            header('Location: ?act=admin-add-lien-he');
+        }
+        exit;
+    }
+
+    // Form sửa liên hệ
+    public function editLienHe()
+    {
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-lien-he');
+            exit;
+        }
+        
+        $lienHe = $this->model->getLienHeById($id);
+        if (!$lienHe) {
+            $_SESSION['error'] = 'Không tìm thấy liên hệ!';
+            header('Location: ?act=admin-list-lien-he');
+            exit;
+        }
+        
+        require_once('./admin/View/lien_he/form.php');
+    }
+
+    // Xử lý cập nhật liên hệ
+    public function updateLienHe()
+    {
+        $this->checkAdminLogin();
+        $id = $_POST['id'] ?? 0;
+        if (!$id) {
+            header('Location: ?act=admin-list-lien-he');
+            exit;
+        }
+
+        $lienHe = $this->model->getLienHeById($id);
+        if (!$lienHe) {
+            $_SESSION['error'] = 'Không tìm thấy liên hệ!';
+            header('Location: ?act=admin-list-lien-he');
+            exit;
+        }
+
+        $data = [
+            'ten' => trim($_POST['ten'] ?? ''),
+            'loai' => trim($_POST['loai'] ?? ''),
+            'gia_tri' => trim($_POST['gia_tri'] ?? ''),
+            'mo_ta' => trim($_POST['mo_ta'] ?? ''),
+            'icon' => trim($_POST['icon'] ?? ''),
+            'thu_tu' => !empty($_POST['thu_tu']) ? (int)$_POST['thu_tu'] : 0,
+            'trang_thai' => $_POST['trang_thai'] ?? 1
+        ];
+
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['ten'])) {
+            $errors[] = 'Vui lòng nhập tên liên hệ!';
+        } elseif (strlen($data['ten']) > 200) {
+            $errors[] = 'Tên liên hệ không được vượt quá 200 ký tự!';
+        }
+        
+        if (empty($data['loai'])) {
+            $errors[] = 'Vui lòng chọn loại liên hệ!';
+        } elseif (strlen($data['loai']) > 50) {
+            $errors[] = 'Loại liên hệ không được vượt quá 50 ký tự!';
+        }
+        
+        if (empty($data['gia_tri'])) {
+            $errors[] = 'Vui lòng nhập giá trị liên hệ!';
+        }
+        
+        if (strlen($data['icon']) > 100) {
+            $errors[] = 'Icon không được vượt quá 100 ký tự!';
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
+            header('Location: ?act=admin-edit-lien-he&id=' . $id);
+            exit;
+        }
+
+        if ($this->model->updateLienHe($id, $data)) {
+            $_SESSION['success'] = 'Cập nhật liên hệ thành công!';
+            header('Location: ?act=admin-list-lien-he');
+        } else {
+            $_SESSION['error'] = 'Cập nhật liên hệ thất bại!';
+            header('Location: ?act=admin-edit-lien-he&id=' . $id);
+        }
+        exit;
+    }
+
+    // Xóa liên hệ (ẩn)
+    public function deleteLienHe()
+    {
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-lien-he');
+            exit;
+        }
+
+        $lienHe = $this->model->getLienHeById($id);
+        if (!$lienHe) {
+            $_SESSION['error'] = 'Không tìm thấy liên hệ!';
+            header('Location: ?act=admin-list-lien-he');
+            exit;
+        }
+
+        if ($this->model->deleteLienHe($id)) {
+            $_SESSION['success'] = 'Ẩn liên hệ thành công!';
+        } else {
+            $_SESSION['error'] = 'Có lỗi xảy ra khi ẩn liên hệ!';
+        }
+        header('Location: ?act=admin-list-lien-he');
+        exit;
+    }
+
+    // Toggle trạng thái liên hệ
+    public function toggleLienHeStatus()
+    {
+        $this->checkAdminLogin();
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID không hợp lệ!';
+            header('Location: ?act=admin-list-lien-he');
+            exit;
+        }
+
+        $lienHe = $this->model->getLienHeById($id);
+        if (!$lienHe) {
+            $_SESSION['error'] = 'Không tìm thấy liên hệ!';
+            header('Location: ?act=admin-list-lien-he');
+            exit;
+        }
+
+        $result = $this->model->toggleLienHeStatus($id);
+        if ($result) {
+            $newStatus = $lienHe['trang_thai'] == 1 ? 'ẩn' : 'hiện';
+            $_SESSION['success'] = ucfirst($newStatus) . ' liên hệ thành công!';
+        } else {
+            $_SESSION['error'] = 'Không thể thay đổi trạng thái liên hệ!';
+        }
+        header('Location: ?act=admin-list-lien-he');
+        exit;
+    }
+
+    // Trang thống kê
+    public function thongKe()
+    {
+        $this->checkAdminLogin();
+        
+        // Lấy tham số lọc
+        $thang = isset($_GET['thang']) && !empty($_GET['thang']) ? (int)$_GET['thang'] : null;
+        $nam = isset($_GET['nam']) && !empty($_GET['nam']) ? (int)$_GET['nam'] : date('Y');
+        
+        // Validate tháng
+        if ($thang && ($thang < 1 || $thang > 12)) {
+            $thang = null;
+        }
+        
+        // Lấy dữ liệu thống kê
+        try {
+            $doanhThu = $this->model->getThongKeDoanhThu($thang, $nam);
+            $dangKy = $this->model->getThongKeDangKy($thang, $nam);
+            $thanhToan = $this->model->getThongKeThanhToan($thang, $nam);
+            $hoanTien = $this->model->getThongKeHoanTien($thang, $nam);
+            $tongHop = $this->model->getThongKeTongHop($thang, $nam);
+            $theoKhoaHoc = $this->model->getThongKeTheoKhoaHoc($thang, $nam);
+            $theoPhuongThuc = $this->model->getThongKeTheoPhuongThuc($thang, $nam);
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Lỗi khi lấy dữ liệu thống kê: ' . $e->getMessage();
+            error_log("Thống kê lỗi: " . $e->getMessage());
+            // Set default values
+            $doanhThu = [];
+            $dangKy = [];
+            $thanhToan = [];
+            $hoanTien = [];
+            $tongHop = ['tong_doanh_thu' => 0, 'tong_dang_ky' => 0, 'tong_thanh_toan' => 0, 'tong_hoan_tien' => 0, 'so_luong_hoan_tien' => 0, 'tong_dang_ky_da_xac_nhan' => 0];
+            $theoKhoaHoc = [];
+            $theoPhuongThuc = [];
+        }
+        
+        // Chuẩn bị dữ liệu cho biểu đồ
+        $chartData = [
+            'labels' => [],
+            'doanhThu' => [],
+            'dangKy' => [],
+            'thanhToan' => [],
+            'hoanTien' => []
+        ];
+        
+        // Tạo mảng dữ liệu theo ngày
+        $dataByDate = [];
+        
+        // Xử lý doanh thu
+        foreach ($doanhThu as $item) {
+            $date = $item['ngay'];
+            if (!isset($dataByDate[$date])) {
+                $dataByDate[$date] = [
+                    'doanh_thu' => 0,
+                    'dang_ky' => 0,
+                    'thanh_toan' => 0,
+                    'hoan_tien' => 0
+                ];
+            }
+            $dataByDate[$date]['doanh_thu'] = (float)$item['tong_tien'];
+        }
+        
+        // Xử lý đăng ký
+        foreach ($dangKy as $item) {
+            $date = $item['ngay'];
+            if (!isset($dataByDate[$date])) {
+                $dataByDate[$date] = [
+                    'doanh_thu' => 0,
+                    'dang_ky' => 0,
+                    'thanh_toan' => 0,
+                    'hoan_tien' => 0
+                ];
+            }
+            $dataByDate[$date]['dang_ky'] = (int)$item['so_luong'];
+        }
+        
+        // Xử lý thanh toán
+        foreach ($thanhToan as $item) {
+            $date = $item['ngay'];
+            if (!isset($dataByDate[$date])) {
+                $dataByDate[$date] = [
+                    'doanh_thu' => 0,
+                    'dang_ky' => 0,
+                    'thanh_toan' => 0,
+                    'hoan_tien' => 0
+                ];
+            }
+            $dataByDate[$date]['thanh_toan'] = (int)$item['so_luong'];
+        }
+        
+        // Xử lý hoàn tiền
+        foreach ($hoanTien as $item) {
+            $date = $item['ngay'];
+            if (!isset($dataByDate[$date])) {
+                $dataByDate[$date] = [
+                    'doanh_thu' => 0,
+                    'dang_ky' => 0,
+                    'thanh_toan' => 0,
+                    'hoan_tien' => 0
+                ];
+            }
+            $dataByDate[$date]['hoan_tien'] = (float)$item['tong_tien_hoan'];
+        }
+        
+        // Sắp xếp theo ngày
+        ksort($dataByDate);
+        
+        // Chuyển đổi sang format cho Chart.js
+        foreach ($dataByDate as $date => $data) {
+            $chartData['labels'][] = $date;
+            $chartData['doanhThu'][] = $data['doanh_thu'];
+            $chartData['dangKy'][] = $data['dang_ky'];
+            $chartData['thanhToan'][] = $data['thanh_toan'];
+            $chartData['hoanTien'][] = $data['hoan_tien'];
+        }
+        
+        // Extract variables for view
+        extract([
+            'thang' => $thang,
+            'nam' => $nam,
+            'doanhThu' => $doanhThu,
+            'dangKy' => $dangKy,
+            'thanhToan' => $thanhToan,
+            'hoanTien' => $hoanTien,
+            'tongHop' => $tongHop,
+            'theoKhoaHoc' => $theoKhoaHoc,
+            'theoPhuongThuc' => $theoPhuongThuc,
+            'chartData' => $chartData
+        ]);
+        
+        // Load content
+        ob_start();
+        require_once('./admin/View/thong_ke/index.php');
+        $content = ob_get_clean();
+        
+        // Load layout
+        $pageTitle = 'Thống Kê';
+        require_once('./admin/View/layout.php');
+        exit;
+    }
 }
 
 ?>

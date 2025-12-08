@@ -554,4 +554,37 @@ class KhoaHoc {
             return false;
         }
     }
+
+    // Lấy danh sách liên hệ (chỉ lấy những cái đang hiển thị)
+    public function getLienHe()
+    {
+        try {
+            // Đảm bảo bảng tồn tại
+            $sql = "CREATE TABLE IF NOT EXISTS `lien_he` (
+                `id` int(11) NOT NULL AUTO_INCREMENT,
+                `ten` varchar(200) NOT NULL COMMENT 'Tên kênh liên hệ (Zalo, Messenger, etc.)',
+                `loai` varchar(50) NOT NULL COMMENT 'Loại: zalo, messenger, phone, email, etc.',
+                `gia_tri` text NOT NULL COMMENT 'Giá trị: số điện thoại, link, email, etc.',
+                `mo_ta` text DEFAULT NULL COMMENT 'Mô tả',
+                `icon` varchar(100) DEFAULT NULL COMMENT 'Icon hoặc emoji',
+                `thu_tu` int(11) DEFAULT 0 COMMENT 'Thứ tự hiển thị',
+                `trang_thai` tinyint(1) DEFAULT 1 COMMENT '1: hiển thị, 0: ẩn',
+                `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+            $this->db->exec($sql);
+        } catch (PDOException $e) {
+            // Bảng đã tồn tại hoặc có lỗi, bỏ qua
+        }
+
+        $sql = "SELECT * FROM lien_he 
+                WHERE trang_thai = 1 
+                ORDER BY thu_tu ASC, id ASC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        
+        return $stmt->fetchAll();
+    }
 }

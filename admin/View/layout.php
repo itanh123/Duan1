@@ -223,6 +223,10 @@
                     <span class="menu-item-icon">📊</span>
                     Dashboard
                 </a>
+                <a href="?act=admin-thong-ke" class="menu-item <?= (isset($_GET['act']) && $_GET['act'] == 'admin-thong-ke') ? 'active' : '' ?>">
+                    <span class="menu-item-icon">📈</span>
+                    Thống Kê
+                </a>
             </div>
             
             <div class="menu-section">
@@ -238,6 +242,10 @@
                 <a href="?act=admin-list-binh-luan" class="menu-item <?= (isset($_GET['act']) && strpos($_GET['act'], 'binh-luan') !== false) ? 'active' : '' ?>">
                     <span class="menu-item-icon">💬</span>
                     Bình Luận
+                </a>
+                <a href="?act=admin-list-lien-he" class="menu-item <?= (isset($_GET['act']) && strpos($_GET['act'], 'lien-he') !== false) ? 'active' : '' ?>">
+                    <span class="menu-item-icon">📞</span>
+                    Liên Hệ
                 </a>
             </div>
             

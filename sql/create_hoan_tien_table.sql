@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 03, 2025 at 03:08 AM
+-- Generation Time: Dec 08, 2025 at 04:47 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.3.27
 
@@ -46,8 +46,7 @@ INSERT INTO `binh_luan` (`id`, `id_khoa_hoc`, `id_hoc_sinh`, `noi_dung`, `danh_g
 (2, 2, 3, 'JavaScript dễ hiểu và thực hành nhiều', 4, '2025-11-14 04:17:46', 'Hiển thị'),
 (3, 1, 4, 'Nội dung ổn nhưng hơi nhanh', 4, '2025-11-14 04:17:46', 'Hiển thị'),
 (4, 1, 4, 'ok', 5, '2025-11-21 03:29:01', 'Hiển thị'),
-(5, 5, 9, 'okla', 5, '2025-11-21 03:30:04', 'Hiển thị'),
-(6, 62, 9, 'khóa học rất vớ vẩn', 1, '2025-11-28 03:40:55', 'Hiển thị');
+(5, 5, 9, 'okla', 5, '2025-11-21 03:30:04', 'Hiển thị');
 
 -- --------------------------------------------------------
 
@@ -71,16 +70,13 @@ CREATE TABLE `ca_hoc` (
 --
 
 INSERT INTO `ca_hoc` (`id`, `id_lop`, `id_giang_vien`, `id_ca`, `thu_trong_tuan`, `ghi_chu`, `id_phong`, `ngay_hoc`) VALUES
-(2, 1, 1, 1, 'Thứ 4', NULL, 1, '2025-12-01'),
+(2, 1, 1, 1, 'Thứ 4', NULL, 1, '2025-12-02'),
 (3, 3, 2, 1, 'Thứ 3', NULL, 2, NULL),
-(5, 3, 1, 1, 'Thứ 2', '', 1, NULL),
-(6, 1, 1, 1, 'Thứ 2', NULL, 1, NULL),
-(7, 2, 2, 2, 'Thứ 3', NULL, 2, NULL),
+(5, 3, 1, 1, 'Thứ 2', '', 1, '2025-12-08'),
+(7, 2, 2, 2, 'Thứ 3', '', 2, NULL),
 (8, 3, 36, 3, 'Thứ 4', '', 4, NULL),
-(9, 4, 1, 1, 'Thứ 5', NULL, 1, NULL),
-(10, 5, 2, 2, 'Thứ 6', NULL, 2, NULL),
-(11, 11, 41, 1, 'Thứ 2', '', 4, '2025-12-02'),
-(12, 11, 40, 1, 'Thứ 2', '', 2, '2025-12-02');
+(9, 4, 1, 2, 'Thứ 5', '', NULL, '2025-12-08'),
+(10, 5, 2, 2, 'Thứ 6', NULL, 2, NULL);
 
 -- --------------------------------------------------------
 
@@ -149,14 +145,7 @@ INSERT INTO `dang_ky` (`id`, `id_hoc_sinh`, `id_lop`, `ngay_dang_ky`, `trang_tha
 (31, 4, 1, '2025-11-21 03:17:00', 'Đã xác nhận', 'DK20251121031700000031', '15274879'),
 (32, 9, 5, '2025-11-21 03:37:29', 'Đã hủy', 'DK20251121033729000032', NULL),
 (33, 9, 5, '2025-11-21 03:37:36', 'Đã xác nhận', NULL, NULL),
-(34, 4, 1, '2025-11-23 13:04:20', 'Chờ xác nhận', 'DK20251123130421000034', '0'),
-(35, 4, 11, '2025-11-26 04:25:05', 'Đã xác nhận', 'DK20251126042505000035', '15302005'),
-(36, 4, 11, '2025-11-26 05:16:25', 'Đã xác nhận', 'DK20251126051625000036', NULL),
-(37, 4, 11, '2025-11-26 05:20:54', 'Đã hủy', 'DK20251126052054000037', NULL),
-(38, 4, 11, '2025-11-26 05:28:29', 'Đã xác nhận', 'DK20251126052829000038', '15302155'),
-(39, 4, 11, '2025-11-26 05:51:15', 'Đã xác nhận', 'DK20251126055115000039', '15302187'),
-(40, 9, 11, '2025-11-28 03:18:33', 'Chờ xác nhận', NULL, NULL),
-(41, 9, 11, '2025-11-28 03:23:31', 'Đã xác nhận', 'DK20251128032331000041', '15307833');
+(34, 4, 1, '2025-11-23 13:04:20', 'Chờ xác nhận', 'DK20251123130421000034', '0');
 
 -- --------------------------------------------------------
 
@@ -186,7 +175,7 @@ INSERT INTO `danh_muc` (`id`, `ten_danh_muc`, `duong_dan`, `mo_ta`, `trang_thai`
 (40, 'Lập trình Frontend', 'frontend-it', 'Giao diện người dùng', 1, '2025-11-26 04:10:45', NULL),
 (41, 'Trí tuệ nhân tạo', 'ai-it', 'AI và Machine Learning', 1, '2025-11-26 04:10:45', NULL),
 (42, 'An ninh mạng', 'cyber-it', 'Bảo mật hệ thống', 1, '2025-11-26 04:10:45', NULL),
-(43, 'DevOps', 'devops-it', 'CI/CD & Server', 1, '2025-11-26 04:10:45', NULL);
+(43, 'DevOps', 'devops-it', 'CI/CD & Server', 0, '2025-11-26 04:10:45', '2025-12-03 03:36:17');
 
 -- --------------------------------------------------------
 
@@ -267,11 +256,36 @@ INSERT INTO `khoa_hoc` (`id`, `id_danh_muc`, `ten_khoa_hoc`, `mo_ta`, `gia`, `hi
 (59, 41, 'Deep Learning', 'AI nâng cao', '4200000.00', NULL, 1, '2025-11-26 04:10:45'),
 (60, 41, 'Python AI', 'AI với Python', '3900000.00', NULL, 1, '2025-11-26 04:10:45'),
 (61, 42, 'Ethical Hacking', 'Pentest thực tế', '3200000.00', NULL, 1, '2025-11-26 04:10:45'),
-(62, 42, 'Bảo mật Web nấu cao', 'An toàn hệ thống', '2800000.00', NULL, 1, '2025-11-26 04:10:45'),
 (63, 42, 'Forensics', 'Điều tra số', '3100000.00', NULL, 1, '2025-11-26 04:10:45'),
 (64, 43, 'Docker', 'Triển khai container', '2100000.00', NULL, 1, '2025-11-26 04:10:45'),
 (65, 43, 'CI/CD Jenkins', 'Tự động hoá DevOps', '3300000.00', NULL, 1, '2025-11-26 04:10:45'),
-(66, 43, 'Cloud Server', 'Quản trị Cloud', '3600000.00', NULL, 1, '2025-11-26 04:10:45');
+(66, 43, 'Cloud Server', 'Quản trị Cloud', '3600000.00', NULL, 0, '2025-11-26 04:10:45');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `lien_he`
+--
+
+CREATE TABLE `lien_he` (
+  `id` int NOT NULL,
+  `ten` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tên kênh liên hệ (Zalo, Messenger, etc.)',
+  `loai` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Loại: zalo, messenger, phone, email, etc.',
+  `gia_tri` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Giá trị: số điện thoại, link, email, etc.',
+  `mo_ta` text COLLATE utf8mb4_unicode_ci COMMENT 'Mô tả',
+  `icon` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Icon hoặc emoji',
+  `thu_tu` int DEFAULT '0' COMMENT 'Thứ tự hiển thị',
+  `trang_thai` tinyint(1) DEFAULT '1' COMMENT '1: hiển thị, 0: ẩn',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `lien_he`
+--
+
+INSERT INTO `lien_he` (`id`, `ten`, `loai`, `gia_tri`, `mo_ta`, `icon`, `thu_tu`, `trang_thai`, `created_at`, `updated_at`) VALUES
+(1, 'zalo', 'zalo', 'https://zalo.me/0868729743', '', '', 1, 1, '2025-12-08 04:00:51', '2025-12-08 04:06:29');
 
 -- --------------------------------------------------------
 
@@ -304,8 +318,7 @@ INSERT INTO `lop_hoc` (`id`, `id_khoa_hoc`, `ten_lop`, `so_luong_toi_da`, `mo_ta
 (7, 2, 'Laravel A1', 30, NULL, NULL, NULL, 'Chưa khai giảng'),
 (8, 3, 'Spring Boot A1', 25, NULL, NULL, NULL, 'Đang học'),
 (9, 4, 'ReactJS A1', 35, NULL, NULL, NULL, 'Đang học'),
-(10, 5, 'VueJS A1', 30, NULL, NULL, NULL, 'Chưa khai giảng'),
-(11, 62, 'bảo mật web lớp 1', 4, '', NULL, NULL, 'Đang học');
+(10, 5, 'VueJS A1', 30, NULL, NULL, NULL, 'Chưa khai giảng');
 
 -- --------------------------------------------------------
 
@@ -517,11 +530,7 @@ INSERT INTO `thanh_toan` (`id`, `id_hoc_sinh`, `id_dang_ky`, `phuong_thuc`, `so_
 (3, 4, 2, 'ZALOPAY', '2500000.00', '2025-11-14 11:17:46', 'Chờ xác nhận', 'GD_ZALO_007'),
 (4, 6, 14, 'VNPAY', '2500000.00', '2025-11-19 15:03:29', 'Thành công', '15270538'),
 (5, 6, 29, 'VNPAY', '2500000.00', '2025-11-21 10:12:00', 'Thành công', '15274853'),
-(6, 4, 31, 'VNPAY', '2500000.00', '2025-11-21 10:18:27', 'Thành công', '15274879'),
-(7, 4, 35, 'VNPAY', '2800000.00', '2025-11-26 11:26:54', 'Thành công', '15302005'),
-(8, 4, 38, 'VNPAY', '2800000.00', '2025-11-26 12:29:39', 'Thành công', '15302155'),
-(9, 4, 39, 'VNPAY', '2800000.00', '2025-11-26 12:52:15', 'Thành công', '15302187'),
-(10, 9, 41, 'VNPAY', '2800000.00', '2025-11-28 10:25:47', 'Thành công', '15307833');
+(6, 4, 31, 'VNPAY', '2500000.00', '2025-11-21 10:18:27', 'Thành công', '15274879');
 
 -- --------------------------------------------------------
 
@@ -530,9 +539,9 @@ INSERT INTO `thanh_toan` (`id`, `id_hoc_sinh`, `id_dang_ky`, `phuong_thuc`, `so_
 -- (See below for the actual view)
 --
 CREATE TABLE `v_thong_ke_doanh_thu` (
-`so_luong_thanh_toan` bigint
-,`ten_khoa_hoc` varchar(200)
+`ten_khoa_hoc` varchar(200)
 ,`tong_doanh_thu` decimal(34,2)
+,`so_luong_thanh_toan` bigint
 );
 
 -- --------------------------------------------------------
@@ -556,6 +565,14 @@ CREATE TABLE `yeu_cau_doi_lich` (
   `ngay_tao` datetime DEFAULT CURRENT_TIMESTAMP,
   `ngay_cap_nhat` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `yeu_cau_doi_lich`
+--
+
+INSERT INTO `yeu_cau_doi_lich` (`id`, `id_giang_vien`, `id_ca_hoc_cu`, `id_lop`, `thu_trong_tuan_moi`, `id_ca_moi`, `id_phong_moi`, `ngay_doi`, `ly_do`, `trang_thai`, `ghi_chu_admin`, `ngay_tao`, `ngay_cap_nhat`) VALUES
+(1, 1, 2, 1, 'Thứ 4', 1, 1, '2025-12-02', '', 'da_duyet', '[Lịch cũ: Thứ 4, Ca ID: 1, Phòng ID: 1]', '2025-12-08 10:26:27', '2025-12-08 10:26:50'),
+(2, 1, 2, 1, 'Thứ 4', 1, 1, '2025-12-02', 'bận', 'da_duyet', '[Lịch cũ: Thứ 4, Ca ID: 1, Phòng ID: 1]', '2025-12-08 10:33:43', '2025-12-08 10:35:53');
 
 -- --------------------------------------------------------
 
@@ -633,6 +650,12 @@ ALTER TABLE `hoa_don`
 ALTER TABLE `khoa_hoc`
   ADD PRIMARY KEY (`id`),
   ADD KEY `id_danh_muc` (`id_danh_muc`);
+
+--
+-- Indexes for table `lien_he`
+--
+ALTER TABLE `lien_he`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `lop_hoc`
@@ -749,6 +772,12 @@ ALTER TABLE `khoa_hoc`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=67;
 
 --
+-- AUTO_INCREMENT for table `lien_he`
+--
+ALTER TABLE `lien_he`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `lop_hoc`
 --
 ALTER TABLE `lop_hoc`
@@ -794,7 +823,7 @@ ALTER TABLE `thanh_toan`
 -- AUTO_INCREMENT for table `yeu_cau_doi_lich`
 --
 ALTER TABLE `yeu_cau_doi_lich`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables

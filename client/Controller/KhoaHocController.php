@@ -740,6 +740,16 @@ class KhoaHocController {
     public function lienHe()
     {
         $this->checkNotGiangVien();
+        
+        // Lấy danh sách liên hệ từ database
+        $lienHeList = $this->model->getLienHe();
+        
+        // Truyền dữ liệu vào view
+        $data = [
+            'lienHeList' => $lienHeList
+        ];
+        extract($data);
+        
         require_once(__DIR__ . '/../views/lien_he.php');
     }
 }
