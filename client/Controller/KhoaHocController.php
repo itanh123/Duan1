@@ -735,4 +735,11 @@ class KhoaHocController {
         header("Location: index.php?act=client-chi-tiet-khoa-hoc&id=" . $id_khoa_hoc);
         exit;
     }
+
+    // Trang liên hệ
+    public function lienHe()
+    {
+        $this->checkNotGiangVien();
+        require_once(__DIR__ . '/../views/lien_he.php');
+    }
 }

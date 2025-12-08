@@ -771,8 +771,14 @@ class adminmodel
                 $sql .= " AND ch.ngay_hoc = :ngay_hoc";
                 $params[':ngay_hoc'] = $ngay_hoc;
             } else {
-                $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND (ch.ngay_hoc IS NULL OR ch.ngay_hoc = '')";
-                $params[':thu_trong_tuan'] = $thu_trong_tuan;
+                // Chỉ kiểm tra theo thứ nếu có thứ, và ngày học phải là NULL
+                if (!empty($thu_trong_tuan)) {
+                    $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND ch.ngay_hoc IS NULL";
+                    $params[':thu_trong_tuan'] = $thu_trong_tuan;
+                } else {
+                    // Nếu không có cả thứ và ngày học, không thể kiểm tra
+                    return ['trung' => false];
+                }
             }
             
             if ($excludeId) {
@@ -816,8 +822,14 @@ class adminmodel
                 $sql .= " AND ch.ngay_hoc = :ngay_hoc";
                 $params[':ngay_hoc'] = $ngay_hoc;
             } else {
-                $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND (ch.ngay_hoc IS NULL OR ch.ngay_hoc = '')";
-                $params[':thu_trong_tuan'] = $thu_trong_tuan;
+                // Chỉ kiểm tra theo thứ nếu có thứ, và ngày học phải là NULL
+                if (!empty($thu_trong_tuan)) {
+                    $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND ch.ngay_hoc IS NULL";
+                    $params[':thu_trong_tuan'] = $thu_trong_tuan;
+                } else {
+                    // Nếu không có cả thứ và ngày học, không thể kiểm tra
+                    return ['trung' => false];
+                }
             }
             
             if ($excludeId) {
@@ -858,8 +870,11 @@ class adminmodel
             $sql .= " AND ch.ngay_hoc = :ngay_hoc";
             $params[':ngay_hoc'] = $ngay_hoc;
         } else {
-            $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND (ch.ngay_hoc IS NULL OR ch.ngay_hoc = '')";
-            $params[':thu_trong_tuan'] = $thu_trong_tuan;
+            // Chỉ kiểm tra theo thứ nếu có thứ, và ngày học phải là NULL
+            if (!empty($thu_trong_tuan)) {
+                $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND ch.ngay_hoc IS NULL";
+                $params[':thu_trong_tuan'] = $thu_trong_tuan;
+            }
         }
         
         if ($excludeId) {
@@ -892,8 +907,11 @@ class adminmodel
             $sql .= " AND ch.ngay_hoc = :ngay_hoc";
             $params[':ngay_hoc'] = $ngay_hoc;
         } else {
-            $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND (ch.ngay_hoc IS NULL OR ch.ngay_hoc = '')";
-            $params[':thu_trong_tuan'] = $thu_trong_tuan;
+            // Chỉ kiểm tra theo thứ nếu có thứ, và ngày học phải là NULL
+            if (!empty($thu_trong_tuan)) {
+                $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND ch.ngay_hoc IS NULL";
+                $params[':thu_trong_tuan'] = $thu_trong_tuan;
+            }
         }
         
         if ($excludeId) {
@@ -921,10 +939,11 @@ class adminmodel
         $stmt->bindValue(':id_lop', $data['id_lop'], PDO::PARAM_INT);
         $stmt->bindValue(':id_giang_vien', !empty($data['id_giang_vien']) ? $data['id_giang_vien'] : null, PDO::PARAM_INT);
         $stmt->bindValue(':id_ca', $data['id_ca'], PDO::PARAM_INT);
-        $stmt->bindValue(':thu_trong_tuan', $data['thu_trong_tuan'], PDO::PARAM_STR);
+        $stmt->bindValue(':thu_trong_tuan', !empty($data['thu_trong_tuan']) ? $data['thu_trong_tuan'] : null, PDO::PARAM_STR);
         $stmt->bindValue(':id_phong', $data['id_phong'] ?? null, PDO::PARAM_INT);
         $stmt->bindValue(':ghi_chu', $data['ghi_chu'] ?? null);
-        $stmt->bindValue(':ngay_hoc', !empty($data['ngay_hoc']) ? $data['ngay_hoc'] : null);
+        $ngay_hoc_value = !empty($data['ngay_hoc']) ? $data['ngay_hoc'] : null;
+        $stmt->bindValue(':ngay_hoc', $ngay_hoc_value, $ngay_hoc_value === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
         return $stmt->execute();
     }
 
@@ -945,10 +964,11 @@ class adminmodel
         $stmt->bindValue(':id_lop', $data['id_lop'], PDO::PARAM_INT);
         $stmt->bindValue(':id_giang_vien', !empty($data['id_giang_vien']) ? $data['id_giang_vien'] : null, PDO::PARAM_INT);
         $stmt->bindValue(':id_ca', $data['id_ca'], PDO::PARAM_INT);
-        $stmt->bindValue(':thu_trong_tuan', $data['thu_trong_tuan'], PDO::PARAM_STR);
+        $stmt->bindValue(':thu_trong_tuan', !empty($data['thu_trong_tuan']) ? $data['thu_trong_tuan'] : null, PDO::PARAM_STR);
         $stmt->bindValue(':id_phong', $data['id_phong'] ?? null, PDO::PARAM_INT);
         $stmt->bindValue(':ghi_chu', $data['ghi_chu'] ?? null);
-        $stmt->bindValue(':ngay_hoc', !empty($data['ngay_hoc']) ? $data['ngay_hoc'] : null);
+        $ngay_hoc_value = !empty($data['ngay_hoc']) ? $data['ngay_hoc'] : null;
+        $stmt->bindValue(':ngay_hoc', $ngay_hoc_value, $ngay_hoc_value === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
         return $stmt->execute();
     }
 

@@ -71,6 +71,11 @@ match ($act) {
     '' => $khoaHocController->index(),
     
     // ============================
+    //  CLIENT - LIÊN HỆ
+    // ============================
+    'client-lien-he' => $khoaHocController->lienHe(),
+    
+    // ============================
     //  CLIENT - KHÓA HỌC
     // ============================
     'client-khoa-hoc' => $khoaHocController->index(),

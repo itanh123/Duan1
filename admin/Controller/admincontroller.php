@@ -149,15 +149,36 @@ class admincontroller{
         $this->checkAdminLogin();
         $data = [
             'id_danh_muc' => $_POST['id_danh_muc'] ?? '',
-            'ten_khoa_hoc' => $_POST['ten_khoa_hoc'] ?? '',
-            'mo_ta' => $_POST['mo_ta'] ?? '',
-            'gia' => $_POST['gia'] ?? 0,
+            'ten_khoa_hoc' => trim($_POST['ten_khoa_hoc'] ?? ''),
+            'mo_ta' => trim($_POST['mo_ta'] ?? ''),
+            'gia' => !empty($_POST['gia']) ? (float)$_POST['gia'] : 0,
             'hinh_anh' => $this->uploadImage() ?? null,
             'trang_thai' => $_POST['trang_thai'] ?? 1
         ];
 
-        if (empty($data['ten_khoa_hoc']) || empty($data['id_danh_muc'])) {
-            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['id_danh_muc'])) {
+            $errors[] = 'Vui lòng chọn danh mục!';
+        }
+        
+        if (empty($data['ten_khoa_hoc'])) {
+            $errors[] = 'Vui lòng nhập tên khóa học!';
+        } elseif (strlen($data['ten_khoa_hoc']) > 200) {
+            $errors[] = 'Tên khóa học không được vượt quá 200 ký tự!';
+        }
+        
+        if ($data['gia'] < 0) {
+            $errors[] = 'Giá khóa học phải lớn hơn hoặc bằng 0!';
+        }
+        
+        if (empty($data['hinh_anh'])) {
+            $errors[] = 'Vui lòng chọn hình ảnh cho khóa học!';
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
             header('Location: ?act=admin-add-khoa-hoc');
             exit;
         }
@@ -210,9 +231,9 @@ class admincontroller{
 
         $data = [
             'id_danh_muc' => $_POST['id_danh_muc'] ?? '',
-            'ten_khoa_hoc' => $_POST['ten_khoa_hoc'] ?? '',
-            'mo_ta' => $_POST['mo_ta'] ?? '',
-            'gia' => $_POST['gia'] ?? 0,
+            'ten_khoa_hoc' => trim($_POST['ten_khoa_hoc'] ?? ''),
+            'mo_ta' => trim($_POST['mo_ta'] ?? ''),
+            'gia' => !empty($_POST['gia']) ? (float)$_POST['gia'] : 0,
             'hinh_anh' => $khoaHoc['hinh_anh'], // Giữ ảnh cũ
             'trang_thai' => $_POST['trang_thai'] ?? 1
         ];
@@ -226,9 +247,30 @@ class admincontroller{
             }
             $data['hinh_anh'] = $newImage;
         }
-
-        if (empty($data['ten_khoa_hoc']) || empty($data['id_danh_muc'])) {
-            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+        
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['id_danh_muc'])) {
+            $errors[] = 'Vui lòng chọn danh mục!';
+        }
+        
+        if (empty($data['ten_khoa_hoc'])) {
+            $errors[] = 'Vui lòng nhập tên khóa học!';
+        } elseif (strlen($data['ten_khoa_hoc']) > 200) {
+            $errors[] = 'Tên khóa học không được vượt quá 200 ký tự!';
+        }
+        
+        if ($data['gia'] < 0) {
+            $errors[] = 'Giá khóa học phải lớn hơn hoặc bằng 0!';
+        }
+        
+        if (empty($data['hinh_anh'])) {
+            $errors[] = 'Vui lòng chọn hình ảnh cho khóa học!';
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
             header('Location: ?act=admin-edit-khoa-hoc&id=' . $id);
             exit;
         }
@@ -368,31 +410,54 @@ class admincontroller{
     public function saveHocSinh(){
         $this->checkAdminLogin();
         $data = [
-            'ho_ten' => $_POST['ho_ten'] ?? '',
-            'email' => $_POST['email'] ?? '',
+            'ho_ten' => trim($_POST['ho_ten'] ?? ''),
+            'email' => trim($_POST['email'] ?? ''),
             'mat_khau' => $_POST['mat_khau'] ?? '',
-            'so_dien_thoai' => $_POST['so_dien_thoai'] ?? '',
-            'dia_chi' => $_POST['dia_chi'] ?? '',
+            'so_dien_thoai' => trim($_POST['so_dien_thoai'] ?? ''),
+            'dia_chi' => trim($_POST['dia_chi'] ?? ''),
             'trang_thai' => $_POST['trang_thai'] ?? 1
         ];
 
-        // Validation
-        if (empty($data['ho_ten']) || empty($data['email']) || empty($data['mat_khau'])) {
-            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
-            header('Location: ?act=admin-add-hoc-sinh');
-            exit;
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['ho_ten'])) {
+            $errors[] = 'Vui lòng nhập họ tên!';
+        } elseif (strlen($data['ho_ten']) < 2) {
+            $errors[] = 'Họ tên phải có ít nhất 2 ký tự!';
+        } elseif (strlen($data['ho_ten']) > 200) {
+            $errors[] = 'Họ tên không được vượt quá 200 ký tự!';
         }
-
-        // Kiểm tra email đã tồn tại chưa
-        if ($this->model->checkEmailExists($data['email'])) {
-            $_SESSION['error'] = 'Email đã tồn tại trong hệ thống!';
-            header('Location: ?act=admin-add-hoc-sinh');
-            exit;
+        
+        if (empty($data['email'])) {
+            $errors[] = 'Vui lòng nhập email!';
+        } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Email không hợp lệ!';
+        } elseif (strlen($data['email']) > 200) {
+            $errors[] = 'Email không được vượt quá 200 ký tự!';
+        } elseif ($this->model->checkEmailExists($data['email'])) {
+            $errors[] = 'Email đã tồn tại trong hệ thống!';
         }
-
-        // Validate email format
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $_SESSION['error'] = 'Email không hợp lệ!';
+        
+        if (empty($data['mat_khau'])) {
+            $errors[] = 'Vui lòng nhập mật khẩu!';
+        } elseif (strlen($data['mat_khau']) < 6) {
+            $errors[] = 'Mật khẩu phải có ít nhất 6 ký tự!';
+        }
+        
+        if (!empty($data['so_dien_thoai'])) {
+            // Validate số điện thoại: 0xxxxxxxxx hoặc +84xxxxxxxxx
+            $phonePattern = '/^(0|\+84)[0-9]{9,10}$/';
+            $cleanPhone = preg_replace('/[\s\-]/', '', $data['so_dien_thoai']);
+            if (!preg_match($phonePattern, $cleanPhone)) {
+                $errors[] = 'Số điện thoại không hợp lệ! (Định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx)';
+            } elseif (strlen($data['so_dien_thoai']) > 20) {
+                $errors[] = 'Số điện thoại không được vượt quá 20 ký tự!';
+            }
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
             header('Location: ?act=admin-add-hoc-sinh');
             exit;
         }
@@ -443,10 +508,10 @@ class admincontroller{
         }
 
         $data = [
-            'ho_ten' => $_POST['ho_ten'] ?? '',
-            'email' => $_POST['email'] ?? '',
-            'so_dien_thoai' => $_POST['so_dien_thoai'] ?? '',
-            'dia_chi' => $_POST['dia_chi'] ?? '',
+            'ho_ten' => trim($_POST['ho_ten'] ?? ''),
+            'email' => trim($_POST['email'] ?? ''),
+            'so_dien_thoai' => trim($_POST['so_dien_thoai'] ?? ''),
+            'dia_chi' => trim($_POST['dia_chi'] ?? ''),
             'trang_thai' => $_POST['trang_thai'] ?? 1
         ];
 
@@ -455,23 +520,44 @@ class admincontroller{
             $data['mat_khau'] = $_POST['mat_khau'];
         }
 
-        // Validation
-        if (empty($data['ho_ten']) || empty($data['email'])) {
-            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
-            header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
-            exit;
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['ho_ten'])) {
+            $errors[] = 'Vui lòng nhập họ tên!';
+        } elseif (strlen($data['ho_ten']) < 2) {
+            $errors[] = 'Họ tên phải có ít nhất 2 ký tự!';
+        } elseif (strlen($data['ho_ten']) > 200) {
+            $errors[] = 'Họ tên không được vượt quá 200 ký tự!';
         }
-
-        // Kiểm tra email đã tồn tại chưa (trừ ID hiện tại)
-        if ($this->model->checkEmailExists($data['email'], $id)) {
-            $_SESSION['error'] = 'Email đã tồn tại trong hệ thống!';
-            header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
-            exit;
+        
+        if (empty($data['email'])) {
+            $errors[] = 'Vui lòng nhập email!';
+        } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Email không hợp lệ!';
+        } elseif (strlen($data['email']) > 200) {
+            $errors[] = 'Email không được vượt quá 200 ký tự!';
+        } elseif ($this->model->checkEmailExists($data['email'], $id)) {
+            $errors[] = 'Email đã tồn tại trong hệ thống!';
         }
-
-        // Validate email format
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $_SESSION['error'] = 'Email không hợp lệ!';
+        
+        if (!empty($data['mat_khau']) && strlen($data['mat_khau']) < 6) {
+            $errors[] = 'Mật khẩu phải có ít nhất 6 ký tự!';
+        }
+        
+        if (!empty($data['so_dien_thoai'])) {
+            // Validate số điện thoại: 0xxxxxxxxx hoặc +84xxxxxxxxx
+            $phonePattern = '/^(0|\+84)[0-9]{9,10}$/';
+            $cleanPhone = preg_replace('/[\s\-]/', '', $data['so_dien_thoai']);
+            if (!preg_match($phonePattern, $cleanPhone)) {
+                $errors[] = 'Số điện thoại không hợp lệ! (Định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx)';
+            } elseif (strlen($data['so_dien_thoai']) > 20) {
+                $errors[] = 'Số điện thoại không được vượt quá 20 ký tự!';
+            }
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
             header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
             exit;
         }
@@ -606,21 +692,26 @@ class admincontroller{
     public function saveDanhMuc(){
         $this->checkAdminLogin();
         $data = [
-            'ten_danh_muc' => $_POST['ten_danh_muc'] ?? '',
-            'mo_ta' => $_POST['mo_ta'] ?? '',
+            'ten_danh_muc' => trim($_POST['ten_danh_muc'] ?? ''),
+            'mo_ta' => trim($_POST['mo_ta'] ?? ''),
             'trang_thai' => $_POST['trang_thai'] ?? 1
         ];
 
-        // Validation
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
         if (empty($data['ten_danh_muc'])) {
-            $_SESSION['error'] = 'Vui lòng nhập tên danh mục!';
-            header('Location: ?act=admin-add-danh-muc');
-            exit;
+            $errors[] = 'Vui lòng nhập tên danh mục!';
+        } elseif (strlen($data['ten_danh_muc']) < 2) {
+            $errors[] = 'Tên danh mục phải có ít nhất 2 ký tự!';
+        } elseif (strlen($data['ten_danh_muc']) > 200) {
+            $errors[] = 'Tên danh mục không được vượt quá 200 ký tự!';
+        } elseif ($this->model->checkDanhMucExists($data['ten_danh_muc'])) {
+            $errors[] = 'Tên danh mục đã tồn tại trong hệ thống!';
         }
-
-        // Kiểm tra tên danh mục đã tồn tại chưa
-        if ($this->model->checkDanhMucExists($data['ten_danh_muc'])) {
-            $_SESSION['error'] = 'Tên danh mục đã tồn tại trong hệ thống!';
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
             header('Location: ?act=admin-add-danh-muc');
             exit;
         }
@@ -671,21 +762,26 @@ class admincontroller{
         }
 
         $data = [
-            'ten_danh_muc' => $_POST['ten_danh_muc'] ?? '',
-            'mo_ta' => $_POST['mo_ta'] ?? '',
+            'ten_danh_muc' => trim($_POST['ten_danh_muc'] ?? ''),
+            'mo_ta' => trim($_POST['mo_ta'] ?? ''),
             'trang_thai' => $_POST['trang_thai'] ?? 1
         ];
 
-        // Validation
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
         if (empty($data['ten_danh_muc'])) {
-            $_SESSION['error'] = 'Vui lòng nhập tên danh mục!';
-            header('Location: ?act=admin-edit-danh-muc&id=' . $id);
-            exit;
+            $errors[] = 'Vui lòng nhập tên danh mục!';
+        } elseif (strlen($data['ten_danh_muc']) < 2) {
+            $errors[] = 'Tên danh mục phải có ít nhất 2 ký tự!';
+        } elseif (strlen($data['ten_danh_muc']) > 200) {
+            $errors[] = 'Tên danh mục không được vượt quá 200 ký tự!';
+        } elseif ($this->model->checkDanhMucExists($data['ten_danh_muc'], $id)) {
+            $errors[] = 'Tên danh mục đã tồn tại trong hệ thống!';
         }
-
-        // Kiểm tra tên danh mục đã tồn tại chưa (trừ ID hiện tại)
-        if ($this->model->checkDanhMucExists($data['ten_danh_muc'], $id)) {
-            $_SESSION['error'] = 'Tên danh mục đã tồn tại trong hệ thống!';
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
             header('Location: ?act=admin-edit-danh-muc&id=' . $id);
             exit;
         }
@@ -786,31 +882,54 @@ class admincontroller{
     public function saveGiangVien(){
         $this->checkAdminLogin();
         $data = [
-            'ho_ten' => $_POST['ho_ten'] ?? '',
-            'email' => $_POST['email'] ?? '',
+            'ho_ten' => trim($_POST['ho_ten'] ?? ''),
+            'email' => trim($_POST['email'] ?? ''),
             'mat_khau' => $_POST['mat_khau'] ?? '',
-            'so_dien_thoai' => $_POST['so_dien_thoai'] ?? '',
-            'dia_chi' => $_POST['dia_chi'] ?? '',
+            'so_dien_thoai' => trim($_POST['so_dien_thoai'] ?? ''),
+            'dia_chi' => trim($_POST['dia_chi'] ?? ''),
             'trang_thai' => $_POST['trang_thai'] ?? 1
         ];
 
-        // Validation
-        if (empty($data['ho_ten']) || empty($data['email']) || empty($data['mat_khau'])) {
-            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
-            header('Location: ?act=admin-add-giang-vien');
-            exit;
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['ho_ten'])) {
+            $errors[] = 'Vui lòng nhập họ tên!';
+        } elseif (strlen($data['ho_ten']) < 2) {
+            $errors[] = 'Họ tên phải có ít nhất 2 ký tự!';
+        } elseif (strlen($data['ho_ten']) > 200) {
+            $errors[] = 'Họ tên không được vượt quá 200 ký tự!';
         }
-
-        // Kiểm tra email đã tồn tại chưa
-        if ($this->model->checkEmailExists($data['email'])) {
-            $_SESSION['error'] = 'Email đã tồn tại trong hệ thống!';
-            header('Location: ?act=admin-add-giang-vien');
-            exit;
+        
+        if (empty($data['email'])) {
+            $errors[] = 'Vui lòng nhập email!';
+        } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Email không hợp lệ!';
+        } elseif (strlen($data['email']) > 200) {
+            $errors[] = 'Email không được vượt quá 200 ký tự!';
+        } elseif ($this->model->checkEmailExists($data['email'])) {
+            $errors[] = 'Email đã tồn tại trong hệ thống!';
         }
-
-        // Validate email format
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $_SESSION['error'] = 'Email không hợp lệ!';
+        
+        if (empty($data['mat_khau'])) {
+            $errors[] = 'Vui lòng nhập mật khẩu!';
+        } elseif (strlen($data['mat_khau']) < 6) {
+            $errors[] = 'Mật khẩu phải có ít nhất 6 ký tự!';
+        }
+        
+        if (!empty($data['so_dien_thoai'])) {
+            // Validate số điện thoại: 0xxxxxxxxx hoặc +84xxxxxxxxx
+            $phonePattern = '/^(0|\+84)[0-9]{9,10}$/';
+            $cleanPhone = preg_replace('/[\s\-]/', '', $data['so_dien_thoai']);
+            if (!preg_match($phonePattern, $cleanPhone)) {
+                $errors[] = 'Số điện thoại không hợp lệ! (Định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx)';
+            } elseif (strlen($data['so_dien_thoai']) > 20) {
+                $errors[] = 'Số điện thoại không được vượt quá 20 ký tự!';
+            }
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
             header('Location: ?act=admin-add-giang-vien');
             exit;
         }
@@ -861,10 +980,10 @@ class admincontroller{
         }
 
         $data = [
-            'ho_ten' => $_POST['ho_ten'] ?? '',
-            'email' => $_POST['email'] ?? '',
-            'so_dien_thoai' => $_POST['so_dien_thoai'] ?? '',
-            'dia_chi' => $_POST['dia_chi'] ?? '',
+            'ho_ten' => trim($_POST['ho_ten'] ?? ''),
+            'email' => trim($_POST['email'] ?? ''),
+            'so_dien_thoai' => trim($_POST['so_dien_thoai'] ?? ''),
+            'dia_chi' => trim($_POST['dia_chi'] ?? ''),
             'trang_thai' => $_POST['trang_thai'] ?? 1
         ];
 
@@ -873,23 +992,44 @@ class admincontroller{
             $data['mat_khau'] = $_POST['mat_khau'];
         }
 
-        // Validation
-        if (empty($data['ho_ten']) || empty($data['email'])) {
-            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
-            header('Location: ?act=admin-edit-giang-vien&id=' . $id);
-            exit;
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['ho_ten'])) {
+            $errors[] = 'Vui lòng nhập họ tên!';
+        } elseif (strlen($data['ho_ten']) < 2) {
+            $errors[] = 'Họ tên phải có ít nhất 2 ký tự!';
+        } elseif (strlen($data['ho_ten']) > 200) {
+            $errors[] = 'Họ tên không được vượt quá 200 ký tự!';
         }
-
-        // Kiểm tra email đã tồn tại chưa (trừ ID hiện tại)
-        if ($this->model->checkEmailExists($data['email'], $id)) {
-            $_SESSION['error'] = 'Email đã tồn tại trong hệ thống!';
-            header('Location: ?act=admin-edit-giang-vien&id=' . $id);
-            exit;
+        
+        if (empty($data['email'])) {
+            $errors[] = 'Vui lòng nhập email!';
+        } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Email không hợp lệ!';
+        } elseif (strlen($data['email']) > 200) {
+            $errors[] = 'Email không được vượt quá 200 ký tự!';
+        } elseif ($this->model->checkEmailExists($data['email'], $id)) {
+            $errors[] = 'Email đã tồn tại trong hệ thống!';
         }
-
-        // Validate email format
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $_SESSION['error'] = 'Email không hợp lệ!';
+        
+        if (!empty($data['mat_khau']) && strlen($data['mat_khau']) < 6) {
+            $errors[] = 'Mật khẩu phải có ít nhất 6 ký tự!';
+        }
+        
+        if (!empty($data['so_dien_thoai'])) {
+            // Validate số điện thoại: 0xxxxxxxxx hoặc +84xxxxxxxxx
+            $phonePattern = '/^(0|\+84)[0-9]{9,10}$/';
+            $cleanPhone = preg_replace('/[\s\-]/', '', $data['so_dien_thoai']);
+            if (!preg_match($phonePattern, $cleanPhone)) {
+                $errors[] = 'Số điện thoại không hợp lệ! (Định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx)';
+            } elseif (strlen($data['so_dien_thoai']) > 20) {
+                $errors[] = 'Số điện thoại không được vượt quá 20 ký tự!';
+            }
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
             header('Location: ?act=admin-edit-giang-vien&id=' . $id);
             exit;
         }
@@ -1018,15 +1158,31 @@ class admincontroller{
         
         $data = [
             'id_khoa_hoc' => $_POST['id_khoa_hoc'] ?? '',
-            'ten_lop' => $_POST['ten_lop'] ?? '',
-            'mo_ta' => $_POST['mo_ta'] ?? '',
+            'ten_lop' => trim($_POST['ten_lop'] ?? ''),
+            'mo_ta' => trim($_POST['mo_ta'] ?? ''),
             'so_luong_toi_da' => $so_luong_toi_da,
             'trang_thai' => $trang_thai
         ];
 
-        // Validation
-        if (empty($data['id_khoa_hoc']) || empty($data['ten_lop'])) {
-            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['id_khoa_hoc'])) {
+            $errors[] = 'Vui lòng chọn khóa học!';
+        }
+        
+        if (empty($data['ten_lop'])) {
+            $errors[] = 'Vui lòng nhập tên lớp học!';
+        } elseif (strlen($data['ten_lop']) > 200) {
+            $errors[] = 'Tên lớp học không được vượt quá 200 ký tự!';
+        }
+        
+        if ($so_luong_toi_da !== null && $so_luong_toi_da <= 0) {
+            $errors[] = 'Số lượng tối đa phải lớn hơn 0!';
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
             header('Location: ?act=admin-add-lop-hoc');
             exit;
         }
@@ -1110,15 +1266,31 @@ class admincontroller{
         }
         $data = [
             'id_khoa_hoc' => $_POST['id_khoa_hoc'] ?? '',
-            'ten_lop' => $_POST['ten_lop'] ?? '',
-            'mo_ta' => $_POST['mo_ta'] ?? '',
+            'ten_lop' => trim($_POST['ten_lop'] ?? ''),
+            'mo_ta' => trim($_POST['mo_ta'] ?? ''),
             'so_luong_toi_da' => !empty($_POST['so_luong_toi_da']) ? (int)$_POST['so_luong_toi_da'] : null,
             'trang_thai' => $trang_thai
         ];
 
-        // Validation
-        if (empty($data['id_khoa_hoc']) || empty($data['ten_lop'])) {
-            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['id_khoa_hoc'])) {
+            $errors[] = 'Vui lòng chọn khóa học!';
+        }
+        
+        if (empty($data['ten_lop'])) {
+            $errors[] = 'Vui lòng nhập tên lớp học!';
+        } elseif (strlen($data['ten_lop']) > 200) {
+            $errors[] = 'Tên lớp học không được vượt quá 200 ký tự!';
+        }
+        
+        if ($data['so_luong_toi_da'] !== null && $data['so_luong_toi_da'] <= 0) {
+            $errors[] = 'Số lượng tối đa phải lớn hơn 0!';
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
             header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
             exit;
         }
@@ -1265,27 +1437,108 @@ class admincontroller{
     public function saveCaHoc(){
         $this->checkAdminLogin();
         $id_giang_vien = $_POST['id_giang_vien'] ?? '';
+        $ngay_hoc_raw = trim($_POST['ngay_hoc'] ?? '');
+        
+        // Chuẩn hóa ngày học: nếu rỗng thì chuyển thành null
+        $ngay_hoc = !empty($ngay_hoc_raw) ? $ngay_hoc_raw : null;
+        
         $data = [
             'id_lop' => $_POST['id_lop'] ?? '',
             'id_giang_vien' => !empty($id_giang_vien) ? (int)$id_giang_vien : null,
             'id_ca' => $_POST['id_ca'] ?? '',
-            'thu_trong_tuan' => $_POST['thu_trong_tuan'] ?? '',
+            'thu_trong_tuan' => trim($_POST['thu_trong_tuan'] ?? ''),
             'id_phong' => $_POST['id_phong'] ?? '',
-            'ghi_chu' => $_POST['ghi_chu'] ?? '',
-            'ngay_hoc' => $_POST['ngay_hoc'] ?? ''
+            'ghi_chu' => trim($_POST['ghi_chu'] ?? ''),
+            'ngay_hoc' => $ngay_hoc
         ];
 
-        // Validation
-        if (empty($data['id_lop']) || empty($data['id_ca']) || empty($data['thu_trong_tuan'])) {
-            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
-            header('Location: ?act=admin-add-ca-hoc');
-            exit;
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['id_lop'])) {
+            $errors[] = 'Vui lòng chọn lớp học!';
+        } else {
+            $data['id_lop'] = (int)$data['id_lop'];
+            if ($data['id_lop'] <= 0) {
+                $errors[] = 'ID lớp học không hợp lệ!';
+            }
         }
-
-        // Kiểm tra giá trị ENUM hợp lệ
-        $validThu = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
-        if (!in_array($data['thu_trong_tuan'], $validThu)) {
-            $_SESSION['error'] = 'Thứ trong tuần không hợp lệ!';
+        
+        if (empty($data['id_ca'])) {
+            $errors[] = 'Vui lòng chọn ca học!';
+        } else {
+            $data['id_ca'] = (int)$data['id_ca'];
+            if ($data['id_ca'] <= 0) {
+                $errors[] = 'ID ca học không hợp lệ!';
+            }
+        }
+        
+        // Validate id_giang_vien nếu có
+        if ($data['id_giang_vien'] !== null && $data['id_giang_vien'] <= 0) {
+            $errors[] = 'ID giảng viên không hợp lệ!';
+        }
+        
+        // Chuẩn hóa thu_trong_tuan: nếu rỗng thì chuyển thành null
+        if (empty($data['thu_trong_tuan'])) {
+            $data['thu_trong_tuan'] = null;
+        }
+        
+        if (empty($data['thu_trong_tuan']) && empty($data['ngay_hoc'])) {
+            $errors[] = 'Vui lòng chọn thứ trong tuần hoặc ngày học!';
+        }
+        
+        // Kiểm tra giá trị ENUM hợp lệ cho thứ trong tuần
+        if (!empty($data['thu_trong_tuan'])) {
+            $validThu = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+            if (!in_array($data['thu_trong_tuan'], $validThu)) {
+                $errors[] = 'Thứ trong tuần không hợp lệ!';
+            }
+        }
+        
+        // Validate ngày học format nếu có
+        if (!empty($data['ngay_hoc'])) {
+            // Kiểm tra format YYYY-MM-DD
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data['ngay_hoc'])) {
+                $errors[] = 'Ngày học phải có định dạng YYYY-MM-DD (ví dụ: 2024-01-15)!';
+            } else {
+                $dateParts = explode('-', $data['ngay_hoc']);
+                if (count($dateParts) != 3) {
+                    $errors[] = 'Ngày học không hợp lệ!';
+                } else {
+                    $year = (int)$dateParts[0];
+                    $month = (int)$dateParts[1];
+                    $day = (int)$dateParts[2];
+                    
+                    if (!checkdate($month, $day, $year)) {
+                        $errors[] = 'Ngày học không hợp lệ! (Ngày/tháng/năm không tồn tại)';
+                    } else {
+                        // Kiểm tra ngày không được là quá khứ xa hoặc quá tương lai
+                        $dateObj = DateTime::createFromFormat('Y-m-d', $data['ngay_hoc']);
+                        if (!$dateObj) {
+                            $errors[] = 'Ngày học không hợp lệ!';
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Chuẩn hóa id_phong: nếu rỗng thì chuyển thành null
+        if (empty($data['id_phong'])) {
+            $data['id_phong'] = null;
+        } else {
+            $data['id_phong'] = (int)$data['id_phong'];
+            if ($data['id_phong'] <= 0) {
+                $errors[] = 'ID phòng học không hợp lệ!';
+            }
+        }
+        
+        if (strlen($data['ghi_chu']) > 255) {
+            $errors[] = 'Ghi chú không được vượt quá 255 ký tự!';
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
+            $_SESSION['form_data'] = $data;
             header('Location: ?act=admin-add-ca-hoc');
             exit;
         }
@@ -1421,27 +1674,108 @@ class admincontroller{
         }
 
         $id_giang_vien = $_POST['id_giang_vien'] ?? '';
+        $ngay_hoc_raw = trim($_POST['ngay_hoc'] ?? '');
+        
+        // Chuẩn hóa ngày học: nếu rỗng thì chuyển thành null
+        $ngay_hoc = !empty($ngay_hoc_raw) ? $ngay_hoc_raw : null;
+        
         $data = [
             'id_lop' => $_POST['id_lop'] ?? '',
             'id_giang_vien' => !empty($id_giang_vien) ? (int)$id_giang_vien : null,
             'id_ca' => $_POST['id_ca'] ?? '',
-            'thu_trong_tuan' => $_POST['thu_trong_tuan'] ?? '',
+            'thu_trong_tuan' => trim($_POST['thu_trong_tuan'] ?? ''),
             'id_phong' => $_POST['id_phong'] ?? '',
-            'ghi_chu' => $_POST['ghi_chu'] ?? '',
-            'ngay_hoc' => $_POST['ngay_hoc'] ?? ''
+            'ghi_chu' => trim($_POST['ghi_chu'] ?? ''),
+            'ngay_hoc' => $ngay_hoc
         ];
 
-        // Validation
-        if (empty($data['id_lop']) || empty($data['id_ca']) || empty($data['thu_trong_tuan'])) {
-            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
-            header('Location: ?act=admin-edit-ca-hoc&id=' . $id);
-            exit;
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['id_lop'])) {
+            $errors[] = 'Vui lòng chọn lớp học!';
+        } else {
+            $data['id_lop'] = (int)$data['id_lop'];
+            if ($data['id_lop'] <= 0) {
+                $errors[] = 'ID lớp học không hợp lệ!';
+            }
         }
-
-        // Kiểm tra giá trị ENUM hợp lệ
-        $validThu = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
-        if (!in_array($data['thu_trong_tuan'], $validThu)) {
-            $_SESSION['error'] = 'Thứ trong tuần không hợp lệ!';
+        
+        if (empty($data['id_ca'])) {
+            $errors[] = 'Vui lòng chọn ca học!';
+        } else {
+            $data['id_ca'] = (int)$data['id_ca'];
+            if ($data['id_ca'] <= 0) {
+                $errors[] = 'ID ca học không hợp lệ!';
+            }
+        }
+        
+        // Validate id_giang_vien nếu có
+        if ($data['id_giang_vien'] !== null && $data['id_giang_vien'] <= 0) {
+            $errors[] = 'ID giảng viên không hợp lệ!';
+        }
+        
+        // Chuẩn hóa thu_trong_tuan: nếu rỗng thì chuyển thành null
+        if (empty($data['thu_trong_tuan'])) {
+            $data['thu_trong_tuan'] = null;
+        }
+        
+        if (empty($data['thu_trong_tuan']) && empty($data['ngay_hoc'])) {
+            $errors[] = 'Vui lòng chọn thứ trong tuần hoặc ngày học!';
+        }
+        
+        // Kiểm tra giá trị ENUM hợp lệ cho thứ trong tuần
+        if (!empty($data['thu_trong_tuan'])) {
+            $validThu = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+            if (!in_array($data['thu_trong_tuan'], $validThu)) {
+                $errors[] = 'Thứ trong tuần không hợp lệ!';
+            }
+        }
+        
+        // Validate ngày học format nếu có
+        if (!empty($data['ngay_hoc'])) {
+            // Kiểm tra format YYYY-MM-DD
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data['ngay_hoc'])) {
+                $errors[] = 'Ngày học phải có định dạng YYYY-MM-DD (ví dụ: 2024-01-15)!';
+            } else {
+                $dateParts = explode('-', $data['ngay_hoc']);
+                if (count($dateParts) != 3) {
+                    $errors[] = 'Ngày học không hợp lệ!';
+                } else {
+                    $year = (int)$dateParts[0];
+                    $month = (int)$dateParts[1];
+                    $day = (int)$dateParts[2];
+                    
+                    if (!checkdate($month, $day, $year)) {
+                        $errors[] = 'Ngày học không hợp lệ! (Ngày/tháng/năm không tồn tại)';
+                    } else {
+                        // Kiểm tra ngày không được là quá khứ xa hoặc quá tương lai
+                        $dateObj = DateTime::createFromFormat('Y-m-d', $data['ngay_hoc']);
+                        if (!$dateObj) {
+                            $errors[] = 'Ngày học không hợp lệ!';
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Chuẩn hóa id_phong: nếu rỗng thì chuyển thành null
+        if (empty($data['id_phong'])) {
+            $data['id_phong'] = null;
+        } else {
+            $data['id_phong'] = (int)$data['id_phong'];
+            if ($data['id_phong'] <= 0) {
+                $errors[] = 'ID phòng học không hợp lệ!';
+            }
+        }
+        
+        if (strlen($data['ghi_chu']) > 255) {
+            $errors[] = 'Ghi chú không được vượt quá 255 ký tự!';
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
+            $_SESSION['form_data'] = $data;
             header('Location: ?act=admin-edit-ca-hoc&id=' . $id);
             exit;
         }
@@ -1922,11 +2256,26 @@ class admincontroller{
         }
         
         $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
-        $noi_dung = $_POST['noi_dung'] ?? '';
+        $noi_dung = trim($_POST['noi_dung'] ?? '');
         $currentAdminId = $_SESSION['admin_id'] ?? $_SESSION['client_id'] ?? 0;
         
-        if (!$id || empty($noi_dung)) {
-            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin!';
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (!$id || $id <= 0) {
+            $errors[] = 'ID phản hồi không hợp lệ!';
+        }
+        
+        if (empty($noi_dung)) {
+            $errors[] = 'Vui lòng nhập nội dung phản hồi!';
+        } elseif (strlen($noi_dung) < 2) {
+            $errors[] = 'Nội dung phản hồi phải có ít nhất 2 ký tự!';
+        } elseif (strlen($noi_dung) > 1000) {
+            $errors[] = 'Nội dung phản hồi không được vượt quá 1000 ký tự!';
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
             header('Location: ?act=admin-edit-phan-hoi-binh-luan&id=' . $id);
             exit;
         }
@@ -2001,30 +2350,37 @@ class admincontroller{
     public function savePhongHoc(){
         $this->checkAdminLogin();
         $data = [
-            'ten_phong' => $_POST['ten_phong'] ?? '',
+            'ten_phong' => trim($_POST['ten_phong'] ?? ''),
             'suc_chua' => !empty($_POST['suc_chua']) ? (int)$_POST['suc_chua'] : 30,
-            'mo_ta' => $_POST['mo_ta'] ?? '',
+            'mo_ta' => trim($_POST['mo_ta'] ?? ''),
             'trang_thai' => $_POST['trang_thai'] ?? 'Sử dụng'
         ];
 
-        // Validation
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
         if (empty($data['ten_phong'])) {
-            $_SESSION['error'] = 'Vui lòng nhập tên phòng học!';
-            header('Location: ?act=admin-add-phong-hoc');
-            exit;
+            $errors[] = 'Vui lòng nhập tên phòng học!';
+        } elseif (strlen($data['ten_phong']) > 200) {
+            $errors[] = 'Tên phòng học không được vượt quá 200 ký tự!';
+        } elseif ($this->model->checkPhongHocExists($data['ten_phong'])) {
+            $errors[] = 'Tên phòng học đã tồn tại trong hệ thống!';
         }
-
-        // Kiểm tra tên phòng học đã tồn tại chưa
-        if ($this->model->checkPhongHocExists($data['ten_phong'])) {
-            $_SESSION['error'] = 'Tên phòng học đã tồn tại trong hệ thống!';
-            header('Location: ?act=admin-add-phong-hoc');
-            exit;
+        
+        if ($data['suc_chua'] <= 0) {
+            $errors[] = 'Sức chứa phải lớn hơn 0!';
         }
-
+        
         // Kiểm tra giá trị ENUM hợp lệ
         $validTrangThai = ['Sử dụng', 'Bảo trì', 'Khóa'];
         if (!in_array($data['trang_thai'], $validTrangThai)) {
             $data['trang_thai'] = 'Sử dụng'; // Mặc định
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
+            header('Location: ?act=admin-add-phong-hoc');
+            exit;
         }
 
         if ($this->model->addPhongHoc($data)) {
@@ -2073,30 +2429,37 @@ class admincontroller{
         }
 
         $data = [
-            'ten_phong' => $_POST['ten_phong'] ?? '',
+            'ten_phong' => trim($_POST['ten_phong'] ?? ''),
             'suc_chua' => !empty($_POST['suc_chua']) ? (int)$_POST['suc_chua'] : 30,
-            'mo_ta' => $_POST['mo_ta'] ?? '',
+            'mo_ta' => trim($_POST['mo_ta'] ?? ''),
             'trang_thai' => $_POST['trang_thai'] ?? 'Sử dụng'
         ];
 
-        // Validation
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
         if (empty($data['ten_phong'])) {
-            $_SESSION['error'] = 'Vui lòng nhập tên phòng học!';
-            header('Location: ?act=admin-edit-phong-hoc&id=' . $id);
-            exit;
+            $errors[] = 'Vui lòng nhập tên phòng học!';
+        } elseif (strlen($data['ten_phong']) > 200) {
+            $errors[] = 'Tên phòng học không được vượt quá 200 ký tự!';
+        } elseif ($this->model->checkPhongHocExists($data['ten_phong'], $id)) {
+            $errors[] = 'Tên phòng học đã tồn tại trong hệ thống!';
         }
-
-        // Kiểm tra tên phòng học đã tồn tại chưa (trừ ID hiện tại)
-        if ($this->model->checkPhongHocExists($data['ten_phong'], $id)) {
-            $_SESSION['error'] = 'Tên phòng học đã tồn tại trong hệ thống!';
-            header('Location: ?act=admin-edit-phong-hoc&id=' . $id);
-            exit;
+        
+        if ($data['suc_chua'] <= 0) {
+            $errors[] = 'Sức chứa phải lớn hơn 0!';
         }
-
+        
         // Kiểm tra giá trị ENUM hợp lệ
         $validTrangThai = ['Sử dụng', 'Bảo trì', 'Khóa'];
         if (!in_array($data['trang_thai'], $validTrangThai)) {
             $data['trang_thai'] = 'Sử dụng'; // Mặc định
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
+            header('Location: ?act=admin-edit-phong-hoc&id=' . $id);
+            exit;
         }
 
         if ($this->model->updatePhongHoc($id, $data)) {
@@ -2196,10 +2559,10 @@ class admincontroller{
         }
 
         $data = [
-            'ho_ten' => $_POST['ho_ten'] ?? '',
-            'email' => $_POST['email'] ?? '',
-            'so_dien_thoai' => $_POST['so_dien_thoai'] ?? '',
-            'dia_chi' => $_POST['dia_chi'] ?? '',
+            'ho_ten' => trim($_POST['ho_ten'] ?? ''),
+            'email' => trim($_POST['email'] ?? ''),
+            'so_dien_thoai' => trim($_POST['so_dien_thoai'] ?? ''),
+            'dia_chi' => trim($_POST['dia_chi'] ?? ''),
             'trang_thai' => isset($_POST['trang_thai']) ? (int)$_POST['trang_thai'] : 1
         ];
 
@@ -2208,13 +2571,25 @@ class admincontroller{
             $data['mat_khau'] = $_POST['mat_khau'];
         }
 
-        // Validation
-        if (empty($data['ho_ten']) || empty($data['email'])) {
-            $_SESSION['error'] = 'Vui lòng nhập đầy đủ thông tin!';
-            header('Location: ?act=admin-edit-tai-khoan&id=' . $id);
-            exit;
+        // Validation: Tất cả trường bắt buộc
+        $errors = [];
+        
+        if (empty($data['ho_ten'])) {
+            $errors[] = 'Vui lòng nhập họ tên!';
+        } elseif (strlen($data['ho_ten']) < 2) {
+            $errors[] = 'Họ tên phải có ít nhất 2 ký tự!';
+        } elseif (strlen($data['ho_ten']) > 200) {
+            $errors[] = 'Họ tên không được vượt quá 200 ký tự!';
         }
-
+        
+        if (empty($data['email'])) {
+            $errors[] = 'Vui lòng nhập email!';
+        } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Email không hợp lệ!';
+        } elseif (strlen($data['email']) > 200) {
+            $errors[] = 'Email không được vượt quá 200 ký tự!';
+        }
+        
         // Kiểm tra email trùng (trừ chính nó)
         $existing = $this->model->getTaiKhoanById($id);
         if ($existing && $existing['email'] != $data['email']) {
@@ -2224,10 +2599,29 @@ class admincontroller{
             $checkEmail->execute();
             $result = $checkEmail->fetch();
             if ($result['total'] > 0) {
-                $_SESSION['error'] = 'Email đã tồn tại!';
-                header('Location: ?act=admin-edit-tai-khoan&id=' . $id);
-                exit;
+                $errors[] = 'Email đã tồn tại!';
             }
+        }
+        
+        if (!empty($data['mat_khau']) && strlen($data['mat_khau']) < 6) {
+            $errors[] = 'Mật khẩu phải có ít nhất 6 ký tự!';
+        }
+        
+        if (!empty($data['so_dien_thoai'])) {
+            // Validate số điện thoại: 0xxxxxxxxx hoặc +84xxxxxxxxx
+            $phonePattern = '/^(0|\+84)[0-9]{9,10}$/';
+            $cleanPhone = preg_replace('/[\s\-]/', '', $data['so_dien_thoai']);
+            if (!preg_match($phonePattern, $cleanPhone)) {
+                $errors[] = 'Số điện thoại không hợp lệ! (Định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx)';
+            } elseif (strlen($data['so_dien_thoai']) > 20) {
+                $errors[] = 'Số điện thoại không được vượt quá 20 ký tự!';
+            }
+        }
+        
+        if (!empty($errors)) {
+            $_SESSION['error'] = implode(' ', $errors);
+            header('Location: ?act=admin-edit-tai-khoan&id=' . $id);
+            exit;
         }
 
         $result = $this->model->updateTaiKhoan($id, $data);
