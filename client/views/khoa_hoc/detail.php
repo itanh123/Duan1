@@ -587,7 +587,7 @@ unset($_SESSION['dang_ky_info']);
                     <li><a href="index.php?act=client-lop-hoc">Lớp học</a></li>
                     <li><a href="index.php?act=client-danh-muc">Danh mục</a></li>
                     <li><a href="index.php?act=client-giang-vien">Giảng viên</a></li>
-                    <li><a href="#">Liên hệ</a></li>
+                    <li><a href="index.php?act=client-lien-he">Liên hệ</a></li>
                     <li class="search-item">
                         <form class="search-form" method="get" action="index.php">
                             <input type="hidden" name="act" value="client-search-khoa-hoc">
