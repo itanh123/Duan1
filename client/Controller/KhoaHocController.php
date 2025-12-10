@@ -205,8 +205,28 @@ class KhoaHocController {
 
         // Thêm học sinh vào database
         if ($this->userModel->addHocSinh($data)) {
-            $_SESSION['success'] = 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.';
-            header('Location: ?act=client-login');
+            // Tự động đăng nhập sau khi đăng ký thành công
+            $user = $this->userModel->loginByEmail($email, $mat_khau);
+            
+            if ($user) {
+                // Xóa session giảng viên nếu có (để tránh xung đột)
+                unset($_SESSION['giang_vien_id']);
+                unset($_SESSION['giang_vien_email']);
+                unset($_SESSION['giang_vien_ho_ten']);
+                unset($_SESSION['giang_vien_vai_tro']);
+                
+                // Set session cho học sinh
+                $_SESSION['client_id'] = $user['id'];
+                $_SESSION['client_email'] = $user['email'];
+                $_SESSION['client_ho_ten'] = $user['ho_ten'];
+                $_SESSION['client_vai_tro'] = 'hoc_sinh';
+                $_SESSION['success'] = 'Đăng ký tài khoản thành công! Bạn đã được đăng nhập tự động.';
+                header('Location: ?act=client-khoa-hoc');
+            } else {
+                // Nếu không đăng nhập được, vẫn thông báo thành công nhưng yêu cầu đăng nhập
+                $_SESSION['success'] = 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.';
+                header('Location: ?act=client-login');
+            }
         } else {
             $_SESSION['error'] = 'Đăng ký thất bại! Vui lòng thử lại.';
             header('Location: ?act=client-register');

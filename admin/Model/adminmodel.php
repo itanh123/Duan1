@@ -169,9 +169,9 @@ class adminmodel
         return $stmt->fetchAll();
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ DANH MỤC
-    // ===========================================
+    
 
     // Lấy danh sách danh mục (quản lý - lấy tất cả)
     public function getDanhMucList($page = 1, $limit = 10, $search = '')
@@ -318,9 +318,9 @@ class adminmodel
         return $result['total'] > 0;
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ GIẢNG VIÊN
-    // ===========================================
+    
 
     // Lấy danh sách giảng viên
     public function getGiangVien($page = 1, $limit = 10, $search = '')
@@ -432,9 +432,9 @@ class adminmodel
         return $stmt->execute();
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ LỚP HỌC
-    // ===========================================
+    
 
     // Lấy danh sách lớp học
     public function getLopHoc($page = 1, $limit = 10, $search = '', $id_khoa_hoc = '')
@@ -522,6 +522,20 @@ class adminmodel
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetch();
+    }
+
+    // Đếm số học sinh đã đăng ký vào lớp (chỉ đếm đăng ký đã xác nhận)
+    public function countHocSinhDangKy($id_lop)
+    {
+        $sql = "SELECT COUNT(*) as total 
+                FROM dang_ky 
+                WHERE id_lop = :id_lop 
+                AND trang_thai = 'Đã xác nhận'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id_lop', $id_lop, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return (int)($result['total'] ?? 0);
     }
 
     // Lấy danh sách giảng viên (để chọn trong form)
@@ -630,9 +644,9 @@ class adminmodel
         return $stmt->execute();
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ CA HỌC
-    // ===========================================
+    
 
     // Lấy danh sách ca học
     public function getCaHoc($page = 1, $limit = 10, $search = '', $id_lop = '')
@@ -724,7 +738,7 @@ class adminmodel
     // Lấy danh sách lớp học (để chọn trong form)
     public function getLopHocList()
     {
-        $sql = "SELECT id, ten_lop FROM lop_hoc ORDER BY ten_lop";
+        $sql = "SELECT id, ten_lop, so_luong_toi_da FROM lop_hoc ORDER BY ten_lop";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll();
@@ -744,6 +758,19 @@ class adminmodel
     {
         $sql = "SELECT id, ten_phong, suc_chua FROM phong_hoc WHERE trang_thai = 'Sử dụng' ORDER BY ten_phong";
         $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Lấy danh sách phòng học có sức chứa >= số lượng tối đa
+    public function getPhongHocBySucChua($so_luong_toi_da)
+    {
+        $sql = "SELECT id, ten_phong, suc_chua 
+                FROM phong_hoc 
+                WHERE trang_thai = 'Sử dụng' AND suc_chua >= :so_luong_toi_da 
+                ORDER BY suc_chua ASC, ten_phong";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':so_luong_toi_da', (int)$so_luong_toi_da, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll();
     }
@@ -1318,9 +1345,9 @@ class adminmodel
         return $stmt->execute();
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ ĐĂNG KÝ
-    // ===========================================
+    
 
     // Lấy danh sách đăng ký
     public function getDangKy($page = 1, $limit = 10, $search = '', $id_lop = '', $trang_thai = '')
@@ -1702,9 +1729,9 @@ class adminmodel
         return $stmt->fetch();
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ HỌC SINH
-    // ===========================================
+    
 
     // Lấy danh sách học sinh
     public function getHocSinh($page = 1, $limit = 10, $search = '')
@@ -2007,9 +2034,9 @@ class adminmodel
         return $result['total'] > 0;
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ BÌNH LUẬN
-    // ===========================================
+    
 
     // Lấy danh sách bình luận
     public function getBinhLuan($page = 1, $limit = 10, $search = '', $id_khoa_hoc = '', $trang_thai = '')
@@ -2102,9 +2129,9 @@ class adminmodel
         return $stmt->fetch();
     }
 
-    // ===========================================
+    
     //  PHẢN HỒI BÌNH LUẬN
-    // ===========================================
+    
 
     // Kiểm tra và tạo bảng phan_hoi_binh_luan nếu chưa tồn tại
     private function ensurePhanHoiBinhLuanTable()
@@ -2224,9 +2251,9 @@ class adminmodel
         }
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ PHÒNG HỌC
-    // ===========================================
+    
 
     // Lấy danh sách phòng học
     public function getPhongHoc($page = 1, $limit = 10, $search = '', $trang_thai = '')
@@ -2435,9 +2462,9 @@ class adminmodel
     }
 
 
-    // ===========================================
+    
     //  QUẢN LÝ TÀI KHOẢN NGƯỜI DÙNG
-    // ===========================================
+    
 
     // Lấy danh sách tất cả tài khoản (lấy vai trò trực tiếp từ cột vai_tro)
     public function getAllTaiKhoan($page = 1, $limit = 10, $search = '', $trang_thai = '')
@@ -2582,9 +2609,9 @@ class adminmodel
         return $stmt->execute();
     }
 
-    // ===========================================
+    
     //  YÊU CẦU ĐỔI LỊCH
-    // ===========================================
+    
 
     // Kiểm tra và tạo bảng yeu_cau_doi_lich nếu chưa tồn tại
     private function ensureYeuCauDoiLichTable()
@@ -3154,9 +3181,9 @@ class adminmodel
         }
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ LIÊN HỆ
-    // ===========================================
+    
 
     // Đảm bảo bảng lien_he tồn tại
     public function ensureLienHeTable()

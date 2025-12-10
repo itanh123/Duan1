@@ -38,28 +38,9 @@
                    placeholder="Nhập tên lớp học">
         </div>
 
-        <div class="form-group">
-            <label for="id_phong_hoc" class="required">Phòng học</label>
-            <select name="id_phong_hoc" id="id_phong_hoc" class="form-control" required>
-                <option value="">-- Chọn phòng học trước --</option>
-                <?php if (isset($phongHocList)): ?>
-                    <?php foreach ($phongHocList as $ph): ?>
-                        <option value="<?= $ph['id'] ?>" 
-                                data-suc-chua="<?= $ph['suc_chua'] ?>"
-                                <?= (isset($lopHoc) && isset($phongHocInfo) && $phongHocInfo && $ph['id'] == ($phongHocInfo['id_phong'] ?? null)) ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($ph['ten_phong']) ?> (Sức chứa: <?= $ph['suc_chua'] ?> người)
-                        </option>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </select>
-            <small style="color: #666; display: block; margin-top: 5px;">
-                ⚠️ Bạn phải chọn phòng học trước khi có thể chỉnh sửa số lượng tối đa
-            </small>
-        </div>
-
         <div class="form-row">
             <div class="form-group">
-                <label for="so_luong_toi_da">Số lượng tối đa</label>
+                <label for="so_luong_toi_da" class="required">Số lượng tối đa</label>
                 <?php if (isset($lopHoc) && isset($soLuongDangKy)): ?>
                     <div style="margin-bottom: 5px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 13px;">
                         <strong>Thông tin hiện tại:</strong> 
@@ -71,15 +52,8 @@
                 <?php endif; ?>
                 <?php
                 $minValue = 1;
-                $maxValue = null;
                 if (isset($lopHoc) && isset($soLuongDangKy) && $soLuongDangKy > 0) {
                     $minValue = max(1, $soLuongDangKy);
-                }
-                if (isset($phongHocInfo) && $phongHocInfo) {
-                    $maxValue = $phongHocInfo['suc_chua'];
-                    if ($minValue > $maxValue) {
-                        $minValue = $maxValue; // Đảm bảo min không lớn hơn max
-                    }
                 }
                 ?>
                 <input type="number" 
@@ -88,12 +62,14 @@
                        class="form-control" 
                        value="<?= $lopHoc['so_luong_toi_da'] ?? '' ?>" 
                        min="<?= $minValue ?>"
-                       <?= $maxValue ? 'max="' . $maxValue . '"' : '' ?>
-                       placeholder="Sẽ tự động điền khi chọn phòng học"
-                       readonly
+                       placeholder="Nhập số lượng tối đa học sinh"
                        required>
                 <small id="so_luong_hint" style="color: #666; display: block; margin-top: 5px;">
-                    Vui lòng chọn phòng học trước
+                    <?php if (isset($lopHoc) && isset($soLuongDangKy) && $soLuongDangKy > 0): ?>
+                        Số lượng tối đa phải ≥ <?= $soLuongDangKy ?> (số học sinh đã đăng ký)
+                    <?php else: ?>
+                        Nhập số lượng tối đa học sinh cho lớp học này
+                    <?php endif; ?>
                 </small>
                 <?php if (isset($lopHoc)): ?>
                     <div style="margin-top: 8px; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 13px;">
@@ -115,24 +91,8 @@
                                         <span style="color: #dc3545;">⚠️ Lớp học đã đầy!</span>
                                     <?php endif; ?>
                                 <?php endif; ?>
-                            <?php endif; ?>
-                            
-                            <?php if (isset($phongHocInfo) && $phongHocInfo): ?>
-                                <?php if (isset($soLuongDangKy) && $soLuongDangKy > 0): ?>
-                                    <br><br>
-                                <?php endif; ?>
-                                <strong>Giới hạn phòng học:</strong>
-                                <br>
-                                Lớp học này đang sử dụng phòng học có sức chứa tối đa là <strong><?= $phongHocInfo['suc_chua'] ?></strong> người.
-                                <br>
-                                Phòng: <strong><?= htmlspecialchars($phongHocInfo['danh_sach_phong']) ?></strong>
-                                <br>
-                                Số lượng tối đa phải <strong>≤ <?= $phongHocInfo['suc_chua'] ?></strong> để phù hợp với sức chứa phòng học.
                             <?php else: ?>
-                                <?php if (isset($soLuongDangKy) && $soLuongDangKy > 0): ?>
-                                    <br><br>
-                                <?php endif; ?>
-                                <span style="color: #6c757d;">ℹ️ Lớp học này chưa có phòng học được phân công trong ca học.</span>
+                                Bạn có thể đặt số lượng tối đa cho lớp học này.
                             <?php endif; ?>
                         </div>
                     </div>
@@ -175,65 +135,20 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const idPhongHoc = document.getElementById('id_phong_hoc');
     const soLuongToiDa = document.getElementById('so_luong_toi_da');
     const soLuongHint = document.getElementById('so_luong_hint');
     
     // Lấy số lượng đăng ký hiện tại (nếu có)
     const soLuongDangKy = <?= isset($soLuongDangKy) ? (int)$soLuongDangKy : 0 ?>;
     
-    // Khi chọn phòng học
-    idPhongHoc.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const sucChua = selectedOption ? parseInt(selectedOption.getAttribute('data-suc-chua')) : null;
-        
-        if (sucChua && sucChua > 0) {
-            // Cho phép chỉnh sửa số lượng tối đa
-            soLuongToiDa.removeAttribute('readonly');
-            soLuongToiDa.setAttribute('max', sucChua);
-            
-            // Tự động điền số lượng tối đa = sức chứa phòng học
-            // Nhưng không được nhỏ hơn số lượng đã đăng ký
-            const minValue = Math.max(1, soLuongDangKy);
-            soLuongToiDa.setAttribute('min', minValue);
-            
-            if (!soLuongToiDa.value || parseInt(soLuongToiDa.value) > sucChua) {
-                soLuongToiDa.value = Math.max(minValue, sucChua);
-            }
-            
-            // Cập nhật hint
-            soLuongHint.innerHTML = `Sức chứa phòng học: <strong>${sucChua}</strong> người. `;
-            if (soLuongDangKy > 0) {
-                soLuongHint.innerHTML += `Đã có <strong>${soLuongDangKy}</strong> học sinh đăng ký. `;
-            }
-            soLuongHint.innerHTML += `Số lượng tối đa phải từ <strong>${minValue}</strong> đến <strong>${sucChua}</strong>.`;
-            soLuongHint.style.color = '#28a745';
-        } else {
-            // Không chọn phòng học
-            soLuongToiDa.setAttribute('readonly', 'readonly');
-            soLuongToiDa.value = '';
-            soLuongHint.innerHTML = 'Vui lòng chọn phòng học trước';
-            soLuongHint.style.color = '#666';
-        }
-    });
-    
     // Validate khi submit form
     const form = document.querySelector('form');
     form.addEventListener('submit', function(e) {
-        if (!idPhongHoc.value) {
-            e.preventDefault();
-            alert('Vui lòng chọn phòng học trước khi lưu!');
-            idPhongHoc.focus();
-            return false;
-        }
-        
-        const selectedOption = idPhongHoc.options[idPhongHoc.selectedIndex];
-        const sucChua = parseInt(selectedOption.getAttribute('data-suc-chua'));
         const soLuong = parseInt(soLuongToiDa.value);
         
-        if (soLuong > sucChua) {
+        if (isNaN(soLuong) || soLuong <= 0) {
             e.preventDefault();
-            alert(`Số lượng tối đa (${soLuong}) không được vượt quá sức chứa phòng học (${sucChua})!`);
+            alert('Vui lòng nhập số lượng tối đa hợp lệ (lớn hơn 0)!');
             soLuongToiDa.focus();
             return false;
         }
@@ -245,11 +160,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
     });
-    
-    // Trigger change event nếu đã có phòng học được chọn
-    if (idPhongHoc.value) {
-        idPhongHoc.dispatchEvent(new Event('change'));
-    }
 });
 </script>
 

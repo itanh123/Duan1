@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 08, 2025 at 04:47 AM
+-- Generation Time: Dec 10, 2025 at 02:32 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.3.27
 
@@ -70,7 +70,7 @@ CREATE TABLE `ca_hoc` (
 --
 
 INSERT INTO `ca_hoc` (`id`, `id_lop`, `id_giang_vien`, `id_ca`, `thu_trong_tuan`, `ghi_chu`, `id_phong`, `ngay_hoc`) VALUES
-(2, 1, 1, 1, 'Thứ 4', NULL, 1, '2025-12-02'),
+(2, 1, 1, 2, 'Thứ 4', NULL, 5, '2025-12-02'),
 (3, 3, 2, 1, 'Thứ 3', NULL, 2, NULL),
 (5, 3, 1, 1, 'Thứ 2', '', 1, '2025-12-08'),
 (7, 2, 2, 2, 'Thứ 3', '', 2, NULL),
@@ -145,7 +145,9 @@ INSERT INTO `dang_ky` (`id`, `id_hoc_sinh`, `id_lop`, `ngay_dang_ky`, `trang_tha
 (31, 4, 1, '2025-11-21 03:17:00', 'Đã xác nhận', 'DK20251121031700000031', '15274879'),
 (32, 9, 5, '2025-11-21 03:37:29', 'Đã hủy', 'DK20251121033729000032', NULL),
 (33, 9, 5, '2025-11-21 03:37:36', 'Đã xác nhận', NULL, NULL),
-(34, 4, 1, '2025-11-23 13:04:20', 'Chờ xác nhận', 'DK20251123130421000034', '0');
+(34, 4, 1, '2025-11-23 13:04:20', 'Chờ xác nhận', 'DK20251123130421000034', '0'),
+(42, 3, 1, '2025-12-08 06:03:38', 'Chờ xác nhận', NULL, NULL),
+(43, 3, 5, '2025-12-08 06:10:03', 'Đã xác nhận', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -168,13 +170,13 @@ CREATE TABLE `danh_muc` (
 --
 
 INSERT INTO `danh_muc` (`id`, `ten_danh_muc`, `duong_dan`, `mo_ta`, `trang_thai`, `ngay_tao`, `ngay_cap_nhat`) VALUES
-(1, 'Lập trình Web', 'lap-trinh-web', 'Khóa học HTML, CSS, JS, PHP', 1, '2025-11-14 04:17:46', NULL),
-(2, 'Khoa học dữ liệu', 'data-science', 'Machine Learning, Python', 1, '2025-11-14 04:17:46', NULL),
-(3, 'Thiết kế đồ họa', 'thiet-ke-do-hoa', 'UI/UX, Photoshop, Illustrator a', 1, '2025-11-14 04:17:46', '2025-11-18 10:03:42'),
-(39, 'Lập trình Backend', 'backend-it', 'Công nghệ backend server', 1, '2025-11-26 04:10:45', NULL),
-(40, 'Lập trình Frontend', 'frontend-it', 'Giao diện người dùng', 1, '2025-11-26 04:10:45', NULL),
-(41, 'Trí tuệ nhân tạo', 'ai-it', 'AI và Machine Learning', 1, '2025-11-26 04:10:45', NULL),
-(42, 'An ninh mạng', 'cyber-it', 'Bảo mật hệ thống', 1, '2025-11-26 04:10:45', NULL),
+(1, 'Lập trình Web', 'lap-trinh-web', 'Khóa học HTML, CSS, JS, PHP', 0, '2025-11-14 04:17:46', '2025-12-08 06:15:01'),
+(2, 'Khoa học dữ liệu', 'data-science', 'Machine Learning, Python', 0, '2025-11-14 04:17:46', '2025-12-08 06:13:37'),
+(3, 'Thiết kế đồ họa', 'thiet-ke-do-hoa', 'UI/UX, Photoshop, Illustrator a', 0, '2025-11-14 04:17:46', '2025-12-08 06:15:04'),
+(39, 'Lập trình Backend', 'backend-it', 'Công nghệ backend server', 0, '2025-11-26 04:10:45', '2025-12-08 06:15:12'),
+(40, 'Lập trình Frontend', 'frontend-it', 'Giao diện người dùng', 0, '2025-11-26 04:10:45', '2025-12-08 06:15:09'),
+(41, 'Trí tuệ nhân tạo', 'ai-it', 'AI và Machine Learning', 0, '2025-11-26 04:10:45', '2025-12-08 06:15:06'),
+(42, 'An ninh mạng', 'cyber-it', 'Bảo mật hệ thống', 0, '2025-11-26 04:10:45', '2025-12-08 06:12:04'),
 (43, 'DevOps', 'devops-it', 'CI/CD & Server', 0, '2025-11-26 04:10:45', '2025-12-03 03:36:17');
 
 -- --------------------------------------------------------
@@ -245,7 +247,7 @@ INSERT INTO `khoa_hoc` (`id`, `id_danh_muc`, `ten_khoa_hoc`, `mo_ta`, `gia`, `hi
 (2, 1, 'JavaScript Mastery', 'Mastering JS từ cơ bản đến nâng cao', '3000000.00', 'js.png', 1, '2025-11-14 04:17:46'),
 (3, 2, 'Nhập môn Machine Learning', 'Giải thuật ML cơ bản', '3500000.00', 'ml.png', 1, '2025-11-14 04:17:46'),
 (4, 3, 'Thiết kế UI/UX chuyên sâu', 'Thiết kế giao diện với Figma', '2000000.00', 'uiux.png', 1, '2025-11-14 04:17:46'),
-(5, 1, 'php23', 'học php', '1000000.00', 'khoa_hoc_1763455170_691c30c2813ad.png', 1, '2025-11-18 08:39:30'),
+(5, 1, 'php23', 'học php', '1000000.00', 'khoa_hoc_1763455170_691c30c2813ad.png', 0, '2025-11-18 08:39:30'),
 (52, 39, 'NodeJS Backend', 'Lập trình server với NodeJS', '2500000.00', NULL, 1, '2025-11-26 04:10:45'),
 (53, 39, 'Laravel Pro', 'PHP Framework nâng cao', '2700000.00', NULL, 1, '2025-11-26 04:10:45'),
 (54, 39, 'Spring Boot', 'Java Backend chuyên sâu', '2900000.00', NULL, 1, '2025-11-26 04:10:45'),
@@ -259,7 +261,7 @@ INSERT INTO `khoa_hoc` (`id`, `id_danh_muc`, `ten_khoa_hoc`, `mo_ta`, `gia`, `hi
 (63, 42, 'Forensics', 'Điều tra số', '3100000.00', NULL, 1, '2025-11-26 04:10:45'),
 (64, 43, 'Docker', 'Triển khai container', '2100000.00', NULL, 1, '2025-11-26 04:10:45'),
 (65, 43, 'CI/CD Jenkins', 'Tự động hoá DevOps', '3300000.00', NULL, 1, '2025-11-26 04:10:45'),
-(66, 43, 'Cloud Server', 'Quản trị Cloud', '3600000.00', NULL, 0, '2025-11-26 04:10:45');
+(66, 43, 'Cloud Server', 'Quản trị Cloud', '3600000.00', NULL, 1, '2025-11-26 04:10:45');
 
 -- --------------------------------------------------------
 
@@ -310,15 +312,16 @@ CREATE TABLE `lop_hoc` (
 
 INSERT INTO `lop_hoc` (`id`, `id_khoa_hoc`, `ten_lop`, `so_luong_toi_da`, `mo_ta`, `ngay_bat_dau`, `ngay_ket_thuc`, `trang_thai`) VALUES
 (1, 1, 'PHP101 - Lớp 1', 30, 'Lớp học PHP cơ bản', '2025-01-10', '2025-03-10', 'Đang học'),
-(2, 1, 'PHP201 - Lớp 2', 25, 'PHP nâng cao', '2025-02-01', '2025-04-20', 'Chưa khai giảng'),
+(2, 1, 'PHP201 - Lớp 2', 30, 'PHP nâng cao', '2025-02-01', '2025-04-20', 'Chưa khai giảng'),
 (3, 2, 'JS101 - Lớp 1', 30, 'JavaScript cơ bản', '2025-01-15', '2025-03-30', 'Đang học'),
-(4, 3, 'ML101 - Lớp 12', 6, 'Machine Learning cơ bản', '2025-03-01', '2025-05-20', 'Đang học'),
-(5, 5, 'ML101 - Lớp 12', 40, '', NULL, NULL, 'Đang học'),
+(4, 3, 'ML101 - Lớp 12', 30, 'Machine Learning cơ bản', '2025-03-01', '2025-05-20', 'Đang học'),
+(5, 5, 'ML101 - Lớp 12', 30, '', NULL, NULL, 'Đang học'),
 (6, 1, 'NodeJS A1', 30, NULL, NULL, NULL, 'Đang học'),
 (7, 2, 'Laravel A1', 30, NULL, NULL, NULL, 'Chưa khai giảng'),
-(8, 3, 'Spring Boot A1', 25, NULL, NULL, NULL, 'Đang học'),
-(9, 4, 'ReactJS A1', 35, NULL, NULL, NULL, 'Đang học'),
-(10, 5, 'VueJS A1', 30, NULL, NULL, NULL, 'Chưa khai giảng');
+(8, 3, 'Spring Boot A1', 30, NULL, NULL, NULL, 'Đang học'),
+(9, 4, 'ReactJS A1', 30, NULL, NULL, NULL, 'Đang học'),
+(10, 5, 'VueJS A1', 30, NULL, NULL, NULL, 'Chưa khai giảng'),
+(12, 66, 'ML101 - Lớp 123', 30, '', NULL, NULL, 'Đang học');
 
 -- --------------------------------------------------------
 
@@ -456,7 +459,8 @@ CREATE TABLE `phan_hoi_binh_luan` (
 --
 
 INSERT INTO `phan_hoi_binh_luan` (`id`, `id_binh_luan`, `id_admin`, `noi_dung`, `ngay_tao`) VALUES
-(1, 6, 5, 'chúng tôi sẽ sửa lại  bggg', '2025-12-03 01:35:30');
+(1, 6, 5, 'chúng tôi sẽ sửa lại  bggg', '2025-12-03 01:35:30'),
+(3, 4, 5, 'then kiu', '2025-12-08 12:54:41');
 
 -- --------------------------------------------------------
 
@@ -497,7 +501,7 @@ CREATE TABLE `phong_hoc` (
 
 INSERT INTO `phong_hoc` (`id`, `ten_phong`, `suc_chua`, `mo_ta`, `trang_thai`) VALUES
 (1, 'P101', 40, 'Phòng lớn tầng 1', 'Sử dụng'),
-(2, 'P203', 30, 'Phòng máy lạnh tầng 2', 'Sử dụng'),
+(2, 'P203', 100, 'Phòng máy lạnh tầng 2', 'Sử dụng'),
 (3, 'P305', 25, 'Phòng học nhóm', 'Bảo trì'),
 (4, 'IT301', 40, 'Phòng Backend', 'Sử dụng'),
 (5, 'IT302', 35, 'Phòng AI', 'Sử dụng'),
@@ -539,9 +543,9 @@ INSERT INTO `thanh_toan` (`id`, `id_hoc_sinh`, `id_dang_ky`, `phuong_thuc`, `so_
 -- (See below for the actual view)
 --
 CREATE TABLE `v_thong_ke_doanh_thu` (
-`ten_khoa_hoc` varchar(200)
+`so_luong_thanh_toan` bigint
+,`ten_khoa_hoc` varchar(200)
 ,`tong_doanh_thu` decimal(34,2)
-,`so_luong_thanh_toan` bigint
 );
 
 -- --------------------------------------------------------
@@ -572,7 +576,9 @@ CREATE TABLE `yeu_cau_doi_lich` (
 
 INSERT INTO `yeu_cau_doi_lich` (`id`, `id_giang_vien`, `id_ca_hoc_cu`, `id_lop`, `thu_trong_tuan_moi`, `id_ca_moi`, `id_phong_moi`, `ngay_doi`, `ly_do`, `trang_thai`, `ghi_chu_admin`, `ngay_tao`, `ngay_cap_nhat`) VALUES
 (1, 1, 2, 1, 'Thứ 4', 1, 1, '2025-12-02', '', 'da_duyet', '[Lịch cũ: Thứ 4, Ca ID: 1, Phòng ID: 1]', '2025-12-08 10:26:27', '2025-12-08 10:26:50'),
-(2, 1, 2, 1, 'Thứ 4', 1, 1, '2025-12-02', 'bận', 'da_duyet', '[Lịch cũ: Thứ 4, Ca ID: 1, Phòng ID: 1]', '2025-12-08 10:33:43', '2025-12-08 10:35:53');
+(2, 1, 2, 1, 'Thứ 4', 1, 1, '2025-12-02', 'bận', 'da_duyet', '[Lịch cũ: Thứ 4, Ca ID: 1, Phòng ID: 1]', '2025-12-08 10:33:43', '2025-12-08 10:35:53'),
+(3, 1, 2, 1, 'Thứ 4', 2, 5, '2025-12-02', 'thích', 'da_duyet', '[Lịch cũ: Thứ 4, Ca ID: 1, Phòng ID: 1]', '2025-12-08 12:56:57', '2025-12-08 12:58:40'),
+(4, 1, 2, 1, 'Thứ 4', 2, 5, '2025-12-02', 'ốm', 'da_duyet', '[Lịch cũ: Thứ 4, Ca ID: 2, Phòng ID: 5]', '2025-12-08 13:20:26', '2025-12-08 13:20:50');
 
 -- --------------------------------------------------------
 
@@ -745,7 +751,7 @@ ALTER TABLE `ca_mac_dinh`
 -- AUTO_INCREMENT for table `dang_ky`
 --
 ALTER TABLE `dang_ky`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
 -- AUTO_INCREMENT for table `danh_muc`
@@ -781,7 +787,7 @@ ALTER TABLE `lien_he`
 -- AUTO_INCREMENT for table `lop_hoc`
 --
 ALTER TABLE `lop_hoc`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `nguoi_dung`
@@ -799,7 +805,7 @@ ALTER TABLE `nguoi_dung_vai_tro`
 -- AUTO_INCREMENT for table `phan_hoi_binh_luan`
 --
 ALTER TABLE `phan_hoi_binh_luan`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `phan_quyen`
@@ -823,7 +829,7 @@ ALTER TABLE `thanh_toan`
 -- AUTO_INCREMENT for table `yeu_cau_doi_lich`
 --
 ALTER TABLE `yeu_cau_doi_lich`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Constraints for dumped tables
