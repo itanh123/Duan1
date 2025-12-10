@@ -174,10 +174,7 @@ match ($act) {
     
     // Quản lý học sinh
     'admin-list-hoc-sinh' => $adminController->listHocSinh(),
-    'admin-add-hoc-sinh' => $adminController->addHocSinh(),
-    'admin-save-hoc-sinh' => $adminController->saveHocSinh(),
-    'admin-edit-hoc-sinh' => $adminController->editHocSinh(),
-    'admin-update-hoc-sinh' => $adminController->updateHocSinh(),
+    'admin-view-hoc-sinh' => $adminController->viewHocSinh(),
     'admin-delete-hoc-sinh' => $adminController->deleteHocSinh(),
     'admin-toggle-hoc-sinh-status' => $adminController->toggleHocSinhStatus(),
     'admin-view-lop-hoc-hoc-sinh' => $adminController->viewLopHocHocSinh(),
@@ -230,6 +227,8 @@ match ($act) {
     'admin-save-ca-hoc' => $adminController->saveCaHoc(),
     'admin-edit-ca-hoc' => $adminController->editCaHoc(),
     'admin-check-ca-hoc-trung' => $adminController->checkCaHocTrung(),
+    'admin-get-lop-hoc-info' => $adminController->getLopHocInfo(),
+    'admin-get-phong-hoc-by-suc-chua' => $adminController->getPhongHocBySucChua(),
     'admin-update-ca-hoc' => $adminController->updateCaHoc(),
     'admin-delete-ca-hoc' => $adminController->deleteCaHoc(),
     

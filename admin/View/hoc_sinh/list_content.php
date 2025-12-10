@@ -5,9 +5,6 @@ $pageTitle = 'Quản lý Học sinh';
 <div class="page-container">
     <div class="page-header">
         <h2>Quản lý học sinh</h2>
-        <div class="page-actions">
-            <a href="?act=admin-add-hoc-sinh" class="btn btn-primary">+ Thêm học sinh</a>
-        </div>
     </div>
 
     <div class="filter-section">
@@ -70,8 +67,9 @@ $pageTitle = 'Quản lý Học sinh';
                                     <a href="?act=admin-view-lop-hoc-hoc-sinh&id=<?= $hs['id'] ?>" 
                                        class="btn btn-info btn-sm" 
                                        style="background: #17a2b8; color: white; margin-right: 5px;">Lớp học</a>
-                                    <a href="?act=admin-edit-hoc-sinh&id=<?= $hs['id'] ?>" 
-                                       class="btn btn-warning btn-sm">Sửa</a>
+                                    <a href="?act=admin-view-hoc-sinh&id=<?= $hs['id'] ?>" 
+                                       class="btn btn-info btn-sm" 
+                                       style="background: #17a2b8; color: white;">Xem</a>
                                     <?php if ($hs['trang_thai'] == 1): ?>
                                         <a href="?act=admin-delete-hoc-sinh&id=<?= $hs['id'] ?>" 
                                            class="btn btn-danger btn-sm" 

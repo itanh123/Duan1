@@ -37,11 +37,23 @@
                 <option value="">-- Chọn lớp học --</option>
                 <?php foreach ($lopHocList as $lh): ?>
                     <option value="<?= $lh['id'] ?>" 
+                            data-so-luong-toi-da="<?= $lh['so_luong_toi_da'] ?? 30 ?>"
                             <?= $selectedLop == $lh['id'] ? 'selected' : '' ?>>
                         <?= htmlspecialchars($lh['ten_lop']) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
+            <div id="so_luong_toi_da_info" style="margin-top: 8px; padding: 10px; background: #e7f3ff; border-left: 3px solid #007bff; border-radius: 4px; display: none;">
+                <div style="margin-bottom: 5px;">
+                    <strong>Số lượng tối đa:</strong> <span id="so_luong_toi_da_value"></span> học sinh
+                </div>
+                <div>
+                    <strong>Số lượng đã đăng ký:</strong> <span id="so_luong_dang_ky_value"></span> học sinh
+                </div>
+                <div style="margin-top: 5px; font-size: 12px; color: #666;">
+                    <span id="so_luong_con_lai_text"></span>
+                </div>
+            </div>
         </div>
 
         <div class="form-row">
@@ -113,12 +125,16 @@
                     <?php foreach ($phongHocList ?? [] as $ph): ?>
                         <option value="<?= $ph['id'] ?>" 
                                 data-phong-id="<?= $ph['id'] ?>"
+                                data-suc-chua="<?= $ph['suc_chua'] ?>"
                                 <?= !empty($selectedPhong) && (int)$selectedPhong == (int)$ph['id'] ? 'selected' : '' ?>>
                             <?= htmlspecialchars($ph['ten_phong']) ?> (Sức chứa: <?= $ph['suc_chua'] ?>)
                         </option>
                     <?php endforeach; ?>
                 </select>
                 <div id="phong_warning" class="warning-message" style="display: none; color: #f39c12; font-size: 12px; margin-top: 5px;"></div>
+                <div id="phong_info" style="margin-top: 8px; padding: 8px; background: #fff3cd; border-left: 3px solid #ffc107; border-radius: 4px; display: none; font-size: 12px;">
+                    <strong>Lưu ý:</strong> Chỉ hiển thị các phòng có sức chứa >= số lượng tối đa của lớp học
+                </div>
             </div>
         </div>
 
@@ -161,6 +177,7 @@
 <script>
 (function() {
     const form = document.getElementById('caHocForm');
+    const idLop = document.getElementById('id_lop');
     const idCa = document.getElementById('id_ca');
     const thuTrongTuan = document.getElementById('thu_trong_tuan');
     const ngayHoc = document.getElementById('ngay_hoc');
@@ -168,10 +185,168 @@
     const idPhong = document.getElementById('id_phong');
     const giangVienWarning = document.getElementById('giang_vien_warning');
     const phongWarning = document.getElementById('phong_warning');
+    const soLuongToiDaInfo = document.getElementById('so_luong_toi_da_info');
+    const soLuongToiDaValue = document.getElementById('so_luong_toi_da_value');
+    const soLuongDangKyValue = document.getElementById('so_luong_dang_ky_value');
+    const soLuongConLaiText = document.getElementById('so_luong_con_lai_text');
+    const phongInfo = document.getElementById('phong_info');
     
     let checkTimeout = null;
     let currentGiangVienTrung = [];
     let currentPhongTrung = [];
+    let currentSoLuongToiDa = null;
+    let allPhongHoc = []; // Lưu tất cả phòng học ban đầu
+    
+    // Lưu tất cả phòng học ban đầu
+    Array.from(idPhong.options).forEach(opt => {
+        if (opt.value) {
+            allPhongHoc.push({
+                value: opt.value,
+                text: opt.text,
+                sucChua: opt.getAttribute('data-suc-chua') || 0
+            });
+        }
+    });
+    
+    // Xử lý khi chọn lớp học
+    function handleLopChange() {
+        const selectedLopId = idLop.value;
+        if (!selectedLopId) {
+            // Ẩn thông tin số lượng tối đa
+            soLuongToiDaInfo.style.display = 'none';
+            phongInfo.style.display = 'none';
+            // Khôi phục tất cả phòng học
+            restoreAllPhongHoc();
+            return;
+        }
+        
+        // Lấy số lượng tối đa từ option được chọn (tạm thời để lọc phòng)
+        const selectedOption = idLop.options[idLop.selectedIndex];
+        const tempSoLuongToiDa = parseInt(selectedOption.getAttribute('data-so-luong-toi-da') || 30);
+        
+        // Gọi API để lấy thông tin đầy đủ (bao gồm số lượng đã đăng ký)
+        fetch(`?act=admin-get-lop-hoc-info&id_lop=${selectedLopId}`)
+            .then(response => response.json())
+            .then(data => {
+                let soLuongToiDa = tempSoLuongToiDa;
+                let soLuongDangKy = 0;
+                
+                if (data.error) {
+                    console.error('Lỗi:', data.error);
+                    // Vẫn hiển thị số lượng tối đa từ attribute
+                    soLuongDangKy = 0;
+                } else {
+                    // Lấy thông tin từ API
+                    soLuongToiDa = data.so_luong_toi_da || tempSoLuongToiDa;
+                    soLuongDangKy = data.so_luong_dang_ky || 0;
+                }
+                
+                // Cập nhật currentSoLuongToiDa
+                currentSoLuongToiDa = soLuongToiDa;
+                
+                // Hiển thị thông tin
+                soLuongToiDaValue.textContent = soLuongToiDa;
+                soLuongDangKyValue.textContent = soLuongDangKy;
+                
+                // Tính và hiển thị số lượng còn lại
+                const soLuongConLai = soLuongToiDa - soLuongDangKy;
+                if (soLuongConLai > 0) {
+                    soLuongConLaiText.textContent = `Còn lại: ${soLuongConLai} chỗ trống`;
+                    soLuongConLaiText.style.color = '#28a745';
+                } else {
+                    soLuongConLaiText.textContent = 'Lớp đã đầy';
+                    soLuongConLaiText.style.color = '#dc3545';
+                }
+                
+                soLuongToiDaInfo.style.display = 'block';
+                
+                // Lọc phòng học theo sức chứa
+                filterPhongHocBySucChua(soLuongToiDa);
+            })
+            .catch(error => {
+                console.error('Lỗi khi lấy thông tin lớp học:', error);
+                // Vẫn hiển thị số lượng tối đa từ attribute
+                currentSoLuongToiDa = tempSoLuongToiDa;
+                soLuongToiDaValue.textContent = tempSoLuongToiDa;
+                soLuongDangKyValue.textContent = '0';
+                soLuongConLaiText.textContent = '';
+                soLuongToiDaInfo.style.display = 'block';
+                // Lọc phòng học theo sức chứa
+                filterPhongHocBySucChua(tempSoLuongToiDa);
+            });
+    }
+    
+    // Lọc phòng học theo sức chứa
+    function filterPhongHocBySucChua(soLuongToiDa) {
+        // Xóa tất cả options (trừ option đầu tiên)
+        while (idPhong.options.length > 1) {
+            idPhong.remove(1);
+        }
+        
+        // Thêm lại các phòng học có sức chứa >= số lượng tối đa
+        let hasValidPhong = false;
+        allPhongHoc.forEach(ph => {
+            const sucChua = parseInt(ph.sucChua) || 0;
+            if (sucChua >= soLuongToiDa) {
+                const option = document.createElement('option');
+                option.value = ph.value;
+                option.textContent = ph.text;
+                option.setAttribute('data-suc-chua', ph.sucChua);
+                idPhong.appendChild(option);
+                hasValidPhong = true;
+            }
+        });
+        
+        // Hiển thị thông báo nếu có phòng phù hợp
+        if (hasValidPhong) {
+            phongInfo.style.display = 'block';
+        } else {
+            phongInfo.style.display = 'none';
+            // Thêm option thông báo không có phòng phù hợp
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = '-- Không có phòng phù hợp (sức chứa >= ' + soLuongToiDa + ') --';
+            option.disabled = true;
+            idPhong.appendChild(option);
+        }
+        
+        // Reset giá trị đã chọn nếu không còn trong danh sách
+        const currentSelected = idPhong.value;
+        let found = false;
+        Array.from(idPhong.options).forEach(opt => {
+            if (opt.value === currentSelected) {
+                found = true;
+            }
+        });
+        if (!found) {
+            idPhong.value = '';
+        }
+    }
+    
+    // Khôi phục tất cả phòng học
+    function restoreAllPhongHoc() {
+        // Xóa tất cả options (trừ option đầu tiên)
+        while (idPhong.options.length > 1) {
+            idPhong.remove(1);
+        }
+        
+        // Thêm lại tất cả phòng học
+        allPhongHoc.forEach(ph => {
+            const option = document.createElement('option');
+            option.value = ph.value;
+            option.textContent = ph.text;
+            option.setAttribute('data-suc-chua', ph.sucChua);
+            idPhong.appendChild(option);
+        });
+    }
+    
+    // Lắng nghe sự kiện thay đổi lớp học
+    idLop.addEventListener('change', handleLopChange);
+    
+    // Xử lý khi load trang nếu đã có lớp được chọn
+    if (idLop.value) {
+        handleLopChange();
+    }
     
     function checkTrung() {
         const ca = idCa.value;

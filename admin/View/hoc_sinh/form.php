@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($hocSinh) ? 'Sửa học sinh' : 'Thêm học sinh' ?> - Admin</title>
+    <title>Xem thông tin học sinh - Admin</title>
     <style>
         * {
             margin: 0;
@@ -60,11 +60,6 @@
             font-weight: 500;
         }
         
-        .form-group label.required::after {
-            content: ' *';
-            color: #dc3545;
-        }
-        
         .form-control {
             width: 100%;
             padding: 10px 12px;
@@ -72,12 +67,9 @@
             border-radius: 5px;
             font-size: 14px;
             font-family: inherit;
-        }
-        
-        .form-control:focus {
-            outline: none;
-            border-color: #007bff;
-            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+            background-color: #f8f9fa;
+            color: #495057;
+            cursor: not-allowed;
         }
         
         textarea.form-control {
@@ -102,15 +94,6 @@
             transition: all 0.3s;
         }
         
-        .btn-primary {
-            background: #007bff;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #0056b3;
-        }
-        
         .btn-secondary {
             background: #6c757d;
             color: white;
@@ -126,10 +109,18 @@
             margin-top: 20px;
         }
         
-        .form-help {
-            font-size: 12px;
-            color: #6c757d;
-            margin-top: 5px;
+        .info-value {
+            padding: 10px 12px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            color: #495057;
+            min-height: 42px;
+        }
+        
+        .info-value.empty {
+            color: #999;
+            font-style: italic;
         }
     </style>
 </head>
@@ -137,7 +128,7 @@
     <div class="container">
         <h1>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span><?= isset($hocSinh) ? 'Sửa học sinh' : 'Thêm học sinh mới' ?></span>
+                <span>Xem thông tin học sinh</span>
                 <a href="?act=admin-dashboard" class="btn" style="background: #6c757d; color: white; text-decoration: none; padding: 8px 16px; border-radius: 5px;">🏠 Trang chủ</a>
             </div>
         </h1>
@@ -148,139 +139,77 @@
             </div>
         <?php endif; ?>
 
-        <form method="POST" 
-              action="?act=<?= isset($hocSinh) ? 'admin-update-hoc-sinh' : 'admin-save-hoc-sinh' ?>">
-            
-            <?php if (isset($hocSinh)): ?>
-                <input type="hidden" name="id" value="<?= $hocSinh['id'] ?>">
-            <?php endif; ?>
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="alert alert-success">
+                <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($hocSinh)): ?>
+            <div class="form-group">
+                <label>Mã người dùng</label>
+                <div class="info-value">
+                    <?= htmlspecialchars($hocSinh['ma_nguoi_dung'] ?? 'N/A') ?>
+                </div>
+            </div>
 
             <div class="form-group">
-                <label for="ho_ten" class="required">Họ tên</label>
-                <input type="text" 
-                       name="ho_ten" 
-                       id="ho_ten" 
-                       class="form-control" 
-                       value="<?= htmlspecialchars($hocSinh['ho_ten'] ?? '') ?>" 
-                       maxlength="200"
-                       placeholder="Nhập họ tên học sinh">
+                <label>Họ tên</label>
+                <div class="info-value">
+                    <?= htmlspecialchars($hocSinh['ho_ten'] ?? 'N/A') ?>
+                </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="email" class="required">Email</label>
-                    <input type="email" 
-                           name="email" 
-                           id="email" 
-                           class="form-control" 
-                           value="<?= htmlspecialchars($hocSinh['email'] ?? '') ?>" 
-                           maxlength="200"
-                           placeholder="example@email.com">
+                    <label>Email</label>
+                    <div class="info-value">
+                        <?= htmlspecialchars($hocSinh['email'] ?? 'N/A') ?>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="so_dien_thoai">Số điện thoại</label>
-                    <input type="text" 
-                           name="so_dien_thoai" 
-                           id="so_dien_thoai" 
-                           class="form-control" 
-                           value="<?= htmlspecialchars($hocSinh['so_dien_thoai'] ?? '') ?>" 
-                           maxlength="20"
-                           placeholder="0123456789">
+                    <label>Số điện thoại</label>
+                    <div class="info-value <?= empty($hocSinh['so_dien_thoai']) ? 'empty' : '' ?>">
+                        <?= !empty($hocSinh['so_dien_thoai']) ? htmlspecialchars($hocSinh['so_dien_thoai']) : 'Chưa cập nhật' ?>
+                    </div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="mat_khau" class="<?= !isset($hocSinh) ? 'required' : '' ?>">Mật khẩu</label>
-                <input type="password" 
-                       name="mat_khau" 
-                       id="mat_khau" 
-                       class="form-control" 
-                       placeholder="<?= isset($hocSinh) ? 'Để trống nếu không đổi mật khẩu' : 'Nhập mật khẩu' ?>">
-                <?php if (isset($hocSinh)): ?>
-                    <div class="form-help">Để trống nếu không muốn thay đổi mật khẩu</div>
-                <?php endif; ?>
+                <label>Địa chỉ</label>
+                <div class="info-value <?= empty($hocSinh['dia_chi']) ? 'empty' : '' ?>">
+                    <?= !empty($hocSinh['dia_chi']) ? nl2br(htmlspecialchars($hocSinh['dia_chi'])) : 'Chưa cập nhật' ?>
+                </div>
             </div>
 
             <div class="form-group">
-                <label for="dia_chi">Địa chỉ</label>
-                <textarea name="dia_chi" 
-                          id="dia_chi" 
-                          class="form-control" 
-                          rows="3"
-                          placeholder="Nhập địa chỉ"><?= htmlspecialchars($hocSinh['dia_chi'] ?? '') ?></textarea>
+                <label>Trạng thái</label>
+                <div class="info-value">
+                    <span style="padding: 5px 10px; border-radius: 3px; background: <?= $hocSinh['trang_thai'] == 1 ? '#d4edda' : '#f8d7da' ?>; color: <?= $hocSinh['trang_thai'] == 1 ? '#155724' : '#721c24' ?>;">
+                        <?= $hocSinh['trang_thai'] == 1 ? 'Hoạt động' : 'Khóa' ?>
+                    </span>
+                </div>
             </div>
 
             <div class="form-group">
-                <label for="trang_thai">Trạng thái</label>
-                <select name="trang_thai" id="trang_thai" class="form-control">
-                    <option value="1" <?= (!isset($hocSinh) || $hocSinh['trang_thai'] == 1) ? 'selected' : '' ?>>
-                        Hoạt động
-                    </option>
-                    <option value="0" <?= (isset($hocSinh) && $hocSinh['trang_thai'] == 0) ? 'selected' : '' ?>>
-                        Khóa
-                    </option>
-                </select>
+                <label>Ngày tạo</label>
+                <div class="info-value">
+                    <?= isset($hocSinh['ngay_tao']) ? date('d/m/Y H:i:s', strtotime($hocSinh['ngay_tao'])) : 'N/A' ?>
+                </div>
             </div>
 
             <div class="btn-group">
-                <button type="submit" class="btn btn-primary">
-                    <?= isset($hocSinh) ? 'Cập nhật' : 'Thêm mới' ?>
-                </button>
-                <a href="?act=admin-list-hoc-sinh" class="btn btn-secondary">Hủy</a>
+                <a href="?act=admin-list-hoc-sinh" class="btn btn-secondary">Quay lại</a>
             </div>
-        </form>
+        <?php else: ?>
+            <div class="alert alert-error">
+                Không tìm thấy thông tin học sinh!
+            </div>
+            <div class="btn-group">
+                <a href="?act=admin-list-hoc-sinh" class="btn btn-secondary">Quay lại</a>
+            </div>
+        <?php endif; ?>
     </div>
-    
-    <script src="admin/View/js/validation.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const isEditMode = <?= isset($hocSinh) ? 'true' : 'false' ?>;
-            
-            const validationRules = {
-                ho_ten: {
-                    required: true,
-                    label: 'Họ tên',
-                    requiredMessage: 'Vui lòng nhập họ tên học sinh',
-                    minLength: 2,
-                    minLengthMessage: 'Họ tên phải có ít nhất 2 ký tự',
-                    maxLength: 200
-                },
-                email: {
-                    required: true,
-                    label: 'Email',
-                    requiredMessage: 'Vui lòng nhập email',
-                    email: true,
-                    emailMessage: 'Email không hợp lệ',
-                    maxLength: 200
-                },
-                so_dien_thoai: {
-                    required: false,
-                    label: 'Số điện thoại',
-                    phone: true,
-                    phoneMessage: 'Số điện thoại không hợp lệ (định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx)'
-                },
-                mat_khau: {
-                    required: !isEditMode,
-                    label: 'Mật khẩu',
-                    requiredMessage: 'Vui lòng nhập mật khẩu',
-                    minLength: isEditMode ? 0 : 6,
-                    minLengthMessage: 'Mật khẩu phải có ít nhất 6 ký tự',
-                    custom: function(value) {
-                        if (isEditMode && !value) {
-                            return true; // Optional when editing
-                        }
-                        if (!isEditMode && value.length < 6) {
-                            return 'Mật khẩu phải có ít nhất 6 ký tự';
-                        }
-                        return true;
-                    }
-                }
-            };
-            
-            FormValidator.init('form', validationRules);
-        });
-    </script>
 </body>
 </html>
-

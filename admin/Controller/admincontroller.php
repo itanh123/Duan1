@@ -373,9 +373,9 @@ class admincontroller{
         return null;
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ HỌC SINH
-    // ===========================================
+    
 
     // Danh sách học sinh
     public function listHocSinh(){
@@ -400,80 +400,8 @@ class admincontroller{
         $this->renderView('./admin/View/hoc_sinh/list_content.php', 'Quản lý Học sinh', $data);
     }
 
-    // Form thêm học sinh
-    public function addHocSinh(){
-        $this->checkAdminLogin();
-        require_once('./admin/View/hoc_sinh/form.php');
-    }
-
-    // Xử lý thêm học sinh
-    public function saveHocSinh(){
-        $this->checkAdminLogin();
-        $data = [
-            'ho_ten' => trim($_POST['ho_ten'] ?? ''),
-            'email' => trim($_POST['email'] ?? ''),
-            'mat_khau' => $_POST['mat_khau'] ?? '',
-            'so_dien_thoai' => trim($_POST['so_dien_thoai'] ?? ''),
-            'dia_chi' => trim($_POST['dia_chi'] ?? ''),
-            'trang_thai' => $_POST['trang_thai'] ?? 1
-        ];
-
-        // Validation: Tất cả trường bắt buộc
-        $errors = [];
-        
-        if (empty($data['ho_ten'])) {
-            $errors[] = 'Vui lòng nhập họ tên!';
-        } elseif (strlen($data['ho_ten']) < 2) {
-            $errors[] = 'Họ tên phải có ít nhất 2 ký tự!';
-        } elseif (strlen($data['ho_ten']) > 200) {
-            $errors[] = 'Họ tên không được vượt quá 200 ký tự!';
-        }
-        
-        if (empty($data['email'])) {
-            $errors[] = 'Vui lòng nhập email!';
-        } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $errors[] = 'Email không hợp lệ!';
-        } elseif (strlen($data['email']) > 200) {
-            $errors[] = 'Email không được vượt quá 200 ký tự!';
-        } elseif ($this->model->checkEmailExists($data['email'])) {
-            $errors[] = 'Email đã tồn tại trong hệ thống!';
-        }
-        
-        if (empty($data['mat_khau'])) {
-            $errors[] = 'Vui lòng nhập mật khẩu!';
-        } elseif (strlen($data['mat_khau']) < 6) {
-            $errors[] = 'Mật khẩu phải có ít nhất 6 ký tự!';
-        }
-        
-        if (!empty($data['so_dien_thoai'])) {
-            // Validate số điện thoại: 0xxxxxxxxx hoặc +84xxxxxxxxx
-            $phonePattern = '/^(0|\+84)[0-9]{9,10}$/';
-            $cleanPhone = preg_replace('/[\s\-]/', '', $data['so_dien_thoai']);
-            if (!preg_match($phonePattern, $cleanPhone)) {
-                $errors[] = 'Số điện thoại không hợp lệ! (Định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx)';
-            } elseif (strlen($data['so_dien_thoai']) > 20) {
-                $errors[] = 'Số điện thoại không được vượt quá 20 ký tự!';
-            }
-        }
-        
-        if (!empty($errors)) {
-            $_SESSION['error'] = implode(' ', $errors);
-            header('Location: ?act=admin-add-hoc-sinh');
-            exit;
-        }
-
-        if ($this->model->addHocSinh($data)) {
-            $_SESSION['success'] = 'Thêm học sinh thành công!';
-            header('Location: ?act=admin-list-hoc-sinh');
-        } else {
-            $_SESSION['error'] = 'Thêm học sinh thất bại!';
-            header('Location: ?act=admin-add-hoc-sinh');
-        }
-        exit;
-    }
-
-    // Form sửa học sinh
-    public function editHocSinh(){
+    // Xem thông tin học sinh (chỉ xem, không cho sửa)
+    public function viewHocSinh(){
         $this->checkAdminLogin();
         $id = $_GET['id'] ?? 0;
         if (!$id) {
@@ -489,87 +417,6 @@ class admincontroller{
         }
         
         require_once('./admin/View/hoc_sinh/form.php');
-    }
-
-    // Xử lý cập nhật học sinh
-    public function updateHocSinh(){
-        $this->checkAdminLogin();
-        $id = $_POST['id'] ?? 0;
-        if (!$id) {
-            header('Location: ?act=admin-list-hoc-sinh');
-            exit;
-        }
-
-        $hocSinh = $this->model->getHocSinhById($id);
-        if (!$hocSinh) {
-            $_SESSION['error'] = 'Không tìm thấy học sinh!';
-            header('Location: ?act=admin-list-hoc-sinh');
-            exit;
-        }
-
-        $data = [
-            'ho_ten' => trim($_POST['ho_ten'] ?? ''),
-            'email' => trim($_POST['email'] ?? ''),
-            'so_dien_thoai' => trim($_POST['so_dien_thoai'] ?? ''),
-            'dia_chi' => trim($_POST['dia_chi'] ?? ''),
-            'trang_thai' => $_POST['trang_thai'] ?? 1
-        ];
-
-        // Nếu có mật khẩu mới
-        if (!empty($_POST['mat_khau'])) {
-            $data['mat_khau'] = $_POST['mat_khau'];
-        }
-
-        // Validation: Tất cả trường bắt buộc
-        $errors = [];
-        
-        if (empty($data['ho_ten'])) {
-            $errors[] = 'Vui lòng nhập họ tên!';
-        } elseif (strlen($data['ho_ten']) < 2) {
-            $errors[] = 'Họ tên phải có ít nhất 2 ký tự!';
-        } elseif (strlen($data['ho_ten']) > 200) {
-            $errors[] = 'Họ tên không được vượt quá 200 ký tự!';
-        }
-        
-        if (empty($data['email'])) {
-            $errors[] = 'Vui lòng nhập email!';
-        } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $errors[] = 'Email không hợp lệ!';
-        } elseif (strlen($data['email']) > 200) {
-            $errors[] = 'Email không được vượt quá 200 ký tự!';
-        } elseif ($this->model->checkEmailExists($data['email'], $id)) {
-            $errors[] = 'Email đã tồn tại trong hệ thống!';
-        }
-        
-        if (!empty($data['mat_khau']) && strlen($data['mat_khau']) < 6) {
-            $errors[] = 'Mật khẩu phải có ít nhất 6 ký tự!';
-        }
-        
-        if (!empty($data['so_dien_thoai'])) {
-            // Validate số điện thoại: 0xxxxxxxxx hoặc +84xxxxxxxxx
-            $phonePattern = '/^(0|\+84)[0-9]{9,10}$/';
-            $cleanPhone = preg_replace('/[\s\-]/', '', $data['so_dien_thoai']);
-            if (!preg_match($phonePattern, $cleanPhone)) {
-                $errors[] = 'Số điện thoại không hợp lệ! (Định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx)';
-            } elseif (strlen($data['so_dien_thoai']) > 20) {
-                $errors[] = 'Số điện thoại không được vượt quá 20 ký tự!';
-            }
-        }
-        
-        if (!empty($errors)) {
-            $_SESSION['error'] = implode(' ', $errors);
-            header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
-            exit;
-        }
-
-        if ($this->model->updateHocSinh($id, $data)) {
-            $_SESSION['success'] = 'Cập nhật học sinh thành công!';
-            header('Location: ?act=admin-list-hoc-sinh');
-        } else {
-            $_SESSION['error'] = 'Cập nhật học sinh thất bại!';
-            header('Location: ?act=admin-edit-hoc-sinh&id=' . $id);
-        }
-        exit;
     }
 
     // Xóa học sinh
@@ -648,9 +495,9 @@ class admincontroller{
     }
 
 
-    // ===========================================
+    
     //  QUẢN LÝ DANH MỤC
-    // ===========================================
+    
 
     // Danh sách danh mục
     public function listDanhMuc(){
@@ -845,9 +692,9 @@ class admincontroller{
         exit;
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ GIẢNG VIÊN
-    // ===========================================
+    
 
     // Danh sách giảng viên
     public function listGiangVien(){
@@ -1090,9 +937,9 @@ class admincontroller{
         $this->renderView('./admin/View/giang_vien/lop_hoc_detail.php', 'Lớp học của ' . htmlspecialchars($giangVien['ho_ten']), $data);
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ LỚP HỌC
-    // ===========================================
+    
 
     // Danh sách lớp học
     public function listLopHoc(){
@@ -1131,30 +978,7 @@ class admincontroller{
             $trang_thai = 'Chưa khai giảng'; // Mặc định
         }
         
-        $id_phong_hoc = isset($_POST['id_phong_hoc']) ? (int)$_POST['id_phong_hoc'] : 0;
         $so_luong_toi_da = !empty($_POST['so_luong_toi_da']) ? (int)$_POST['so_luong_toi_da'] : null;
-        
-        // Validation: Phải chọn phòng học
-        if (!$id_phong_hoc) {
-            $_SESSION['error'] = 'Vui lòng chọn phòng học!';
-            header('Location: ?act=admin-add-lop-hoc');
-            exit;
-        }
-        
-        // Lấy thông tin phòng học để kiểm tra sức chứa
-        $phongHoc = $this->model->getPhongHocById($id_phong_hoc);
-        if (!$phongHoc) {
-            $_SESSION['error'] = 'Phòng học không tồn tại!';
-            header('Location: ?act=admin-add-lop-hoc');
-            exit;
-        }
-        
-        // Validation: Số lượng tối đa không được vượt quá sức chứa phòng học
-        if ($so_luong_toi_da && $so_luong_toi_da > $phongHoc['suc_chua']) {
-            $_SESSION['error'] = "Số lượng tối đa ({$so_luong_toi_da}) không được vượt quá sức chứa phòng học ({$phongHoc['suc_chua']})!";
-            header('Location: ?act=admin-add-lop-hoc');
-            exit;
-        }
         
         $data = [
             'id_khoa_hoc' => $_POST['id_khoa_hoc'] ?? '',
@@ -1215,15 +1039,11 @@ class admincontroller{
         
         $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
         $soLuongDangKy = $this->model->countDangKyByLop($id); // Đếm số lượng đăng ký hiện tại
-        $phongHocInfo = $this->model->getSucChuaPhongHocNhoNhatByLop($id); // Lấy thông tin sức chứa phòng học
-        $phongHocList = $this->model->getPhongHocList(); // Lấy danh sách phòng học
         
         $data = [
             'lopHoc' => $lopHoc,
             'khoaHocList' => $khoaHocList,
-            'soLuongDangKy' => $soLuongDangKy,
-            'phongHocInfo' => $phongHocInfo,
-            'phongHocList' => $phongHocList
+            'soLuongDangKy' => $soLuongDangKy
         ];
 
         $this->renderView('./admin/View/lop_hoc/form_content.php', 'Sửa Lớp học', $data);
@@ -1232,11 +1052,9 @@ class admincontroller{
     public function addLopHoc(){
         $this->checkAdminLogin();
         $khoaHocList = $this->model->getKhoaHoc(1, 1000, '', ''); // Lấy tất cả khóa học
-        $phongHocList = $this->model->getPhongHocList(); // Lấy danh sách phòng học
         
         $data = [
-            'khoaHocList' => $khoaHocList,
-            'phongHocList' => $phongHocList
+            'khoaHocList' => $khoaHocList
         ];
 
         $this->renderView('./admin/View/lop_hoc/form_content.php', 'Thêm Lớp học', $data);
@@ -1295,37 +1113,14 @@ class admincontroller{
             exit;
         }
 
-        // Validation: Phải chọn phòng học
-        $id_phong_hoc = isset($_POST['id_phong_hoc']) ? (int)$_POST['id_phong_hoc'] : 0;
-        if (!$id_phong_hoc) {
-            $_SESSION['error'] = 'Vui lòng chọn phòng học!';
-            header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
-            exit;
-        }
-        
-        // Lấy thông tin phòng học để kiểm tra sức chứa
-        $phongHoc = $this->model->getPhongHocById($id_phong_hoc);
-        if (!$phongHoc) {
-            $_SESSION['error'] = 'Phòng học không tồn tại!';
-            header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
-            exit;
-        }
-        
         // Kiểm tra số lượng tối đa không được nhỏ hơn số lượng đăng ký hiện tại
         $soLuongDangKy = $this->model->countDangKyByLop($id);
         $soLuongToiDaCu = $lopHoc['so_luong_toi_da'] ?? null;
         
         if (!empty($data['so_luong_toi_da'])) {
-            // Kiểm tra 1: Số lượng tối đa không được nhỏ hơn số lượng đăng ký hiện tại
+            // Kiểm tra: Số lượng tối đa không được nhỏ hơn số lượng đăng ký hiện tại
             if ($data['so_luong_toi_da'] < $soLuongDangKy) {
                 $_SESSION['error'] = "Không thể đặt số lượng tối đa là {$data['so_luong_toi_da']}! Lớp học này hiện có {$soLuongDangKy} học sinh đã đăng ký (đã xác nhận). Số lượng tối đa phải >= {$soLuongDangKy}.";
-                header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
-                exit;
-            }
-            
-            // Kiểm tra 2: Số lượng tối đa không được lớn hơn sức chứa của phòng học đã chọn
-            if ($data['so_luong_toi_da'] > $phongHoc['suc_chua']) {
-                $_SESSION['error'] = "Số lượng tối đa ({$data['so_luong_toi_da']}) không được vượt quá sức chứa phòng học ({$phongHoc['suc_chua']})! Phòng: {$phongHoc['ten_phong']}.";
                 header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
                 exit;
             }
@@ -1374,9 +1169,9 @@ class admincontroller{
         exit;
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ CA HỌC
-    // ===========================================
+    
 
     // Danh sách ca học
     public function listCaHoc(){
@@ -1606,6 +1401,54 @@ class admincontroller{
         echo json_encode([
             'giang_vien_trung' => $giangVienTrung,
             'phong_hoc_trung' => $phongHocTrung
+        ]);
+        exit;
+    }
+
+    // API lấy thông tin lớp học
+    public function getLopHocInfo(){
+        $this->checkAdminLogin();
+        header('Content-Type: application/json');
+        
+        $id_lop = $_GET['id_lop'] ?? '';
+        if (empty($id_lop)) {
+            echo json_encode(['error' => 'Thiếu ID lớp học']);
+            exit;
+        }
+        
+        $lopHoc = $this->model->getLopHocById($id_lop);
+        if (!$lopHoc) {
+            echo json_encode(['error' => 'Không tìm thấy lớp học']);
+            exit;
+        }
+        
+        // Đếm số học sinh đã đăng ký
+        $soLuongDangKy = $this->model->countHocSinhDangKy($id_lop);
+        
+        echo json_encode([
+            'id' => $lopHoc['id'],
+            'ten_lop' => $lopHoc['ten_lop'],
+            'so_luong_toi_da' => $lopHoc['so_luong_toi_da'] ?? 30,
+            'so_luong_dang_ky' => $soLuongDangKy
+        ]);
+        exit;
+    }
+
+    // API lấy danh sách phòng học theo sức chứa
+    public function getPhongHocBySucChua(){
+        $this->checkAdminLogin();
+        header('Content-Type: application/json');
+        
+        $so_luong_toi_da = $_GET['so_luong_toi_da'] ?? 0;
+        if (empty($so_luong_toi_da) || !is_numeric($so_luong_toi_da)) {
+            echo json_encode(['error' => 'Số lượng tối đa không hợp lệ']);
+            exit;
+        }
+        
+        $phongHocList = $this->model->getPhongHocBySucChua((int)$so_luong_toi_da);
+        
+        echo json_encode([
+            'phong_hoc' => $phongHocList
         ]);
         exit;
     }
@@ -1860,9 +1703,9 @@ class admincontroller{
         exit;
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ ĐĂNG KÝ
-    // ===========================================
+    
 
     // Danh sách đăng ký
     public function listDangKy(){
@@ -2102,9 +1945,9 @@ class admincontroller{
         exit;
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ BÌNH LUẬN
-    // ===========================================
+    
 
     // Danh sách bình luận
     public function listBinhLuan(){
@@ -2304,9 +2147,9 @@ class admincontroller{
         exit;
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ PHÒNG HỌC
-    // ===========================================
+    
 
     // Danh sách phòng học
     public function listPhongHoc(){
@@ -2492,9 +2335,9 @@ class admincontroller{
         exit;
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ TÀI KHOẢN
-    // ===========================================
+    
 
     // Danh sách tài khoản
     public function listTaiKhoan(){
@@ -2665,9 +2508,9 @@ class admincontroller{
         exit;
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ YÊU CẦU ĐỔI LỊCH
-    // ===========================================
+    
     
     // Danh sách yêu cầu đổi lịch
     public function listYeuCauDoiLich()
@@ -2877,9 +2720,9 @@ class admincontroller{
         exit;
     }
 
-    // ===========================================
+    
     //  QUẢN LÝ LIÊN HỆ
-    // ===========================================
+    
 
     // Danh sách liên hệ
     public function listLienHe()
