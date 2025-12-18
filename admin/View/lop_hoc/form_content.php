@@ -102,16 +102,28 @@
             <div class="form-group">
                 <label for="trang_thai" class="required">Trạng thái</label>
                 <select name="trang_thai" id="trang_thai" class="form-control" required>
-                    <option value="Chưa khai giảng" <?= (!isset($lopHoc) || $lopHoc['trang_thai'] == 'Chưa khai giảng') ? 'selected' : '' ?>>
-                        Chưa khai giảng
+                    <?php 
+                    $trangThaiHienTai = $lopHoc['trang_thai'] ?? 'Chưa học';
+                    // Nếu đã là "Đang học" hoặc "Kết thúc", không cho chuyển về "Chưa học"
+                    $disableChuaHoc = in_array($trangThaiHienTai, ['Đang học', 'Kết thúc']);
+                    ?>
+                    <option value="Chưa học" 
+                            <?= (!isset($lopHoc) || $trangThaiHienTai == 'Chưa học') ? 'selected' : '' ?>
+                            <?= $disableChuaHoc ? 'disabled' : '' ?>>
+                        Chưa học
                     </option>
-                    <option value="Đang học" <?= (isset($lopHoc) && $lopHoc['trang_thai'] == 'Đang học') ? 'selected' : '' ?>>
+                    <option value="Đang học" <?= (isset($lopHoc) && $trangThaiHienTai == 'Đang học') ? 'selected' : '' ?>>
                         Đang học
                     </option>
-                    <option value="Kết thúc" <?= (isset($lopHoc) && $lopHoc['trang_thai'] == 'Kết thúc') ? 'selected' : '' ?>>
+                    <option value="Kết thúc" <?= (isset($lopHoc) && $trangThaiHienTai == 'Kết thúc') ? 'selected' : '' ?>>
                         Kết thúc
                     </option>
                 </select>
+                <?php if ($disableChuaHoc): ?>
+                    <small class="form-text text-muted" style="color: #856404;">
+                        <i class="bi bi-info-circle"></i> Không thể chuyển từ "<?= htmlspecialchars($trangThaiHienTai) ?>" về "Chưa học"
+                    </small>
+                <?php endif; ?>
             </div>
         </div>
 

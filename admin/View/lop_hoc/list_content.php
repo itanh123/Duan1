@@ -79,7 +79,7 @@ $pageTitle = 'Quản lý Lớp học';
                                 }
                                 ?>
                                 <span class="<?= $trangThaiClass ?>">
-                                    <?= htmlspecialchars($lh['trang_thai'] ?? 'Chưa khai giảng') ?>
+                                    <?= htmlspecialchars($lh['trang_thai'] ?? 'Chưa học') ?>
                                 </span>
                             </td>
                             <td><?= isset($lh['ngay_tao']) ? date('d/m/Y', strtotime($lh['ngay_tao'])) : 'N/A' ?></td>
@@ -87,9 +87,11 @@ $pageTitle = 'Quản lý Lớp học';
                                 <div class="action-buttons">
                                     <a href="?act=admin-edit-lop-hoc&id=<?= $lh['id'] ?>" 
                                        class="btn btn-warning btn-sm">Sửa</a>
-                                    <a href="?act=admin-delete-lop-hoc&id=<?= $lh['id'] ?>" 
-                                       class="btn btn-danger btn-sm" 
-                                       onclick="return confirm('Bạn có chắc chắn muốn xóa lớp học này?')">Xóa</a>
+                                    <?php if (($lh['trang_thai'] ?? 'Chưa học') == 'Kết thúc'): ?>
+                                        <a href="?act=admin-delete-lop-hoc&id=<?= $lh['id'] ?>" 
+                                           class="btn btn-danger btn-sm" 
+                                           onclick="return confirm('Bạn có chắc chắn muốn xóa lớp học này?')">Xóa</a>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

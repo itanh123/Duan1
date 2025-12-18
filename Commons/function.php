@@ -55,6 +55,41 @@ function renderAdminView($viewPath, $data = [], $pageTitle = 'Admin Panel')
     include './admin/View/layout.php';
 }
 
+/**
+ * Tính thứ trong tuần từ ngày học hoặc dùng thứ trong tuần từ database
+ * Ưu tiên: Nếu có ngày học, tính thứ từ ngày đó. Nếu không, dùng thứ trong tuần từ database.
+ * 
+ * @param string|null $ngay_hoc Ngày học (format: Y-m-d hoặc Y-m-d H:i:s)
+ * @param string|null $thu_trong_tuan Thứ trong tuần từ database (Thứ 2, Thứ 3, ..., Chủ nhật)
+ * @return string Thứ trong tuần (Thứ 2, Thứ 3, ..., Chủ nhật)
+ */
+function tinhThuTuNgayHoc($ngay_hoc = null, $thu_trong_tuan = null)
+{
+    // Nếu có ngày học, tính thứ từ ngày đó
+    if (!empty($ngay_hoc)) {
+        try {
+            $date = new DateTime($ngay_hoc);
+            $thu = (int)$date->format('N'); // 1 = Monday, 7 = Sunday
+            $thuMap = [
+                1 => 'Thứ 2',
+                2 => 'Thứ 3',
+                3 => 'Thứ 4',
+                4 => 'Thứ 5',
+                5 => 'Thứ 6',
+                6 => 'Thứ 7',
+                7 => 'Chủ nhật'
+            ];
+            return $thuMap[$thu] ?? $thu_trong_tuan ?? 'Chưa xác định';
+        } catch (Exception $e) {
+            // Nếu lỗi parse ngày, dùng thứ trong tuần từ database
+            return $thu_trong_tuan ?? 'Chưa xác định';
+        }
+    }
+    
+    // Nếu không có ngày học, dùng thứ trong tuần từ database
+    return $thu_trong_tuan ?? 'Chưa xác định';
+}
+
 
 
 ?>

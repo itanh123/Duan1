@@ -174,15 +174,20 @@ class adminmodel
     
 
     // Lấy danh sách danh mục (quản lý - lấy tất cả)
-    public function getDanhMucList($page = 1, $limit = 10, $search = '')
+    public function getDanhMucList($page = 1, $limit = 10, $search = '', $trang_thai = '')
     {
         $offset = ($page - 1) * $limit;
-        $sql = "SELECT * FROM danh_muc";
+        $sql = "SELECT * FROM danh_muc WHERE 1=1";
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " WHERE ten_danh_muc LIKE :search";
+            $sql .= " AND ten_danh_muc LIKE :search";
             $params[':search'] = "%$search%";
+        }
+
+        if ($trang_thai !== '' && $trang_thai !== null) {
+            $sql .= " AND trang_thai = :trang_thai";
+            $params[':trang_thai'] = (int)$trang_thai;
         }
 
         $sql .= " ORDER BY id DESC LIMIT :limit OFFSET :offset";
@@ -198,14 +203,19 @@ class adminmodel
     }
 
     // Đếm tổng số danh mục
-    public function countDanhMuc($search = '')
+    public function countDanhMuc($search = '', $trang_thai = '')
     {
-        $sql = "SELECT COUNT(*) as total FROM danh_muc";
+        $sql = "SELECT COUNT(*) as total FROM danh_muc WHERE 1=1";
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " WHERE ten_danh_muc LIKE :search";
+            $sql .= " AND ten_danh_muc LIKE :search";
             $params[':search'] = "%$search%";
+        }
+
+        if ($trang_thai !== '' && $trang_thai !== null) {
+            $sql .= " AND trang_thai = :trang_thai";
+            $params[':trang_thai'] = (int)$trang_thai;
         }
 
         $stmt = $this->conn->prepare($sql);
@@ -607,10 +617,10 @@ class adminmodel
         $stmt->bindValue(':mo_ta', $data['mo_ta'] ?? null);
         $stmt->bindValue(':so_luong_toi_da', $data['so_luong_toi_da'] ?? null, PDO::PARAM_INT);
         // Đảm bảo trang_thai là một trong các giá trị ENUM hợp lệ
-        $trang_thai = $data['trang_thai'] ?? 'Chưa khai giảng';
-        $validTrangThai = ['Chưa khai giảng', 'Đang học', 'Kết thúc'];
+        $trang_thai = $data['trang_thai'] ?? 'Chưa học';
+        $validTrangThai = ['Chưa học', 'Đang học', 'Kết thúc'];
         if (!in_array($trang_thai, $validTrangThai)) {
-            $trang_thai = 'Chưa khai giảng'; // Mặc định
+            $trang_thai = 'Chưa học'; // Mặc định
         }
         $stmt->bindValue(':trang_thai', $trang_thai, PDO::PARAM_STR);
         return $stmt->execute();
@@ -620,10 +630,10 @@ class adminmodel
     public function updateLopHoc($id, $data)
     {
         // Đảm bảo trang_thai là một trong các giá trị ENUM hợp lệ
-        $trang_thai = $data['trang_thai'] ?? 'Chưa khai giảng';
-        $validTrangThai = ['Chưa khai giảng', 'Đang học', 'Kết thúc'];
+        $trang_thai = $data['trang_thai'] ?? 'Chưa học';
+        $validTrangThai = ['Chưa học', 'Đang học', 'Kết thúc'];
         if (!in_array($trang_thai, $validTrangThai)) {
-            $trang_thai = 'Chưa khai giảng'; // Mặc định
+            $trang_thai = 'Chưa học'; // Mặc định
         }
         
         // Cập nhật lớp học không có id_giang_vien (giảng viên sẽ được phân công trong ca học)
@@ -1068,6 +1078,108 @@ class adminmodel
         }
         
         return null; // Lớp học chưa có phòng học được phân công
+    }
+
+    // Lấy danh sách ca học mà học sinh đã đăng ký (với filter theo ngày)
+    public function getCaHocByHocSinh($id_hoc_sinh, $filter_ngay = null)
+    {
+        $sql = "SELECT ch.id as id_ca_hoc,
+                       ch.id_lop,
+                       ch.thu_trong_tuan,
+                       ch.ngay_hoc,
+                       ch.ghi_chu as ghi_chu_ca_hoc,
+                       cmd.ten_ca,
+                       cmd.gio_bat_dau,
+                       cmd.gio_ket_thuc,
+                       ph.ten_phong,
+                       ph.suc_chua,
+                       nd.ho_ten as ten_giang_vien,
+                       lh.ten_lop,
+                       lh.mo_ta as mo_ta_lop,
+                       lh.ngay_bat_dau,
+                       lh.ngay_ket_thuc,
+                       lh.trang_thai as trang_thai_lop,
+                       kh.id as id_khoa_hoc,
+                       kh.ten_khoa_hoc,
+                       kh.gia,
+                       kh.hinh_anh,
+                       dk.id as id_dang_ky,
+                       dk.trang_thai as trang_thai_dang_ky,
+                       dk.ngay_dang_ky
+                FROM dang_ky dk
+                INNER JOIN lop_hoc lh ON dk.id_lop = lh.id
+                INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
+                INNER JOIN ca_hoc ch ON ch.id_lop = lh.id
+                LEFT JOIN ca_mac_dinh cmd ON ch.id_ca = cmd.id
+                LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
+                LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id
+                WHERE dk.id_hoc_sinh = :id_hoc_sinh
+                AND dk.trang_thai = 'Đã xác nhận'";
+        
+        $params = [':id_hoc_sinh' => $id_hoc_sinh];
+        
+        // Filter theo ngày nếu có
+        if (!empty($filter_ngay)) {
+            $sql .= " AND (ch.ngay_hoc = :filter_ngay OR (ch.ngay_hoc IS NULL AND :filter_ngay BETWEEN lh.ngay_bat_dau AND lh.ngay_ket_thuc))";
+            $params[':filter_ngay'] = $filter_ngay;
+        }
+        
+        $sql .= " ORDER BY COALESCE(ch.ngay_hoc, lh.ngay_bat_dau) ASC, cmd.gio_bat_dau ASC";
+        
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Lấy danh sách ca học mà giảng viên đang dạy (với filter theo ngày)
+    public function getCaHocByGiangVien($id_giang_vien, $filter_ngay = null)
+    {
+        $sql = "SELECT ch.id as id_ca_hoc,
+                       ch.id_lop,
+                       ch.thu_trong_tuan,
+                       ch.ngay_hoc,
+                       ch.ghi_chu as ghi_chu_ca_hoc,
+                       cmd.ten_ca,
+                       cmd.gio_bat_dau,
+                       cmd.gio_ket_thuc,
+                       ph.ten_phong,
+                       ph.suc_chua,
+                       lh.ten_lop,
+                       lh.mo_ta as mo_ta_lop,
+                       lh.ngay_bat_dau,
+                       lh.ngay_ket_thuc,
+                       lh.trang_thai as trang_thai_lop,
+                       lh.so_luong_toi_da,
+                       kh.id as id_khoa_hoc,
+                       kh.ten_khoa_hoc,
+                       kh.gia,
+                       kh.hinh_anh
+                FROM ca_hoc ch
+                INNER JOIN lop_hoc lh ON ch.id_lop = lh.id
+                INNER JOIN khoa_hoc kh ON lh.id_khoa_hoc = kh.id
+                LEFT JOIN ca_mac_dinh cmd ON ch.id_ca = cmd.id
+                LEFT JOIN phong_hoc ph ON ch.id_phong = ph.id
+                WHERE ch.id_giang_vien = :id_giang_vien";
+        
+        $params = [':id_giang_vien' => $id_giang_vien];
+        
+        // Filter theo ngày nếu có
+        if (!empty($filter_ngay)) {
+            $sql .= " AND (ch.ngay_hoc = :filter_ngay OR (ch.ngay_hoc IS NULL AND :filter_ngay BETWEEN lh.ngay_bat_dau AND lh.ngay_ket_thuc))";
+            $params[':filter_ngay'] = $filter_ngay;
+        }
+        
+        $sql .= " ORDER BY COALESCE(ch.ngay_hoc, lh.ngay_bat_dau) ASC, cmd.gio_bat_dau ASC";
+        
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll();
     }
 
     // Lấy danh sách lớp học mà học sinh đã đăng ký (với thông tin ca học, phòng học)
@@ -2824,7 +2936,8 @@ class adminmodel
         return $stmt->fetchAll();
     }
 
-    // Kiểm tra trùng lịch khi đổi lịch
+    // Kiểm tra trùng lịch khi đổi lịch - kiểm tra với TẤT CẢ các ca học trong hệ thống
+    // Dựa trên: ngày (nếu có), ca, phòng
     public function kiemTraTrungLich($id_giang_vien, $thu_trong_tuan, $id_ca, $id_phong, $ngay_doi = null, $id_ca_hoc_bo_qua = null)
     {
         // Nếu có ngày cụ thể, kiểm tra trùng trong ngày đó
@@ -2846,17 +2959,21 @@ class adminmodel
             $thuTrongTuan = $thu_trong_tuan;
         }
         
-        $sql = "SELECT ch.*, lh.ngay_bat_dau, lh.ngay_ket_thuc
+        // Nếu không có thứ trong tuần, không thể kiểm tra
+        if (empty($thuTrongTuan)) {
+            return [];
+        }
+        
+        // Kiểm tra trùng với TẤT CẢ các ca học trong hệ thống (không chỉ của giảng viên)
+        // Dựa trên: ngày (nếu có), ca, phòng
+        $sql = "SELECT ch.*, lh.ten_lop, lh.ngay_bat_dau, lh.ngay_ket_thuc, nd.ho_ten as ten_giang_vien
                 FROM ca_hoc ch
                 INNER JOIN lop_hoc lh ON ch.id_lop = lh.id
-                WHERE ch.id_giang_vien = :id_giang_vien
-                AND ch.thu_trong_tuan = :thu_trong_tuan
-                AND ch.id_ca = :id_ca
+                LEFT JOIN nguoi_dung nd ON ch.id_giang_vien = nd.id
+                WHERE ch.id_ca = :id_ca
                 AND ch.id_phong = :id_phong";
         
         $params = [
-            ':id_giang_vien' => $id_giang_vien,
-            ':thu_trong_tuan' => $thuTrongTuan,
             ':id_ca' => $id_ca,
             ':id_phong' => $id_phong
         ];
@@ -2867,10 +2984,22 @@ class adminmodel
             $params[':id_ca_hoc_bo_qua'] = $id_ca_hoc_bo_qua;
         }
         
-        // Nếu có ngày cụ thể, kiểm tra xem ngày đó có nằm trong khoảng thời gian của lớp không
+        // Nếu có ngày cụ thể, kiểm tra:
+        // 1. Ca học có ngày học trùng với ngày đổi
+        // 2. Hoặc ca học không có ngày học (dùng thứ) và ngày đổi nằm trong khoảng thời gian của lớp
         if ($ngay_doi) {
-            $sql .= " AND lh.ngay_bat_dau <= :ngay_doi AND lh.ngay_ket_thuc >= :ngay_doi";
+            $sql .= " AND (
+                        (ch.ngay_hoc = :ngay_doi) 
+                        OR 
+                        (ch.ngay_hoc IS NULL AND ch.thu_trong_tuan = :thu_trong_tuan AND lh.ngay_bat_dau <= :ngay_doi AND lh.ngay_ket_thuc >= :ngay_doi)
+                      )";
             $params[':ngay_doi'] = $ngay_doi;
+            $params[':thu_trong_tuan'] = $thuTrongTuan;
+        } else {
+            // Nếu không có ngày đổi (đổi toàn bộ lịch), kiểm tra tất cả ca học có cùng thứ, ca, phòng
+            // (không có ngày học cụ thể, dùng thứ trong tuần)
+            $sql .= " AND ch.thu_trong_tuan = :thu_trong_tuan AND ch.ngay_hoc IS NULL";
+            $params[':thu_trong_tuan'] = $thuTrongTuan;
         }
         
         $stmt = $this->conn->prepare($sql);

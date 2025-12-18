@@ -138,7 +138,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 <nav>
                     <ul>
                         <li><a href="?act=giang-vien-dashboard"><i class="bi bi-house-door"></i> Dashboard</a></li>
-                        <li><a href="?act=giang-vien-lop-hoc"><i class="bi bi-book"></i> Lớp học của tôi</a></li>
+                        <li><a href="?act=giang-vien-lop-hoc"><i class="bi bi-calendar-week"></i> Lịch học của tôi</a></li>
                         <li><a href="?act=giang-vien-list-hoc-sinh"><i class="bi bi-people"></i> Danh sách học sinh</a></li>
                         <li><a href="?act=giang-vien-profile"><i class="bi bi-person-circle"></i> Thông tin cá nhân</a></li>
                         <li style="color: var(--primary); font-weight: 600;"><i class="bi bi-person-badge"></i> <?= htmlspecialchars($_SESSION['giang_vien_ho_ten'] ?? '') ?></li>
@@ -202,6 +202,16 @@ if (session_status() === PHP_SESSION_NONE) {
                     <input type="hidden" name="id_lop" value="<?= htmlspecialchars($caHoc['id_lop'] ?? '') ?>">
                     
                     <div class="mb-3">
+                        <label for="ngay_doi" class="form-label">Ngày đổi (tùy chọn - để trống nếu đổi toàn bộ lịch)</label>
+                        <input type="date" 
+                               class="form-control" 
+                               id="ngay_doi" 
+                               name="ngay_doi"
+                               value="<?= !empty($caHoc['ngay_hoc']) ? htmlspecialchars($caHoc['ngay_hoc']) : '' ?>">
+                        <small class="form-text text-muted">Nếu chọn ngày, chỉ đổi lịch cho ngày đó. Nếu để trống, sẽ đổi toàn bộ lịch trong khoảng thời gian của lớp.</small>
+                    </div>
+
+                    <div class="mb-3" id="thu_trong_tuan_moi_group">
                         <label for="thu_trong_tuan_moi" class="form-label">Thứ trong tuần mới <span class="text-danger">*</span></label>
                         <select class="form-select" id="thu_trong_tuan_moi" name="thu_trong_tuan_moi" required>
                             <option value="">-- Chọn thứ --</option>
@@ -213,6 +223,8 @@ if (session_status() === PHP_SESSION_NONE) {
                             <option value="Thứ 7" <?= (isset($caHoc['thu_trong_tuan']) && $caHoc['thu_trong_tuan'] == 'Thứ 7') ? 'selected' : '' ?>>Thứ 7</option>
                             <option value="Chủ nhật" <?= (isset($caHoc['thu_trong_tuan']) && $caHoc['thu_trong_tuan'] == 'Chủ nhật') ? 'selected' : '' ?>>Chủ nhật</option>
                         </select>
+                        <small id="thu_auto_info" class="form-text text-muted" style="display: none; color: #28a745;">Thứ được tự động tính từ ngày đã chọn</small>
+                        <small class="form-text text-muted">Nếu chọn ngày đổi, thứ sẽ tự động tính từ ngày. Nếu không chọn ngày, vui lòng chọn thứ để đổi toàn bộ lịch.</small>
                     </div>
 
                     <div class="mb-3">
@@ -222,7 +234,7 @@ if (session_status() === PHP_SESSION_NONE) {
                             <?php foreach ($caMacDinhList as $ca): ?>
                                 <option value="<?= $ca['id'] ?>" 
                                         data-gio-bat-dau="<?= htmlspecialchars($ca['gio_bat_dau']) ?>" 
-                                        data-gio-ket-thuc="<?= htmlspecialchars($ca['gio_ket_thuc']) ?>"
+                                        data-gio-ket-thuc="<?= htmlspecialchars($ca['gio_ket_thuc']) ?>" 
                                         <?= (isset($caHoc['id_ca']) && $caHoc['id_ca'] == $ca['id']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($ca['ten_ca']) ?> (<?= htmlspecialchars($ca['gio_bat_dau']) ?> - <?= htmlspecialchars($ca['gio_ket_thuc']) ?>)
                                 </option>
@@ -243,18 +255,8 @@ if (session_status() === PHP_SESSION_NONE) {
                     </div>
 
                     <div class="mb-3">
-                        <label for="ngay_doi" class="form-label">Ngày đổi (tùy chọn - để trống nếu đổi toàn bộ lịch)</label>
-                        <input type="date" 
-                               class="form-control" 
-                               id="ngay_doi" 
-                               name="ngay_doi"
-                               value="<?= !empty($caHoc['ngay_hoc']) ? htmlspecialchars($caHoc['ngay_hoc']) : '' ?>">
-                        <small class="form-text text-muted">Nếu chọn ngày, chỉ đổi lịch cho ngày đó. Nếu để trống, sẽ đổi toàn bộ lịch trong khoảng thời gian của lớp.</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="ly_do" class="form-label">Lý do đổi lịch</label>
-                        <textarea class="form-control" id="ly_do" name="ly_do" rows="4" placeholder="Nhập lý do đổi lịch..."></textarea>
+                        <label for="ly_do" class="form-label">Lý do đổi lịch <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="ly_do" name="ly_do" rows="4" placeholder="Nhập lý do đổi lịch..." required></textarea>
                     </div>
 
                     <div class="d-flex gap-2">
@@ -271,6 +273,59 @@ if (session_status() === PHP_SESSION_NONE) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    (function() {
+        const ngayDoi = document.getElementById('ngay_doi');
+        const thuTrongTuanMoi = document.getElementById('thu_trong_tuan_moi');
+        const thuTrongTuanMoiGroup = document.getElementById('thu_trong_tuan_moi_group');
+        const thuAutoInfo = document.getElementById('thu_auto_info');
+        
+        // Hàm tính thứ từ ngày
+        function tinhThuTuNgay(ngay) {
+            if (!ngay) return null;
+            const date = new Date(ngay);
+            const thu = date.getDay(); // 0 = Chủ nhật, 1 = Thứ 2, ..., 6 = Thứ 7
+            const thuMap = {
+                0: 'Chủ nhật',
+                1: 'Thứ 2',
+                2: 'Thứ 3',
+                3: 'Thứ 4',
+                4: 'Thứ 5',
+                5: 'Thứ 6',
+                6: 'Thứ 7'
+            };
+            return thuMap[thu] || null;
+        }
+        
+        // Xử lý khi thay đổi ngày đổi
+        function handleNgayDoiChange() {
+            const ngay = ngayDoi.value;
+            if (ngay) {
+                // Có ngày: tự động tính thứ và disable field thứ
+                const thuTuNgay = tinhThuTuNgay(ngay);
+                if (thuTuNgay) {
+                    thuTrongTuanMoi.value = thuTuNgay;
+                    thuTrongTuanMoi.disabled = true;
+                    thuTrongTuanMoi.style.backgroundColor = '#e9ecef';
+                    thuAutoInfo.style.display = 'block';
+                }
+            } else {
+                // Không có ngày: enable field thứ để chọn thủ công (đổi toàn bộ lịch)
+                thuTrongTuanMoi.disabled = false;
+                thuTrongTuanMoi.style.backgroundColor = '';
+                thuAutoInfo.style.display = 'none';
+            }
+        }
+        
+        // Lắng nghe sự kiện thay đổi ngày đổi
+        ngayDoi.addEventListener('change', handleNgayDoiChange);
+        
+        // Xử lý khi load trang nếu đã có ngày đổi
+        if (ngayDoi.value) {
+            handleNgayDoiChange();
+        }
+    })();
+    </script>
 </body>
 </html>
 

@@ -7,6 +7,112 @@ error_reporting(E_ALL);
 // Bắt đầu session
 session_start();
 
+// Thu thập thông báo flash để hiển thị cố định trên đầu trang (client + admin)
+function __collectFlashMessages() {
+    $keys = [
+        ['key' => 'success', 'type' => 'success'],
+        ['key' => 'error', 'type' => 'error'],
+        ['key' => 'warning', 'type' => 'warning'],
+        ['key' => 'info', 'type' => 'info'],
+        ['key' => 'dang_ky_error', 'type' => 'error'],
+        ['key' => 'dang_ky_message', 'type' => 'info'],
+        ['key' => 'dang_ky_success', 'type' => 'success'],
+        ['key' => 'vnpay_error', 'type' => 'error'],
+        ['key' => 'vnpay_success', 'type' => 'success'],
+        ['key' => 'login_error', 'type' => 'error'],
+        ['key' => 'register_error', 'type' => 'error'],
+        ['key' => 'register_success', 'type' => 'success'],
+    ];
+
+    $messages = [];
+    foreach ($keys as $item) {
+        $k = $item['key'];
+        if (!empty($_SESSION[$k])) {
+            $messages[] = ['type' => $item['type'], 'text' => $_SESSION[$k]];
+            unset($_SESSION[$k]);
+        }
+    }
+    return $messages;
+}
+
+$__flashPayload = __collectFlashMessages();
+register_shutdown_function(function () use (&$__flashPayload) {
+    if (empty($__flashPayload)) {
+        return;
+    }
+    $json = json_encode($__flashPayload, JSON_UNESCAPED_UNICODE);
+    echo <<<HTML
+<script>
+(function() {
+    var payload = {$json} || [];
+    if (!payload.length) return;
+    var container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.top = '12px';
+    container.style.left = '50%';
+    container.style.transform = 'translateX(-50%)';
+    container.style.zIndex = '99999';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '8px';
+    container.style.width = 'min(640px, 90vw)';
+    container.setAttribute('aria-live', 'polite');
+
+    var typeStyles = {
+        success: {bg: '#e8f7ee', border: '#16a34a', text: '#14532d'},
+        error:   {bg: '#fef2f2', border: '#dc2626', text: '#7f1d1d'},
+        warning: {bg: '#fffbeb', border: '#d97706', text: '#92400e'},
+        info:    {bg: '#eff6ff', border: '#2563eb', text: '#1e3a8a'}
+    };
+
+    payload.forEach(function(msg) {
+        var style = typeStyles[msg.type] || typeStyles.info;
+        var item = document.createElement('div');
+        item.style.background = style.bg;
+        item.style.border = '1px solid ' + style.border;
+        item.style.color = style.text;
+        item.style.padding = '12px 14px';
+        item.style.borderRadius = '10px';
+        item.style.boxShadow = '0 8px 24px rgba(0,0,0,0.08)';
+        item.style.display = 'flex';
+        item.style.justifyContent = 'space-between';
+        item.style.alignItems = 'center';
+        item.style.fontWeight = '600';
+        item.style.fontFamily = 'Inter, Arial, sans-serif';
+
+        var text = document.createElement('div');
+        text.textContent = msg.text;
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = '×';
+        btn.style.marginLeft = '12px';
+        btn.style.border = 'none';
+        btn.style.background = 'transparent';
+        btn.style.color = style.text;
+        btn.style.fontSize = '18px';
+        btn.style.cursor = 'pointer';
+        btn.style.fontWeight = '700';
+        btn.setAttribute('aria-label', 'Đóng thông báo');
+        btn.onclick = function() { container.removeChild(item); };
+
+        item.appendChild(text);
+        item.appendChild(btn);
+        container.appendChild(item);
+
+        setTimeout(function() {
+            if (container.contains(item)) container.removeChild(item);
+        }, 6000);
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.appendChild(container);
+    });
+})();
+</script>
+HTML;
+});
+
 // require_once file common
 require_once('./Commons/env.php');
 require_once('./Commons/function.php');

@@ -10,7 +10,7 @@ if (session_status() === PHP_SESSION_NONE) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lớp học của tôi - Trang bán khóa học lập trình</title>
+    <title>Lịch học của tôi - Trang bán khóa học lập trình</title>
     <style>
         :root {
             --primary: #10B981;
@@ -248,7 +248,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     <ul>
                         <?php if (isset($_SESSION['giang_vien_id'])): ?>
                             <li><a href="?act=giang-vien-dashboard" style="color: var(--primary);">Dashboard</a></li>
-                            <li><a href="?act=giang-vien-lop-hoc" style="color: var(--primary);">Lớp của tôi</a></li>
+                            <li><a href="?act=giang-vien-lop-hoc" style="color: var(--primary);">Lịch học của tôi</a></li>
                             <li><a href="?act=giang-vien-list-hoc-sinh" style="color: var(--primary);">Danh sách học sinh</a></li>
                             <li><a href="?act=giang-vien-profile" style="color: var(--primary);">👤 Thông tin cá nhân</a></li>
                             <li style="color: var(--primary); font-weight: 600;"><?= htmlspecialchars($_SESSION['giang_vien_ho_ten'] ?? '') ?></li>
@@ -263,102 +263,95 @@ if (session_status() === PHP_SESSION_NONE) {
     </header>
 
     <div class="container">
-        <h1 class="page-title">Lớp học của tôi</h1>
+        <h1 class="page-title">
+            <i class="bi bi-calendar-week"></i> Lịch học của tôi
+        </h1>
 
-        <?php if (empty($lopHocs)): ?>
+        <?php
+        $filter_ngay = $_GET['filter_ngay'] ?? '';
+        ?>
+        
+        <!-- Bộ lọc -->
+        <div class="filter-section" style="background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+            <form method="GET" action="">
+                <input type="hidden" name="act" value="giang-vien-lop-hoc">
+                <div style="display: flex; gap: 15px; align-items: end; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label for="filter_ngay" class="form-label">Lọc theo ngày</label>
+                        <input type="date" 
+                               class="form-control" 
+                               id="filter_ngay" 
+                               name="filter_ngay" 
+                               value="<?= htmlspecialchars($filter_ngay) ?>">
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-funnel"></i> Lọc
+                        </button>
+                        <?php if (!empty($filter_ngay)): ?>
+                            <a href="?act=giang-vien-lop-hoc" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Xóa bộ lọc
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <?php if (empty($caHocs)): ?>
             <div class="empty-state">
-                <p>Bạn chưa được phân công lớp học nào.</p>
+                <p><?= !empty($filter_ngay) ? 'Không có ca học nào vào ngày đã chọn.' : 'Bạn chưa có ca học nào.' ?></p>
             </div>
         <?php else: ?>
-            <?php foreach ($lopHocs as $lop): ?>
-                <div class="class-card">
-                    <div class="class-header">
-                        <h2><?= htmlspecialchars($lop['ten_lop']) ?></h2>
-                        <div class="course-name">Khóa học: <?= htmlspecialchars($lop['ten_khoa_hoc']) ?></div>
-                    </div>
-                    <div class="class-body">
-                        <div class="class-info">
-                            <div class="info-item">
-                                <strong>Trạng thái:</strong>
-                                <?php 
-                                // Lấy trạng thái từ trang_thai_lop (từ model getLopHocByGiangVien)
-                                $trangThai = $lop['trang_thai_lop'] ?? 'Chưa khai giảng';
-                                $trangThaiClass = 'status-warning';
-                                if ($trangThai == 'Kết thúc') {
-                                    $trangThaiClass = 'status-inactive';
-                                } elseif ($trangThai == 'Đang học') {
-                                    $trangThaiClass = 'status-active';
-                                } else {
-                                    // Chưa khai giảng
-                                    $trangThaiClass = 'status-warning';
-                                }
-                                ?>
-                                <span class="status-badge <?= $trangThaiClass ?>">
-                                    <?= htmlspecialchars($trangThai) ?>
-                                </span>
+            <?php foreach ($caHocs as $ca): ?>
+                <div class="class-card" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; padding: 24px;">
+                    <div class="class-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 2px solid #f0f0f0;">
+                        <div>
+                            <h2 style="font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px;"><?= htmlspecialchars($ca['ten_khoa_hoc']) ?></h2>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 14px; color: var(--muted);">
+                                <span><i class="bi bi-book"></i> <?= htmlspecialchars($ca['ten_lop']) ?></span>
+                                <?php if (!empty($ca['ngay_hoc'])): ?>
+                                    <span><i class="bi bi-calendar-date"></i> <?= date('d/m/Y', strtotime($ca['ngay_hoc'])) ?></span>
+                                <?php endif; ?>
+                                <span><i class="bi bi-calendar-week"></i> <?= htmlspecialchars(tinhThuTuNgayHoc($ca['ngay_hoc'] ?? null, $ca['thu_trong_tuan'] ?? null)) ?></span>
                             </div>
-                            <?php if (!empty($lop['so_luong_toi_da'])): ?>
-                                <div class="info-item">
-                                    <strong>Số lượng tối đa:</strong>
-                                    <span><?= $lop['so_luong_toi_da'] ?> học sinh</span>
-                                </div>
-                            <?php endif; ?>
-                            <?php if (!empty($lop['mo_ta_lop'])): ?>
-                                <div class="info-item" style="grid-column: 1 / -1;">
-                                    <strong>Mô tả:</strong>
-                                    <span><?= htmlspecialchars($lop['mo_ta_lop']) ?></span>
-                                </div>
-                            <?php endif; ?>
                         </div>
-
-                        <div class="schedule-section">
-                            <h3>Lịch dạy</h3>
-                            <?php if (!empty($lop['ca_hoc'])): ?>
-                                <div class="schedule-list">
-                                    <?php foreach ($lop['ca_hoc'] as $ca): ?>
-                                        <div class="schedule-item">
-                                            <div class="schedule-item-header">
-                                                <strong>
-                                                    <?php
-                                                    $thuMap = [
-                                                        'Thứ 2' => 'Thứ Hai',
-                                                        'Thứ 3' => 'Thứ Ba',
-                                                        'Thứ 4' => 'Thứ Tư',
-                                                        'Thứ 5' => 'Thứ Năm',
-                                                        'Thứ 6' => 'Thứ Sáu',
-                                                        'Thứ 7' => 'Thứ Bảy',
-                                                        'Chủ nhật' => 'Chủ Nhật'
-                                                    ];
-                                                    echo $thuMap[$ca['thu_trong_tuan']] ?? $ca['thu_trong_tuan'];
-                                                    ?>
-                                                </strong>
-                                            </div>
-                                            <div class="schedule-item-details">
-                                                <span>
-                                                    <strong>Ca học:</strong> 
-                                                    <?= htmlspecialchars($ca['ten_ca'] ?? 'Chưa có') ?>
-                                                    <?php if (!empty($ca['gio_bat_dau']) && !empty($ca['gio_ket_thuc'])): ?>
-                                                        (<?= htmlspecialchars($ca['gio_bat_dau']) ?> - <?= htmlspecialchars($ca['gio_ket_thuc']) ?>)
-                                                    <?php endif; ?>
-                                                </span>
-                                                <?php if (!empty($ca['ten_phong'])): ?>
-                                                    <span>
-                                                        <strong>Phòng học:</strong> <?= htmlspecialchars($ca['ten_phong']) ?>
-                                                        <?php if (!empty($ca['suc_chua'])): ?>
-                                                            (Sức chứa: <?= $ca['suc_chua'] ?>)
-                                                        <?php endif; ?>
-                                                    </span>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php else: ?>
-                                <div class="no-schedule">
-                                    Lớp học này chưa có lịch dạy được phân công.
-                                </div>
-                            <?php endif; ?>
+                        <?php 
+                        $trangThai = $ca['trang_thai_lop'] ?? 'Chưa học';
+                        $trangThaiClass = 'status-warning';
+                        if ($trangThai == 'Kết thúc') {
+                            $trangThaiClass = 'status-inactive';
+                        } elseif ($trangThai == 'Đang học') {
+                            $trangThaiClass = 'status-active';
+                        }
+                        ?>
+                        <span class="status-badge <?= $trangThaiClass ?>" style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                            <?= htmlspecialchars($trangThai) ?>
+                        </span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <strong style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Ca học</strong>
+                            <span style="font-size: 14px; color: var(--text); font-weight: 600;"><?= htmlspecialchars($ca['ten_ca'] ?? 'Chưa có') ?></span>
                         </div>
+                        <?php if (!empty($ca['gio_bat_dau']) && !empty($ca['gio_ket_thuc'])): ?>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <strong style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Giờ học</strong>
+                                <span style="font-size: 14px; color: var(--text); font-weight: 600;"><?= htmlspecialchars($ca['gio_bat_dau']) ?> - <?= htmlspecialchars($ca['gio_ket_thuc']) ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($ca['ten_phong'])): ?>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <strong style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Phòng học</strong>
+                                <span style="font-size: 14px; color: var(--text); font-weight: 600;"><?= htmlspecialchars($ca['ten_phong']) ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($ca['ngay_bat_dau']) && !empty($ca['ngay_ket_thuc'])): ?>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <strong style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Thời gian lớp</strong>
+                                <span style="font-size: 14px; color: var(--text); font-weight: 600;"><?= date('d/m/Y', strtotime($ca['ngay_bat_dau'])) ?> - <?= date('d/m/Y', strtotime($ca['ngay_ket_thuc'])) ?></span>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>

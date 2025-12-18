@@ -71,7 +71,7 @@ $pageTitle = 'Quản lý Ca học';
                             <td><strong><?= htmlspecialchars($ch['ten_lop'] ?? 'N/A') ?></strong></td>
                             <td><?= htmlspecialchars($ch['ten_khoa_hoc'] ?? 'N/A') ?></td>
                             <td><?= htmlspecialchars($ch['ten_ca'] ?? 'N/A') ?></td>
-                            <td><?= htmlspecialchars($ch['thu_trong_tuan']) ?></td>
+                            <td><?= htmlspecialchars(tinhThuTuNgayHoc($ch['ngay_hoc'] ?? null, $ch['thu_trong_tuan'] ?? null)) ?></td>
                             <td><?= !empty($ch['ngay_hoc']) ? date('d/m/Y', strtotime($ch['ngay_hoc'])) : '<span style="color: #999;">Chưa có</span>' ?></td>
                             <td><?= isset($ch['gio_bat_dau']) && isset($ch['gio_ket_thuc']) ? date('H:i', strtotime($ch['gio_bat_dau'])) . ' - ' . date('H:i', strtotime($ch['gio_ket_thuc'])) : 'N/A' ?></td>
                             <td><?= htmlspecialchars($ch['ten_phong'] ?? 'Chưa có') ?></td>

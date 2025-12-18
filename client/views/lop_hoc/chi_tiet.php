@@ -471,7 +471,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     <div class="ca-hoc-item">
                         <div class="ca-hoc-header">
                             <div>
-                                <span class="ca-hoc-day"><?= htmlspecialchars($ca['thu_trong_tuan']) ?></span>
+                                <span class="ca-hoc-day"><?= htmlspecialchars(tinhThuTuNgayHoc($ca['ngay_hoc'] ?? null, $ca['thu_trong_tuan'] ?? null)) ?></span>
                                 <?php if ($ca['ten_ca']): ?>
                                     <span class="ca-hoc-time" style="margin-left: 12px;">
                                         <?= htmlspecialchars($ca['ten_ca']) ?>
