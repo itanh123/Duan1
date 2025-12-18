@@ -270,7 +270,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 <nav>
                     <ul>
                         <li><a href="?act=giang-vien-dashboard"><i class="bi bi-house-door"></i> Dashboard</a></li>
-                        <li><a href="?act=giang-vien-lop-hoc"><i class="bi bi-book"></i> Lớp học của tôi</a></li>
+                        <li><a href="?act=giang-vien-lop-hoc"><i class="bi bi-calendar-week"></i> Lịch học của tôi</a></li>
                         <li><a href="?act=giang-vien-list-hoc-sinh"><i class="bi bi-people"></i> Danh sách học sinh</a></li>
                         <li><a href="?act=giang-vien-profile"><i class="bi bi-person-circle"></i> Thông tin cá nhân</a></li>
                         <li style="color: var(--primary); font-weight: 600;"><i class="bi bi-person-badge"></i> <?= htmlspecialchars($_SESSION['giang_vien_ho_ten'] ?? '') ?></li>
@@ -375,7 +375,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                 <?php endif; ?>
                                 <div class="schedule-detail-item">
                                     <strong><i class="bi bi-calendar-week"></i> Thứ:</strong>
-                                    <span><?= htmlspecialchars($item['thu_trong_tuan']) ?></span>
+                                    <span><?= htmlspecialchars(tinhThuTuNgayHoc($item['ngay_hoc'] ?? null, $item['thu_trong_tuan'] ?? null)) ?></span>
                                 </div>
                                 <div class="schedule-detail-item">
                                     <strong><i class="bi bi-calendar-range"></i> Khoảng thời gian:</strong>

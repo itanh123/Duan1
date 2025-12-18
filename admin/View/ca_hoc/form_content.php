@@ -1,3 +1,7 @@
+<?php
+// Load helper function
+require_once __DIR__ . '/../../../Commons/function.php';
+?>
 <div class="page-container">
     <div class="page-header">
         <h2><?= isset($caHoc) ? 'Sửa ca học' : 'Thêm ca học mới' ?></h2>
@@ -76,28 +80,30 @@
             </div>
 
             <div class="form-group">
-                <label for="thu_trong_tuan" class="required">Thứ trong tuần</label>
-                <select name="thu_trong_tuan" id="thu_trong_tuan" class="form-control" required>
-                    <option value="">-- Chọn thứ --</option>
-                    <option value="Thứ 2" <?= $selectedThu == 'Thứ 2' ? 'selected' : '' ?>>Thứ 2</option>
-                    <option value="Thứ 3" <?= $selectedThu == 'Thứ 3' ? 'selected' : '' ?>>Thứ 3</option>
-                    <option value="Thứ 4" <?= $selectedThu == 'Thứ 4' ? 'selected' : '' ?>>Thứ 4</option>
-                    <option value="Thứ 5" <?= $selectedThu == 'Thứ 5' ? 'selected' : '' ?>>Thứ 5</option>
-                    <option value="Thứ 6" <?= $selectedThu == 'Thứ 6' ? 'selected' : '' ?>>Thứ 6</option>
-                    <option value="Thứ 7" <?= $selectedThu == 'Thứ 7' ? 'selected' : '' ?>>Thứ 7</option>
-                    <option value="Chủ nhật" <?= $selectedThu == 'Chủ nhật' ? 'selected' : '' ?>>Chủ nhật</option>
-                </select>
+                <label for="thu_trong_tuan_display">Thứ trong tuần</label>
+                <input type="text" 
+                       id="thu_trong_tuan_display" 
+                       class="form-control" 
+                       readonly
+                       style="background-color: #e9ecef; cursor: not-allowed;"
+                       value="<?= !empty($selectedNgayHoc) ? htmlspecialchars(tinhThuTuNgayHoc($selectedNgayHoc, $selectedThu)) : htmlspecialchars($selectedThu) ?>">
+                <input type="hidden" 
+                       name="thu_trong_tuan" 
+                       id="thu_trong_tuan" 
+                       value="<?= !empty($selectedNgayHoc) ? htmlspecialchars(tinhThuTuNgayHoc($selectedNgayHoc, $selectedThu)) : htmlspecialchars($selectedThu) ?>">
+                <small class="form-text text-muted">Thứ được tự động tính từ ngày học</small>
             </div>
         </div>
 
         <div class="form-group">
-            <label for="ngay_hoc">Ngày học (tùy chọn - nếu để trống sẽ dùng thứ trong tuần)</label>
+            <label for="ngay_hoc" class="required">Ngày học</label>
             <input type="date" 
                    name="ngay_hoc" 
                    id="ngay_hoc" 
                    class="form-control"
+                   required
                    value="<?= !empty($selectedNgayHoc) ? htmlspecialchars($selectedNgayHoc) : '' ?>">
-            <small class="form-text text-muted">Nếu nhập ngày học, hệ thống sẽ tìm kiếm theo ngày này thay vì thứ trong tuần</small>
+            <small class="form-text text-muted">Thứ trong tuần sẽ tự động được tính từ ngày học</small>
         </div>
 
         <div class="form-row">
@@ -180,6 +186,7 @@
     const idLop = document.getElementById('id_lop');
     const idCa = document.getElementById('id_ca');
     const thuTrongTuan = document.getElementById('thu_trong_tuan');
+    const thuTrongTuanDisplay = document.getElementById('thu_trong_tuan_display');
     const ngayHoc = document.getElementById('ngay_hoc');
     const idGiangVien = document.getElementById('id_giang_vien');
     const idPhong = document.getElementById('id_phong');
@@ -278,6 +285,9 @@
     
     // Lọc phòng học theo sức chứa
     function filterPhongHocBySucChua(soLuongToiDa) {
+        // Lưu giá trị phòng đã chọn trước khi lọc
+        const currentSelectedPhong = idPhong.value;
+        
         // Xóa tất cả options (trừ option đầu tiên)
         while (idPhong.options.length > 1) {
             idPhong.remove(1);
@@ -285,6 +295,7 @@
         
         // Thêm lại các phòng học có sức chứa >= số lượng tối đa
         let hasValidPhong = false;
+        let foundSelectedPhong = false;
         allPhongHoc.forEach(ph => {
             const sucChua = parseInt(ph.sucChua) || 0;
             if (sucChua >= soLuongToiDa) {
@@ -294,6 +305,11 @@
                 option.setAttribute('data-suc-chua', ph.sucChua);
                 idPhong.appendChild(option);
                 hasValidPhong = true;
+                
+                // Kiểm tra xem phòng đã chọn có trong danh sách không
+                if (currentSelectedPhong && ph.value === currentSelectedPhong) {
+                    foundSelectedPhong = true;
+                }
             }
         });
         
@@ -310,16 +326,22 @@
             idPhong.appendChild(option);
         }
         
-        // Reset giá trị đã chọn nếu không còn trong danh sách
-        const currentSelected = idPhong.value;
-        let found = false;
-        Array.from(idPhong.options).forEach(opt => {
-            if (opt.value === currentSelected) {
-                found = true;
+        // Khôi phục giá trị đã chọn nếu còn trong danh sách
+        if (currentSelectedPhong && foundSelectedPhong) {
+            idPhong.value = currentSelectedPhong;
+        } else if (currentSelectedPhong && !foundSelectedPhong) {
+            // Nếu phòng đã chọn không còn phù hợp, giữ lại nhưng cảnh báo
+            // Thêm lại phòng đó vào danh sách với cảnh báo
+            const selectedPhongData = allPhongHoc.find(ph => ph.value === currentSelectedPhong);
+            if (selectedPhongData) {
+                const option = document.createElement('option');
+                option.value = selectedPhongData.value;
+                option.textContent = selectedPhongData.text + ' (⚠️ Sức chứa không đủ)';
+                option.setAttribute('data-suc-chua', selectedPhongData.sucChua);
+                option.style.color = '#dc3545';
+                idPhong.appendChild(option);
+                idPhong.value = currentSelectedPhong;
             }
-        });
-        if (!found) {
-            idPhong.value = '';
         }
     }
     
@@ -344,17 +366,62 @@
     idLop.addEventListener('change', handleLopChange);
     
     // Xử lý khi load trang nếu đã có lớp được chọn
+    // Đảm bảo phòng học hiện tại được giữ lại
     if (idLop.value) {
+        // Lưu giá trị phòng hiện tại trước khi xử lý
+        const currentPhongValue = idPhong.value;
         handleLopChange();
+        
+        // Sau khi xử lý, khôi phục giá trị phòng nếu có
+        if (currentPhongValue) {
+            // Đợi một chút để đảm bảo filterPhongHocBySucChua đã chạy xong
+            setTimeout(() => {
+                // Kiểm tra xem phòng hiện tại có trong danh sách không
+                let found = false;
+                Array.from(idPhong.options).forEach(opt => {
+                    if (opt.value === currentPhongValue) {
+                        found = true;
+                    }
+                });
+                
+                // Nếu không tìm thấy, thêm lại phòng đó vào danh sách
+                if (!found && currentPhongValue) {
+                    const selectedPhongData = allPhongHoc.find(ph => ph.value === currentPhongValue);
+                    if (selectedPhongData) {
+                        const option = document.createElement('option');
+                        option.value = selectedPhongData.value;
+                        option.textContent = selectedPhongData.text + ' (⚠️ Phòng hiện tại)';
+                        option.setAttribute('data-suc-chua', selectedPhongData.sucChua);
+                        option.style.color = '#856404';
+                        // Thêm vào đầu danh sách (sau option đầu tiên)
+                        idPhong.insertBefore(option, idPhong.options[1]);
+                        idPhong.value = currentPhongValue;
+                    }
+                } else if (found) {
+                    // Nếu tìm thấy, đặt lại giá trị
+                    idPhong.value = currentPhongValue;
+                }
+            }, 100);
+        }
     }
     
     function checkTrung() {
         const ca = idCa.value;
-        const thu = thuTrongTuan.value;
         const ngay = ngayHoc.value;
         const excludeId = <?= isset($caHoc['id']) ? $caHoc['id'] : 'null' ?>;
         
-        if (!ca || (!thu && !ngay)) {
+        // Luôn tính thứ từ ngày học
+        let thu = '';
+        if (ngay) {
+            const thuTuNgay = tinhThuTuNgay(ngay);
+            if (thuTuNgay) {
+                thu = thuTuNgay;
+                thuTrongTuan.value = thu;
+                thuTrongTuanDisplay.value = thu;
+            }
+        }
+        
+        if (!ca || !ngay || !thu) {
             // Reset về trạng thái ban đầu
             resetOptions();
             return;
@@ -462,19 +529,67 @@
         }
     }
     
-    // Lắng nghe sự kiện thay đổi
-    [idCa, thuTrongTuan, ngayHoc].forEach(element => {
-        element.addEventListener('change', function() {
-            // Clear timeout cũ
-            if (checkTimeout) {
-                clearTimeout(checkTimeout);
+    // Hàm tính thứ từ ngày
+    function tinhThuTuNgay(ngay) {
+        if (!ngay) return null;
+        const date = new Date(ngay);
+        const thu = date.getDay(); // 0 = Chủ nhật, 1 = Thứ 2, ..., 6 = Thứ 7
+        const thuMap = {
+            0: 'Chủ nhật',
+            1: 'Thứ 2',
+            2: 'Thứ 3',
+            3: 'Thứ 4',
+            4: 'Thứ 5',
+            5: 'Thứ 6',
+            6: 'Thứ 7'
+        };
+        return thuMap[thu] || null;
+    }
+    
+    // Xử lý khi thay đổi ngày học
+    function handleNgayHocChange() {
+        const ngay = ngayHoc.value;
+        if (ngay) {
+            // Có ngày: tự động tính thứ từ ngày
+            const thuTuNgay = tinhThuTuNgay(ngay);
+            if (thuTuNgay) {
+                thuTrongTuan.value = thuTuNgay;
+                thuTrongTuanDisplay.value = thuTuNgay;
             }
-            
-            // Đợi 300ms sau khi người dùng ngừng nhập
-            checkTimeout = setTimeout(() => {
-                checkTrung();
-            }, 300);
-        });
+        } else {
+            // Không có ngày: xóa thứ
+            thuTrongTuan.value = '';
+            thuTrongTuanDisplay.value = '';
+        }
+        
+        // Kiểm tra trùng
+        if (checkTimeout) {
+            clearTimeout(checkTimeout);
+        }
+        checkTimeout = setTimeout(() => {
+            checkTrung();
+        }, 300);
+    }
+    
+    // Lắng nghe sự kiện thay đổi ngày học
+    ngayHoc.addEventListener('change', handleNgayHocChange);
+    
+    // Xử lý khi load trang nếu đã có ngày học
+    if (ngayHoc.value) {
+        handleNgayHocChange();
+    }
+    
+    // Lắng nghe sự kiện thay đổi ca
+    idCa.addEventListener('change', function() {
+        // Clear timeout cũ
+        if (checkTimeout) {
+            clearTimeout(checkTimeout);
+        }
+        
+        // Đợi 300ms sau khi người dùng ngừng nhập
+        checkTimeout = setTimeout(() => {
+            checkTrung();
+        }, 300);
     });
     
     // Kiểm tra khi chọn giảng viên hoặc phòng
@@ -503,7 +618,7 @@
     });
     
     // Kiểm tra ngay khi load trang nếu đã có giá trị
-    if (idCa.value && (thuTrongTuan.value || ngayHoc.value)) {
+    if (idCa.value && ngayHoc.value) {
         setTimeout(checkTrung, 500);
     }
 })();

@@ -86,6 +86,61 @@
             color: var(--primary);
         }
 
+        /* User dropdown */
+        .user-menu {
+            position: relative;
+        }
+        .user-trigger {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .user-trigger:hover {
+            background: #0ea271;
+        }
+        .user-dropdown {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            background: #fff;
+            border: 1px solid #eee;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            border-radius: 10px;
+            min-width: 210px;
+            padding: 6px 0;
+            display: none;
+            z-index: 1000;
+        }
+        .user-dropdown li {
+            display: block;
+        }
+        .user-dropdown a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            color: var(--text);
+            font-weight: 600;
+        }
+        .user-dropdown a:hover {
+            background: #f6f6f6;
+            color: var(--primary);
+        }
+        .user-menu:hover .user-dropdown,
+        .user-menu:focus-within .user-dropdown {
+            display: block;
+        }
+        .logout-link {
+            color: #dc3545;
+        }
+
         /* ===========================
            5) PAGE HEADER
         ============================ */

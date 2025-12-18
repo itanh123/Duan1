@@ -347,7 +347,7 @@ class KhoaHocController {
     }
 
     // ===========================================
-    //  XEM LỚP HỌC CỦA HỌC SINH (action = myClasses)
+    //  XEM LỊCH HỌC CỦA HỌC SINH (action = myClasses)
     // ===========================================
     public function myClasses()
     {
@@ -359,7 +359,19 @@ class KhoaHocController {
             exit;
         }
         
-        $lopHocs = $this->userModel->getLopHocByHocSinh($id_hoc_sinh);
+        // Lấy filter ngày từ GET
+        $filter_ngay = $_GET['filter_ngay'] ?? null;
+        if (!empty($filter_ngay)) {
+            // Validate ngày
+            $date = DateTime::createFromFormat('Y-m-d', $filter_ngay);
+            if (!$date || $date->format('Y-m-d') !== $filter_ngay) {
+                $filter_ngay = null;
+            }
+        }
+        
+        require_once __DIR__ . '/../../admin/Model/adminmodel.php';
+        $adminModel = new adminmodel();
+        $caHocs = $adminModel->getCaHocByHocSinh($id_hoc_sinh, $filter_ngay);
         
         require __DIR__ . '/../views/khoa_hoc/my_classes.php';
     }
@@ -629,7 +641,7 @@ class KhoaHocController {
                 $_SESSION['dang_ky_success'] = true;
                 $_SESSION['dang_ky_message'] = 'Đăng ký thành công! Vui lòng đến trung tâm để thanh toán và xác nhận đăng ký.';
             } else {
-                $_SESSION['dang_ky_error'] = 'Đăng ký thất bại. Vui lòng thử lại!';
+                $_SESSION['dang_ky_error'] = 'Bạn đã đăng ký khóa học này trước đó hoặc lớp đã hết chỗ. Vui lòng chọn khóa/lớp khác.';
             }
         } else if ($phuong_thuc_thanh_toan === 'online') {
             // Thanh toán online: Tích hợp VNPay
@@ -668,7 +680,7 @@ class KhoaHocController {
                 // Kiểm tra kết quả đăng ký
                 if ($id_dang_ky === false || $id_dang_ky === 0 || empty($id_dang_ky)) {
                     // Lấy thông tin lỗi chi tiết từ error log
-                    $errorMsg = 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin hoặc thử lại sau!';
+                    $errorMsg = 'Bạn đã đăng ký khóa học này trước đó hoặc lớp đã hết chỗ. Vui lòng chọn khóa/lớp khác.';
                     
                     // Log để debug
                     error_log("Đăng ký thất bại - ID học sinh: $id_hoc_sinh, ID lớp: $id_lop");

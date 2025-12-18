@@ -50,14 +50,14 @@ $pageTitle = 'Lớp học của ' . htmlspecialchars($giangVien['ho_ten']);
                         <div>
                             <strong>Trạng thái lớp:</strong>
                             <?php 
-                            $trangThai = $lop['trang_thai_lop'] ?? 'Chưa khai giảng';
+                            $trangThai = $lop['trang_thai_lop'] ?? 'Chưa học';
                             $trangThaiClass = 'status-warning';
                             if ($trangThai == 'Kết thúc') {
                                 $trangThaiClass = 'status-inactive';
                             } elseif ($trangThai == 'Đang học') {
                                 $trangThaiClass = 'status-active';
                             } else {
-                                // Chưa khai giảng
+                                // Chưa học
                                 $trangThaiClass = 'status-warning';
                             }
                             ?>
@@ -112,23 +112,23 @@ $pageTitle = 'Lớp học của ' . htmlspecialchars($giangVien['ho_ten']);
                                                 <div>
                                                     <strong>Ngày học:</strong> <?= date('d/m/Y', strtotime($ca['ngay_hoc'])) ?>
                                                 </div>
-                                            <?php else: ?>
-                                                <div>
-                                                    <strong>Thứ:</strong> 
-                                                    <?php
-                                                    $thuMap = [
-                                                        'Thứ 2' => 'Thứ Hai',
-                                                        'Thứ 3' => 'Thứ Ba',
-                                                        'Thứ 4' => 'Thứ Tư',
-                                                        'Thứ 5' => 'Thứ Năm',
-                                                        'Thứ 6' => 'Thứ Sáu',
-                                                        'Thứ 7' => 'Thứ Bảy',
-                                                        'Chủ nhật' => 'Chủ Nhật'
-                                                    ];
-                                                    echo $thuMap[$ca['thu_trong_tuan']] ?? $ca['thu_trong_tuan'];
-                                                    ?>
-                                                </div>
                                             <?php endif; ?>
+                                            <div>
+                                                <strong>Thứ:</strong> 
+                                                <?php
+                                                $thuHienThi = tinhThuTuNgayHoc($ca['ngay_hoc'] ?? null, $ca['thu_trong_tuan'] ?? null);
+                                                $thuMap = [
+                                                    'Thứ 2' => 'Thứ Hai',
+                                                    'Thứ 3' => 'Thứ Ba',
+                                                    'Thứ 4' => 'Thứ Tư',
+                                                    'Thứ 5' => 'Thứ Năm',
+                                                    'Thứ 6' => 'Thứ Sáu',
+                                                    'Thứ 7' => 'Thứ Bảy',
+                                                    'Chủ nhật' => 'Chủ Nhật'
+                                                ];
+                                                echo $thuMap[$thuHienThi] ?? $thuHienThi;
+                                                ?>
+                                            </div>
                                             <div>
                                                 <strong>Ca học:</strong> 
                                                 <?= htmlspecialchars($ca['ten_ca'] ?? 'Chưa có') ?>

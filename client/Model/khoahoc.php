@@ -166,21 +166,93 @@ class KhoaHoc {
     
     public function dangKyKhoaHoc($id_hoc_sinh, $id_lop, $trang_thai = 'Chờ xác nhận', $vnp_TxnRef = null) {
         try {
-            // Lấy thông tin học sinh từ database
-            require_once __DIR__ . '/../../admin/Model/adminmodel.php';
-            $adminModel = new adminmodel();
-            $hocSinh = $adminModel->getNguoiDungById($id_hoc_sinh);
-            
+            // Bắt đầu giao dịch để tránh overbook khi nhiều người đặt cùng lúc
+            $this->db->beginTransaction();
+
+            // Lấy thông tin học sinh ngay trên cùng kết nối (giữ transaction)
+            $sqlHocSinh = "SELECT id, ho_ten, email, so_dien_thoai FROM nguoi_dung WHERE id = :id AND vai_tro = 'hoc_sinh' LIMIT 1";
+            $stmtHocSinh = $this->db->prepare($sqlHocSinh);
+            $stmtHocSinh->bindValue(':id', $id_hoc_sinh, PDO::PARAM_INT);
+            $stmtHocSinh->execute();
+            $hocSinh = $stmtHocSinh->fetch();
             if (!$hocSinh) {
+                $this->db->rollBack();
                 error_log("Không tìm thấy học sinh với ID: " . $id_hoc_sinh);
                 return false;
             }
-            
-            // Lấy thông tin lớp học để lấy id_khoa_hoc
-            $lopHoc = $adminModel->getLopHocById($id_lop);
+
+            // Khóa dòng lớp học để kiểm tra sức chứa
+            $sqlLop = "SELECT id, id_khoa_hoc, so_luong_toi_da FROM lop_hoc WHERE id = :id_lop LIMIT 1 FOR UPDATE";
+            $stmtLop = $this->db->prepare($sqlLop);
+            $stmtLop->bindValue(':id_lop', $id_lop, PDO::PARAM_INT);
+            $stmtLop->execute();
+            $lopHoc = $stmtLop->fetch();
             if (!$lopHoc) {
+                $this->db->rollBack();
                 error_log("Không tìm thấy lớp học với ID: " . $id_lop);
                 return false;
+            }
+
+            // Đếm số lượng đang giữ chỗ (kể cả chờ xác nhận) và khóa khoảng trống bằng FOR UPDATE
+            $sqlCount = "SELECT COUNT(*) AS total
+                         FROM dang_ky
+                         WHERE id_lop = :id_lop
+                           AND trang_thai IN ('Chờ xác nhận','Đã xác nhận')
+                         FOR UPDATE";
+            $stmtCount = $this->db->prepare($sqlCount);
+            $stmtCount->bindValue(':id_lop', $id_lop, PDO::PARAM_INT);
+            $stmtCount->execute();
+            $countRow = $stmtCount->fetch();
+            $soLuongHienTai = (int)($countRow['total'] ?? 0);
+
+            if (!empty($lopHoc['so_luong_toi_da']) && $soLuongHienTai >= (int)$lopHoc['so_luong_toi_da']) {
+                $this->db->rollBack();
+                error_log("Lớp đã đủ chỗ: $soLuongHienTai / {$lopHoc['so_luong_toi_da']} (id_lop: $id_lop)");
+                return false;
+            }
+
+            // Chặn đăng ký trùng cho cùng học sinh vào lớp (trừ khi đã hủy/từ chối)
+            // Kiểm tra theo cột id_hoc_sinh nếu tồn tại, nếu không fallback theo email
+            $hasIdHocSinhColumn = false;
+            try {
+                $checkColumn = $this->db->query("SHOW COLUMNS FROM dang_ky LIKE 'id_hoc_sinh'");
+                $hasIdHocSinhColumn = $checkColumn->rowCount() > 0;
+            } catch (PDOException $e) {
+                error_log("Lỗi kiểm tra cột id_hoc_sinh: " . $e->getMessage());
+            }
+
+            if ($hasIdHocSinhColumn) {
+                $sqlDup = "SELECT id FROM dang_ky
+                           WHERE id_lop = :id_lop
+                             AND id_hoc_sinh = :id_hoc_sinh
+                             AND trang_thai NOT IN ('Đã hủy','Từ chối')
+                           LIMIT 1
+                           FOR UPDATE";
+                $stmtDup = $this->db->prepare($sqlDup);
+                $stmtDup->bindValue(':id_lop', $id_lop, PDO::PARAM_INT);
+                $stmtDup->bindValue(':id_hoc_sinh', $id_hoc_sinh, PDO::PARAM_INT);
+                $stmtDup->execute();
+                if ($stmtDup->fetch()) {
+                    $this->db->rollBack();
+                    error_log("Học sinh $id_hoc_sinh đã đăng ký lớp $id_lop trước đó.");
+                    return false;
+                }
+            } else {
+                $sqlDup = "SELECT id FROM dang_ky
+                           WHERE id_lop = :id_lop
+                             AND email = :email
+                             AND trang_thai NOT IN ('Đã hủy','Từ chối')
+                           LIMIT 1
+                           FOR UPDATE";
+                $stmtDup = $this->db->prepare($sqlDup);
+                $stmtDup->bindValue(':id_lop', $id_lop, PDO::PARAM_INT);
+                $stmtDup->bindValue(':email', $hocSinh['email']);
+                $stmtDup->execute();
+                if ($stmtDup->fetch()) {
+                    $this->db->rollBack();
+                    error_log("Email {$hocSinh['email']} đã đăng ký lớp $id_lop trước đó.");
+                    return false;
+                }
             }
             
             // Kiểm tra xem bảng có cột id_hoc_sinh hay không
@@ -190,6 +262,41 @@ class KhoaHoc {
             } catch (PDOException $e) {
                 error_log("Lỗi kiểm tra cột id_hoc_sinh: " . $e->getMessage());
                 $hasIdHocSinh = false;
+            }
+
+            // Chặn đăng ký trùng khóa học (dù khác lớp) cho cùng tài khoản
+            if ($hasIdHocSinh) {
+                $sqlDupCourse = "SELECT dk.id FROM dang_ky dk
+                                 INNER JOIN lop_hoc lh2 ON dk.id_lop = lh2.id
+                                 WHERE dk.id_hoc_sinh = :id_hoc_sinh
+                                   AND lh2.id_khoa_hoc = :id_khoa_hoc
+                                   AND dk.trang_thai NOT IN ('Đã hủy','Từ chối')
+                                 LIMIT 1 FOR UPDATE";
+                $stmtDupCourse = $this->db->prepare($sqlDupCourse);
+                $stmtDupCourse->bindValue(':id_hoc_sinh', $id_hoc_sinh, PDO::PARAM_INT);
+                $stmtDupCourse->bindValue(':id_khoa_hoc', $lopHoc['id_khoa_hoc'], PDO::PARAM_INT);
+                $stmtDupCourse->execute();
+                if ($stmtDupCourse->fetch()) {
+                    $this->db->rollBack();
+                    error_log("Học sinh $id_hoc_sinh đã đăng ký khóa học {$lopHoc['id_khoa_hoc']} trước đó.");
+                    return false;
+                }
+            } else {
+                $sqlDupCourse = "SELECT dk.id FROM dang_ky dk
+                                 INNER JOIN lop_hoc lh2 ON dk.id_lop = lh2.id
+                                 WHERE dk.email = :email
+                                   AND lh2.id_khoa_hoc = :id_khoa_hoc
+                                   AND dk.trang_thai NOT IN ('Đã hủy','Từ chối')
+                                 LIMIT 1 FOR UPDATE";
+                $stmtDupCourse = $this->db->prepare($sqlDupCourse);
+                $stmtDupCourse->bindValue(':email', $hocSinh['email']);
+                $stmtDupCourse->bindValue(':id_khoa_hoc', $lopHoc['id_khoa_hoc'], PDO::PARAM_INT);
+                $stmtDupCourse->execute();
+                if ($stmtDupCourse->fetch()) {
+                    $this->db->rollBack();
+                    error_log("Email {$hocSinh['email']} đã đăng ký khóa học {$lopHoc['id_khoa_hoc']} trước đó.");
+                    return false;
+                }
             }
             
             if ($hasIdHocSinh) {
@@ -234,6 +341,7 @@ class KhoaHoc {
                     error_log("Lỗi khi execute SQL insert (cấu trúc mới): " . implode(", ", $errorInfo));
                     error_log("Error Code: " . ($errorInfo[0] ?? 'N/A'));
                     error_log("Error Message: " . ($errorInfo[2] ?? 'N/A'));
+                    $this->db->rollBack();
                     return false;
                 }
             } else {
@@ -275,6 +383,7 @@ class KhoaHoc {
                     error_log("Lỗi khi execute SQL insert (cấu trúc cũ): " . implode(", ", $errorInfo));
                     error_log("Error Code: " . ($errorInfo[0] ?? 'N/A'));
                     error_log("Error Message: " . ($errorInfo[2] ?? 'N/A'));
+                    $this->db->rollBack();
                     return false;
                 }
             }
@@ -297,6 +406,7 @@ class KhoaHoc {
                     $result = $checkStmt->fetch();
                     if ($result && isset($result['id'])) {
                         error_log("Tìm thấy ID bằng query lại: " . $result['id']);
+                        $this->db->commit();
                         return $result['id'];
                     }
                 } else {
@@ -306,18 +416,24 @@ class KhoaHoc {
                     $result = $checkStmt->fetch();
                     if ($result && isset($result['id'])) {
                         error_log("Tìm thấy ID bằng query lại: " . $result['id']);
+                        $this->db->commit();
                         return $result['id'];
                     }
                 }
                 
                 // Nếu vẫn không tìm thấy, có thể là lỗi insert
                 error_log("Không thể lấy ID đăng ký sau khi insert");
+                $this->db->rollBack();
                 return false;
             }
             
             error_log("Đăng ký thành công với ID: " . $insertId);
+            $this->db->commit();
             return $insertId;
         } catch (PDOException $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("Lỗi đăng ký khóa học: " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());
             return false;

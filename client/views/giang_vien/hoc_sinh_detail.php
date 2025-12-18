@@ -272,7 +272,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 <nav>
                     <ul>
                         <li><a href="?act=giang-vien-dashboard"><i class="bi bi-house-door"></i> Dashboard</a></li>
-                        <li><a href="?act=giang-vien-lop-hoc"><i class="bi bi-book"></i> Lớp học của tôi</a></li>
+                        <li><a href="?act=giang-vien-lop-hoc"><i class="bi bi-calendar-week"></i> Lịch học của tôi</a></li>
                         <li><a href="?act=giang-vien-list-hoc-sinh"><i class="bi bi-people"></i> Danh sách học sinh</a></li>
                         <li><a href="?act=giang-vien-profile"><i class="bi bi-person-circle"></i> Thông tin cá nhân</a></li>
                         <li style="color: var(--primary); font-weight: 600;"><i class="bi bi-person-badge"></i> <?= htmlspecialchars($_SESSION['giang_vien_ho_ten'] ?? '') ?></li>
@@ -386,6 +386,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                             <div class="schedule-item-header">
                                                 <strong>
                                                     <?php
+                                                    $thuHienThi = tinhThuTuNgayHoc($ca['ngay_hoc'] ?? null, $ca['thu_trong_tuan'] ?? null);
                                                     $thuMap = [
                                                         'Thứ 2' => 'Thứ Hai',
                                                         'Thứ 3' => 'Thứ Ba',
@@ -395,7 +396,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                                         'Thứ 7' => 'Thứ Bảy',
                                                         'Chủ nhật' => 'Chủ Nhật'
                                                     ];
-                                                    echo $thuMap[$ca['thu_trong_tuan']] ?? $ca['thu_trong_tuan'];
+                                                    echo $thuMap[$thuHienThi] ?? $thuHienThi;
                                                     ?>
                                                 </strong>
                                             </div>

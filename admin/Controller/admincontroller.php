@@ -505,18 +505,20 @@ class admincontroller{
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 10;
         $search = $_GET['search'] ?? '';
+        $trang_thai = isset($_GET['trang_thai']) ? $_GET['trang_thai'] : '';
         
-        $total = $this->model->countDanhMuc($search);
+        $total = $this->model->countDanhMuc($search, $trang_thai);
         $totalPages = ceil($total / $limit);
         $page = max(1, min($page, $totalPages > 0 ? $totalPages : 1));
         
-        $danhMuc = $this->model->getDanhMucList($page, $limit, $search);
+        $danhMuc = $this->model->getDanhMucList($page, $limit, $search, $trang_thai);
         
         $data = [
             'danhMuc' => $danhMuc,
             'page' => $page,
             'totalPages' => $totalPages,
-            'search' => $search
+            'search' => $search,
+            'trang_thai' => $trang_thai
         ];
         
         ob_start();
@@ -971,11 +973,11 @@ class admincontroller{
     // Xử lý thêm lớp học
     public function saveLopHoc(){
         $this->checkAdminLogin();
-        $trang_thai = $_POST['trang_thai'] ?? 'Chưa khai giảng';
+        $trang_thai = $_POST['trang_thai'] ?? 'Chưa học';
         // Đảm bảo trang_thai là một trong các giá trị ENUM hợp lệ
-        $validTrangThai = ['Chưa khai giảng', 'Đang học', 'Kết thúc'];
+        $validTrangThai = ['Chưa học', 'Đang học', 'Kết thúc'];
         if (!in_array($trang_thai, $validTrangThai)) {
-            $trang_thai = 'Chưa khai giảng'; // Mặc định
+            $trang_thai = 'Chưa học'; // Mặc định
         }
         
         $so_luong_toi_da = !empty($_POST['so_luong_toi_da']) ? (int)$_POST['so_luong_toi_da'] : null;
@@ -1076,11 +1078,19 @@ class admincontroller{
             exit;
         }
 
-        $trang_thai = $_POST['trang_thai'] ?? 'Chưa khai giảng';
+        $trang_thai = $_POST['trang_thai'] ?? 'Chưa học';
         // Đảm bảo trang_thai là một trong các giá trị ENUM hợp lệ
-        $validTrangThai = ['Chưa khai giảng', 'Đang học', 'Kết thúc'];
+        $validTrangThai = ['Chưa học', 'Đang học', 'Kết thúc'];
         if (!in_array($trang_thai, $validTrangThai)) {
-            $trang_thai = 'Chưa khai giảng'; // Mặc định
+            $trang_thai = 'Chưa học'; // Mặc định
+        }
+        
+        // Kiểm tra không cho chuyển ngược từ "Đang học" hoặc "Kết thúc" về "Chưa học"
+        $trangThaiCu = $lopHoc['trang_thai'] ?? 'Chưa học';
+        if (in_array($trangThaiCu, ['Đang học', 'Kết thúc']) && $trang_thai == 'Chưa học') {
+            $_SESSION['error'] = 'Không thể chuyển từ "' . $trangThaiCu . '" về "Chưa học"!';
+            header('Location: ?act=admin-edit-lop-hoc&id=' . $id);
+            exit;
         }
         $data = [
             'id_khoa_hoc' => $_POST['id_khoa_hoc'] ?? '',
@@ -1519,14 +1529,37 @@ class admincontroller{
         $id_giang_vien = $_POST['id_giang_vien'] ?? '';
         $ngay_hoc_raw = trim($_POST['ngay_hoc'] ?? '');
         
-        // Chuẩn hóa ngày học: nếu rỗng thì chuyển thành null
-        $ngay_hoc = !empty($ngay_hoc_raw) ? $ngay_hoc_raw : null;
+        // Ngày học là bắt buộc
+        if (empty($ngay_hoc_raw)) {
+            $_SESSION['error'] = 'Vui lòng chọn ngày học!';
+            header('Location: ?act=admin-edit-ca-hoc&id=' . $id);
+            exit;
+        }
+        
+        // Validate ngày học format
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $ngay_hoc_raw)) {
+            $_SESSION['error'] = 'Ngày học phải có định dạng YYYY-MM-DD (ví dụ: 2024-01-15)!';
+            header('Location: ?act=admin-edit-ca-hoc&id=' . $id);
+            exit;
+        }
+        
+        $ngay_hoc = $ngay_hoc_raw;
+        
+        // Tự động tính thứ từ ngày học
+        require_once __DIR__ . '/../../Commons/function.php';
+        $thu_trong_tuan = tinhThuTuNgayHoc($ngay_hoc, null);
+        
+        if (empty($thu_trong_tuan)) {
+            $_SESSION['error'] = 'Không thể tính thứ từ ngày học!';
+            header('Location: ?act=admin-edit-ca-hoc&id=' . $id);
+            exit;
+        }
         
         $data = [
             'id_lop' => $_POST['id_lop'] ?? '',
             'id_giang_vien' => !empty($id_giang_vien) ? (int)$id_giang_vien : null,
             'id_ca' => $_POST['id_ca'] ?? '',
-            'thu_trong_tuan' => trim($_POST['thu_trong_tuan'] ?? ''),
+            'thu_trong_tuan' => $thu_trong_tuan,
             'id_phong' => $_POST['id_phong'] ?? '',
             'ghi_chu' => trim($_POST['ghi_chu'] ?? ''),
             'ngay_hoc' => $ngay_hoc

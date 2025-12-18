@@ -119,6 +119,12 @@ class VNPayController {
                 $vnp_ResponseCode
             );
             
+            // Hủy đăng ký để trả chỗ khi thanh toán thất bại
+            $adminModel = new adminmodel();
+            $adminModel->updateDangKy($dangKy['id'], [
+                'trang_thai' => 'Đã hủy'
+            ]);
+            
             $_SESSION['error'] = 'Thanh toán thất bại! ' . ($paymentInfo['vnp_ResponseMessage'] ?? 'Vui lòng thử lại.');
         }
         
@@ -293,6 +299,12 @@ class VNPayController {
                 $vnp_BankCode,
                 $vnp_CardType
             );
+        } else {
+            // Thanh toán thất bại qua IPN -> hủy đăng ký để trả chỗ
+            $adminModel = new adminmodel();
+            $adminModel->updateDangKy($dangKy['id'], [
+                'trang_thai' => 'Đã hủy'
+            ]);
         }
         
         http_response_code(200);

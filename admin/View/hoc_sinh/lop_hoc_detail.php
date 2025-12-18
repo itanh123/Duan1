@@ -90,6 +90,7 @@ $pageTitle = 'Lớp học của ' . htmlspecialchars($hocSinh['ho_ten']);
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                             <strong style="font-size: 16px; color: #333;">
                                                 <?php
+                                                $thuHienThi = tinhThuTuNgayHoc($ca['ngay_hoc'] ?? null, $ca['thu_trong_tuan'] ?? null);
                                                 $thuMap = [
                                                     'Thứ 2' => 'Thứ Hai',
                                                     'Thứ 3' => 'Thứ Ba',
@@ -99,7 +100,7 @@ $pageTitle = 'Lớp học của ' . htmlspecialchars($hocSinh['ho_ten']);
                                                     'Thứ 7' => 'Thứ Bảy',
                                                     'Chủ nhật' => 'Chủ Nhật'
                                                 ];
-                                                echo $thuMap[$ca['thu_trong_tuan']] ?? $ca['thu_trong_tuan'];
+                                                echo $thuMap[$thuHienThi] ?? $thuHienThi;
                                                 ?>
                                             </strong>
                                         </div>

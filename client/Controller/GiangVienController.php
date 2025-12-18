@@ -392,14 +392,25 @@ class GiangVienController {
     }
 
     // ===========================================
-    //  XEM LỚP HỌC CỦA GIẢNG VIÊN (action = myClasses)
+    //  XEM LỊCH HỌC CỦA GIẢNG VIÊN (action = myClasses)
     // ===========================================
     public function myClasses()
     {
         $this->checkGiangVienLogin();
         
         $id_giang_vien = $_SESSION['giang_vien_id'];
-        $lopHocs = $this->model->getLopHocByGiangVien($id_giang_vien);
+        
+        // Lấy filter ngày từ GET
+        $filter_ngay = $_GET['filter_ngay'] ?? null;
+        if (!empty($filter_ngay)) {
+            // Validate ngày
+            $date = DateTime::createFromFormat('Y-m-d', $filter_ngay);
+            if (!$date || $date->format('Y-m-d') !== $filter_ngay) {
+                $filter_ngay = null;
+            }
+        }
+        
+        $caHocs = $this->model->getCaHocByGiangVien($id_giang_vien, $filter_ngay);
         
         require __DIR__ . '/../views/giang_vien/my_classes.php';
     }
@@ -572,15 +583,23 @@ class GiangVienController {
         
         $id_ca_hoc_cu = isset($_POST['id_ca_hoc_cu']) ? (int)$_POST['id_ca_hoc_cu'] : 0;
         $id_lop = isset($_POST['id_lop']) ? (int)$_POST['id_lop'] : 0;
-        $thu_trong_tuan_moi = $_POST['thu_trong_tuan_moi'] ?? '';
+        $thu_trong_tuan_moi = trim($_POST['thu_trong_tuan_moi'] ?? '');
         $id_ca_moi = isset($_POST['id_ca_moi']) ? (int)$_POST['id_ca_moi'] : 0;
         $id_phong_moi = isset($_POST['id_phong_moi']) ? (int)$_POST['id_phong_moi'] : 0;
-        $ngay_doi = $_POST['ngay_doi'] ?? null;
-        $ly_do = $_POST['ly_do'] ?? '';
+        $ngay_doi = trim($_POST['ngay_doi'] ?? '');
+        $ngay_doi = !empty($ngay_doi) ? $ngay_doi : null;
+        $ly_do = trim($_POST['ly_do'] ?? '');
         
-        // Validation
-        if (!$id_ca_hoc_cu || !$id_lop || !$thu_trong_tuan_moi || !$id_ca_moi || !$id_phong_moi) {
+        // Validation cơ bản
+        if (!$id_ca_hoc_cu || !$id_lop || !$id_ca_moi || !$id_phong_moi) {
             $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin!';
+            header('Location: ?act=giang-vien-yeu-cau-doi-lich&id_ca_hoc=' . $id_ca_hoc_cu);
+            exit;
+        }
+        
+        // Kiểm tra lý do đổi lịch bắt buộc
+        if (empty($ly_do)) {
+            $_SESSION['error'] = 'Vui lòng nhập lý do đổi lịch!';
             header('Location: ?act=giang-vien-yeu-cau-doi-lich&id_ca_hoc=' . $id_ca_hoc_cu);
             exit;
         }
@@ -590,6 +609,64 @@ class GiangVienController {
         if (!$caHoc || $caHoc['id_giang_vien'] != $id_giang_vien) {
             $_SESSION['error'] = 'Bạn không có quyền đổi lịch này!';
             header('Location: ?act=giang-vien-dashboard');
+            exit;
+        }
+        
+        // Xử lý thứ trong tuần:
+        // - Nếu có ngày đổi: tự động tính thứ từ ngày
+        // - Nếu không có ngày đổi: dùng thứ từ form (đổi toàn bộ lịch)
+        if ($ngay_doi) {
+            // Tự động tính thứ từ ngày
+            $date = new DateTime($ngay_doi);
+            $thu = (int)$date->format('N'); // 1 = Monday, 7 = Sunday
+            $thuMap = [
+                1 => 'Thứ 2',
+                2 => 'Thứ 3',
+                3 => 'Thứ 4',
+                4 => 'Thứ 5',
+                5 => 'Thứ 6',
+                6 => 'Thứ 7',
+                7 => 'Chủ nhật'
+            ];
+            $thu_trong_tuan_moi = $thuMap[$thu] ?? '';
+        } else {
+            // Nếu không có ngày đổi, cần có thứ để kiểm tra trùng
+            if (empty($thu_trong_tuan_moi)) {
+                $_SESSION['error'] = 'Vui lòng chọn thứ trong tuần khi đổi toàn bộ lịch!';
+                header('Location: ?act=giang-vien-yeu-cau-doi-lich&id_ca_hoc=' . $id_ca_hoc_cu);
+                exit;
+            }
+        }
+        
+        // Kiểm tra trùng lịch trước khi cho phép đổi
+        $trungLich = $this->model->kiemTraTrungLich(
+            $id_giang_vien,
+            $thu_trong_tuan_moi,
+            $id_ca_moi,
+            $id_phong_moi,
+            $ngay_doi,
+            $id_ca_hoc_cu
+        );
+        
+        if (!empty($trungLich)) {
+            // Tạo thông báo lỗi chi tiết
+            $thongBaoLoi = 'Không thể đổi lịch! Lịch mới bị trùng với: ';
+            $danhSachTrung = [];
+            foreach ($trungLich as $tl) {
+                $tenLop = $tl['ten_lop'] ?? 'N/A';
+                $tenGiangVien = $tl['ten_giang_vien'] ?? 'N/A';
+                $thuTrung = $tl['thu_trong_tuan'] ?? '';
+                $ngayTrung = !empty($tl['ngay_hoc']) ? date('d/m/Y', strtotime($tl['ngay_hoc'])) : '';
+                if ($ngayTrung) {
+                    $danhSachTrung[] = "Lớp '$tenLop' (GV: $tenGiangVien) vào ngày $ngayTrung ($thuTrung)";
+                } else {
+                    $danhSachTrung[] = "Lớp '$tenLop' (GV: $tenGiangVien) vào $thuTrung";
+                }
+            }
+            $thongBaoLoi .= implode(', ', $danhSachTrung);
+            
+            $_SESSION['error'] = $thongBaoLoi;
+            header('Location: ?act=giang-vien-yeu-cau-doi-lich&id_ca_hoc=' . $id_ca_hoc_cu);
             exit;
         }
         
