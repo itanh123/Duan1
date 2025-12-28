@@ -1,6 +1,6 @@
 <?php
 
-define('BASE_URL', 'http://localhost/');
+define('BASE_URL', 'http://localhost/PRO1014-duan1/');
 define('DB_HOST', 'localhost');
 define('DB_PORT', 3306);
 define('DB_USERNAME', value: 'root');
